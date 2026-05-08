@@ -1,8 +1,9 @@
 {
-    "version": "0.3.111",
+    "version": "0.3.112",
     "date": "2026-05-08",
     "min_php": "8.1",
     "changelog": [
+        "Update checks now compare both foxdesk.org and GitHub so a stale primary endpoint cannot hide a newer release",
         "Private ticket attachments are now blocked from direct uploads/storage access and protected when served through image.php",
         "Email notifications now convert rich text comments into readable plain text instead of showing raw HTML tags",
         "Ticket quick-edit APIs now validate assignees, companies, priorities, statuses, ticket types, and on-behalf users before saving",

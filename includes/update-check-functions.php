@@ -121,26 +121,57 @@ function get_cached_update_info()
 }
 
 /**
- * Fetch version info from the remote FoxDesk update server.
- * Falls back to GitHub Releases API if the primary server is unreachable.
+ * Fetch version info from the remote FoxDesk update sources.
+ * Checks both foxdesk.org and GitHub, then returns the newest valid version.
  *
  * @return array|false Parsed response with latest_version, download_url, changelog, etc.
  */
 function fetch_remote_version_info()
 {
     // 1. Try foxdesk.org first (custom endpoint — may not exist yet)
-    $response = fetch_foxdesk_org_version_info();
-    if ($response !== false) {
-        return $response;
+    $candidates = [];
+
+    $primary = fetch_foxdesk_org_version_info();
+    if ($primary !== false) {
+        $candidates[] = $primary;
     }
 
     // 2. Fallback to GitHub Releases API (always available)
-    $response = fetch_github_release_info();
-    if ($response !== false) {
-        return $response;
+    $github = fetch_github_release_info();
+    if ($github !== false) {
+        $candidates[] = $github;
     }
 
-    return false;
+    if (empty($candidates)) {
+        return false;
+    }
+
+    $best = null;
+    foreach ($candidates as $candidate) {
+        $version = ltrim((string)($candidate['latest_version'] ?? ''), 'vV');
+        if ($version === '') {
+            continue;
+        }
+
+        if ($best === null) {
+            $best = $candidate;
+            continue;
+        }
+
+        $best_version = ltrim((string)($best['latest_version'] ?? ''), 'vV');
+        if (
+            version_compare($version, $best_version, '>')
+            || (
+                version_compare($version, $best_version, '=') &&
+                empty($best['download_url']) &&
+                !empty($candidate['download_url'])
+            )
+        ) {
+            $best = $candidate;
+        }
+    }
+
+    return $best ?: false;
 }
 
 /**
