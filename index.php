@@ -15,7 +15,7 @@ define('REMEMBER_ME_DURATION', 30 * 86400); // 30 days
 
 require_once BASE_PATH . '/includes/session-bootstrap.php';
 
-define('APP_VERSION', '0.3.119');
+define('APP_VERSION', '0.3.120');
 
 // Check if installed
 if (!file_exists(BASE_PATH . '/config.php')) {
@@ -104,6 +104,13 @@ send_security_headers();
 // Get current page
 $page = isset($_GET['page']) ? $_GET['page'] : 'dashboard';
 $action = isset($_GET['action']) ? $_GET['action'] : '';
+
+// Shared-hosting fallback scheduler: check early so public/login page loads can
+// also trigger IMAP ingest when no real cron is available.
+if (!in_array($page, ['cron', 'api', 'health'], true) && file_exists(BASE_PATH . '/includes/pseudo-cron.php')) {
+    require_once BASE_PATH . '/includes/pseudo-cron.php';
+    pseudo_cron_check();
+}
 
 // Pages that don't require login
 $public_pages = ['login', 'logout', 'forgot-password', 'reset-password', 'ticket-share', 'report-share', 'report-public', 'api', 'health', 'cron'];

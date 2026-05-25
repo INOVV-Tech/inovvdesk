@@ -175,7 +175,7 @@ bin/                   CLI scripts (cron, email ingest, maintenance)
 0 3 * * * php /path/to/bin/run-maintenance.php
 ```
 
-FoxDesk also includes a **pseudo-cron** system that runs tasks on page load, so cron jobs are optional on shared hosting.
+FoxDesk also includes a **pseudo-cron** system that runs tasks on page load, so cron jobs are optional on shared hosting. IMAP email ingest has an extra inline fallback: if the server blocks loopback HTTP requests, a normal app reload can still process incoming mail at most once every 5 minutes.
 
 ---
 

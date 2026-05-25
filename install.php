@@ -269,7 +269,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ['imap_mark_seen_on_skip', '1'],
                     ['imap_allow_unknown_senders', '0'],
                     ['imap_storage_base', 'storage/tickets'],
-                    ['imap_deny_extensions', 'php,phtml,php3,php4,php5,phar,exe,bat,cmd,js,vbs,ps1,sh']
+                    ['imap_deny_extensions', 'php,phtml,php3,php4,php5,phar,exe,bat,cmd,js,vbs,ps1,sh'],
+                    ['pseudo_cron_enabled', '1']
                 ];
                 
                 foreach ($email_settings as $setting) {

@@ -287,15 +287,26 @@ if (!$default_type && !empty($ticket_types)) {
 }
 $default_type_slug = $default_type ? $default_type['slug'] : 'general';
 $default_organization_id = null;
-if (!empty($_POST['import_organization_id'])) {
+$default_assignee_id = null;
+$is_postback = $_SERVER['REQUEST_METHOD'] === 'POST';
+if ($is_postback && !empty($_POST['import_organization_id'])) {
     $posted_org_id = (int) $_POST['import_organization_id'];
     if ($posted_org_id > 0 && in_array($posted_org_id, $allowed_organization_ids, true)) {
         $default_organization_id = $posted_org_id;
     }
-} elseif (!empty($_POST['organization_id'])) {
+} elseif ($is_postback && !empty($_POST['organization_id'])) {
     $posted_org_id = (int) $_POST['organization_id'];
     if ($posted_org_id > 0 && in_array($posted_org_id, $allowed_organization_ids, true)) {
         $default_organization_id = $posted_org_id;
+    }
+}
+if ($is_postback && (is_admin() || is_agent()) && !empty($_POST['assignee_id'])) {
+    $posted_assignee_id = (int) $_POST['assignee_id'];
+    foreach ($staff_users as $staff_user) {
+        if ((int) ($staff_user['id'] ?? 0) === $posted_assignee_id) {
+            $default_assignee_id = $posted_assignee_id;
+            break;
+        }
     }
 }
 
@@ -319,7 +330,8 @@ include BASE_PATH . '/includes/components/page-header.php';
         </div>
     <?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data" class="card card-body" id="new-ticket-form"
+    <form method="post" enctype="multipart/form-data" class="card card-body" id="new-ticket-form" autocomplete="off"
+        data-fresh-ticket="<?php echo $is_postback ? '0' : '1'; ?>"
         onsubmit="var b=this.querySelector('[type=submit]');if(b){b.disabled=true;b.style.opacity='0.6';}">
         <?php echo csrf_field(); ?>
         <div class="space-y-4">
@@ -373,7 +385,7 @@ include BASE_PATH . '/includes/components/page-header.php';
                 <?php if (!empty($organizations)): ?>
                 <div>
                     <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);"><?php echo e(t('Company')); ?></label>
-                    <select name="organization_id" class="form-select">
+                    <select name="organization_id" class="form-select" autocomplete="off" data-reset-on-fresh-ticket="1">
                         <option value=""><?php echo e(t('-- No organization --')); ?></option>
                         <?php foreach ($organizations as $org): ?>
                             <option value="<?php echo (int) $org['id']; ?>" <?php echo $default_organization_id === (int) $org['id'] ? 'selected' : ''; ?>>
@@ -462,10 +474,10 @@ include BASE_PATH . '/includes/components/page-header.php';
                         <?php if (is_admin() || is_agent()): ?>
                         <div>
                             <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);"><?php echo e(t('Assign to')); ?></label>
-                            <select name="assignee_id" class="form-select">
+                            <select name="assignee_id" class="form-select" autocomplete="off" data-reset-on-fresh-ticket="1">
                                 <option value=""><?php echo e(t('-- Unassigned --')); ?></option>
                                 <?php foreach ($staff_users as $su): ?>
-                                    <option value="<?php echo (int) $su['id']; ?>" <?php echo ((int) ($su['id'] ?? 0) === $user['id']) ? 'selected' : ''; ?>>
+                                    <option value="<?php echo (int) $su['id']; ?>" <?php echo ($default_assignee_id !== null && (int) ($su['id'] ?? 0) === $default_assignee_id) ? 'selected' : ''; ?>>
                                         <?php echo e($su['first_name'] . ' ' . $su['last_name']); ?>
                                         <?php if ((int) $su['id'] === $user['id']): ?>(<?php echo e(t('me')); ?>)<?php endif; ?>
                                     </option>
@@ -1013,6 +1025,18 @@ include BASE_PATH . '/includes/components/page-header.php';
 
     const newTicketForm = document.getElementById('new-ticket-form');
     if (newTicketForm) {
+        const resetFreshTicketSelects = function() {
+            if (newTicketForm.dataset.freshTicket !== '1') return;
+            newTicketForm.querySelectorAll('[data-reset-on-fresh-ticket="1"]').forEach(function(select) {
+                select.value = '';
+                select.querySelectorAll('option').forEach(function(option) {
+                    option.selected = option.value === '';
+                });
+            });
+        };
+        resetFreshTicketSelects();
+        window.addEventListener('pageshow', resetFreshTicketSelects);
+
         newTicketForm.addEventListener('submit', function(event) {
             const hadRenderedUploadErrors = fileUploadErrors && !fileUploadErrors.classList.contains('hidden');
             const validation = enforceUploadLimits();
