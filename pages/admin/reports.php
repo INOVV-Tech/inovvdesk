@@ -229,6 +229,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_admin()) {
         exit;
     }
 
+    if (isset($_POST['adjust_billable_entry'])) {
+        $entry_id = (int) ($_POST['entry_id'] ?? 0);
+        $adjust_action = (string) ($_POST['entry_adjust_action'] ?? 'set_rate');
+        $adjust_value = parse_optional_rate_value($_POST['entry_adjust_value'] ?? null);
+
+        if ($entry_id <= 0 || $adjust_value === null) {
+            flash(t('Enter a valid billing adjustment.'), 'error');
+            header('Location: ' . ($_SERVER['REQUEST_URI'] ?? url('admin', ['section' => 'reports', 'tab' => 'detailed'])));
+            exit;
+        }
+
+        $params = [$entry_id];
+        $tenant_filter = '';
+        if (function_exists('column_exists') && column_exists('ticket_time_entries', 'tenant_id')) {
+            $tenant_filter = ' AND tte.tenant_id = ?';
+            $params[] = current_tenant_id();
+        }
+
+        $entry = db_fetch_one(
+            "SELECT tte.*,
+                    t.organization_id,
+                    t.custom_billable_rate as ticket_custom_billable_rate,
+                    o.billable_rate as org_billable_rate
+             FROM ticket_time_entries tte
+             JOIN tickets t ON tte.ticket_id = t.id
+             LEFT JOIN organizations o ON t.organization_id = o.id
+             WHERE tte.id = ?$tenant_filter",
+            $params
+        );
+
+        if (!$entry) {
+            flash(t('Time entry not found.'), 'error');
+            header('Location: ' . ($_SERVER['REQUEST_URI'] ?? url('admin', ['section' => 'reports', 'tab' => 'detailed'])));
+            exit;
+        }
+
+        if ($adjust_action === 'set_rate') {
+            $entry_rate = $adjust_value;
+        } elseif ($adjust_action === 'discount_percent') {
+            if ($adjust_value < 0 || $adjust_value > 100) {
+                flash(t('Enter a valid discount percent.'), 'error');
+                header('Location: ' . ($_SERVER['REQUEST_URI'] ?? url('admin', ['section' => 'reports', 'tab' => 'detailed'])));
+                exit;
+            }
+            $current_rate = function_exists('get_time_entry_effective_billable_rate')
+                ? get_time_entry_effective_billable_rate($entry)
+                : (float) ($entry['billable_rate'] ?? 0);
+            $entry_rate = $current_rate * (1 - ($adjust_value / 100));
+        } elseif ($adjust_action === 'target_total') {
+            if ($adjust_value < 0) {
+                flash(t('Enter a valid target total.'), 'error');
+                header('Location: ' . ($_SERVER['REQUEST_URI'] ?? url('admin', ['section' => 'reports', 'tab' => 'detailed'])));
+                exit;
+            }
+            if (empty($entry['ended_at']) && !empty($entry['started_at'])) {
+                $actual_minutes = max(0, (int) floor(calculate_timer_elapsed($entry) / 60));
+            } else {
+                $actual_minutes = (int) ($entry['duration_minutes'] ?? 0);
+            }
+            $billable_minutes = round_minutes_nearest($actual_minutes, $rounding);
+            if ($billable_minutes <= 0) {
+                flash(t('Selected item has no billable time.'), 'error');
+                header('Location: ' . ($_SERVER['REQUEST_URI'] ?? url('admin', ['section' => 'reports', 'tab' => 'detailed'])));
+                exit;
+            }
+            $entry_rate = $adjust_value / ($billable_minutes / 60);
+        } else {
+            flash(t('Invalid billing adjustment.'), 'error');
+            header('Location: ' . ($_SERVER['REQUEST_URI'] ?? url('admin', ['section' => 'reports', 'tab' => 'detailed'])));
+            exit;
+        }
+
+        db_update('ticket_time_entries', [
+            'is_billable' => 1,
+            'billable_rate' => round(max(0, (float) $entry_rate), 2)
+        ], 'id = ?', [$entry_id]);
+
+        flash(t('Billable item adjustment updated.'), 'success');
+        header('Location: ' . ($_SERVER['REQUEST_URI'] ?? url('admin', ['section' => 'reports', 'tab' => 'detailed'])));
+        exit;
+    }
+
     if (isset($_POST['set_billable'])) {
         $entry_id = (int) ($_POST['entry_id'] ?? 0);
         $is_billable = isset($_POST['is_billable']) && $_POST['is_billable'] === '1' ? 1 : 0;
@@ -1669,7 +1751,7 @@ include BASE_PATH . '/includes/components/page-header.php';
                                 <th class="px-3 py-2 text-left th-label" data-col="end">
                                     <?php echo e(t('End time')); ?></th>
                                 <?php if ($show_money): ?>
-                                    <th class="px-3 py-2 text-left th-label" data-col="amount">
+                                    <th class="px-3 py-2 text-left th-label" data-col="amount" style="min-width: 220px;">
                                         <?php echo e(t('Amount')); ?></th>
                                 <?php endif; ?>
                                 <?php if ($show_money && $has_cost_data): ?>
@@ -1737,9 +1819,24 @@ include BASE_PATH . '/includes/components/page-header.php';
                                     <td class="px-3 py-1.5 text-xs" data-col="end" style="color: var(--text-secondary);">
                                         <?php echo e($entry['ended_at'] ? format_date($entry['ended_at']) : '-'); ?></td>
                                     <?php if ($show_money): ?>
-                                        <td class="px-3 py-1.5 text-xs" data-col="amount" style="color: var(--text-secondary);">
+                                        <td class="px-3 py-1.5 text-xs" data-col="amount" style="color: var(--text-secondary); min-width: 220px;">
                                             <div><?php echo e(format_money($entry['billable_amount'])); ?></div>
                                             <div class="text-[11px]" style="color: var(--text-muted);"><?php echo e(format_money($entry['billable_rate'])); ?>/h</div>
+                                            <?php if (is_admin()): ?>
+                                            <form method="post" class="entry-billing-form mt-1 flex items-center gap-1" data-entry-id="<?php echo $entry['id']; ?>">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="entry_id" value="<?php echo $entry['id']; ?>">
+                                                <select name="entry_adjust_action" class="form-select text-[11px] py-1" style="width: 76px;">
+                                                    <option value="set_rate"><?php echo e(t('Rate')); ?></option>
+                                                    <option value="discount_percent"><?php echo e(t('Discount')); ?></option>
+                                                    <option value="target_total"><?php echo e(t('Total')); ?></option>
+                                                </select>
+                                                <input type="number" name="entry_adjust_value" step="0.01" min="0" class="form-input text-[11px] py-1" style="width: 70px;" placeholder="<?php echo e(t('Value')); ?>">
+                                                <button type="submit" name="adjust_billable_entry" class="btn btn-ghost btn-sm py-1 px-2 shrink-0" title="<?php echo e(t('Save billing')); ?>">
+                                                    <?php echo get_icon('check', 'w-3 h-3'); ?>
+                                                </button>
+                                            </form>
+                                            <?php endif; ?>
                                         </td>
                                     <?php endif; ?>
                                     <?php if ($show_money && $has_cost_data): ?>
