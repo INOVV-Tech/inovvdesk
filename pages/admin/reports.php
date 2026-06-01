@@ -1686,6 +1686,28 @@ include BASE_PATH . '/includes/components/page-header.php';
                     <div class="text-sm" style="color: var(--text-muted);"><?php echo e(t('Try adjusting the time range or filters above.')); ?></div>
                 </div>
             <?php else: ?>
+            <div class="report-detail-totals" id="report-detail-totals" style="display: flex; border: 1px solid var(--border-light); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; background: var(--surface-primary);">
+                <div style="flex: 1; padding: 8px 14px;">
+                    <div style="font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px;"><?php echo e(t('Total time')); ?></div>
+                    <div id="detail-total-time" style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;"><?php echo e(format_duration_minutes($totals['minutes'])); ?></div>
+                </div>
+                <div style="flex: 1; padding: 8px 14px; border-left: 1px solid var(--border-light);">
+                    <div style="font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px;"><?php echo e(t('Billable time')); ?></div>
+                    <div id="detail-billable-time" style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;"><?php echo e(format_duration_minutes($totals['billable_minutes'])); ?></div>
+                </div>
+                <?php if ($show_money): ?>
+                <div style="flex: 1; padding: 8px 14px; border-left: 1px solid var(--border-light);">
+                    <div style="font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px;"><?php echo e(t('Billable amount')); ?></div>
+                    <div id="detail-billable-amount" style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;"><?php echo e(format_money($totals['billable_amount'])); ?></div>
+                </div>
+                <?php if ($has_cost_data): ?>
+                <div style="flex: 1; padding: 8px 14px; border-left: 1px solid var(--border-light);">
+                    <div style="font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 2px;"><?php echo e(t('Profit')); ?></div>
+                    <div id="detail-profit" style="font-size: 1.125rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;"><?php echo e(format_money($totals['profit'])); ?></div>
+                </div>
+                <?php endif; ?>
+                <?php endif; ?>
+            </div>
             <div class="card overflow-hidden">
                 <div class="card-header">
                     <h3 class="font-semibold" style="color: var(--text-primary);"><?php echo e(t('Detailed')); ?></h3>
@@ -1768,7 +1790,13 @@ include BASE_PATH . '/includes/components/page-header.php';
                         </thead>
                         <tbody class="divide-y">
                             <?php foreach ($entries as $entry): ?>
-                                <tr>
+                                <tr class="report-detail-row"
+                                    data-billable="<?php echo !empty($entry['is_billable']) ? '1' : '0'; ?>"
+                                    data-actual-minutes="<?php echo (int) $entry['actual_minutes']; ?>"
+                                    data-billable-minutes="<?php echo (int) $entry['billable_minutes']; ?>"
+                                    data-original-rate="<?php echo e(number_format((float) $entry['billable_rate'], 2, '.', '')); ?>"
+                                    data-original-amount="<?php echo e(number_format((float) $entry['billable_amount'], 2, '.', '')); ?>"
+                                    data-cost-amount="<?php echo e(number_format((float) $entry['cost_amount'], 2, '.', '')); ?>">
                                     <?php if (is_admin()): ?>
                                     <td class="px-3 py-1.5 text-xs">
                                         <input type="checkbox" class="bulk-entry-check rounded" name="entry_ids[]" value="<?php echo $entry['id']; ?>" form="bulk-billing-form" <?php echo !empty($entry['is_billable']) ? '' : 'disabled'; ?>>
@@ -1820,8 +1848,8 @@ include BASE_PATH . '/includes/components/page-header.php';
                                         <?php echo e($entry['ended_at'] ? format_date($entry['ended_at']) : '-'); ?></td>
                                     <?php if ($show_money): ?>
                                         <td class="px-3 py-1.5 text-xs" data-col="amount" style="color: var(--text-secondary); min-width: 220px;">
-                                            <div><?php echo e(format_money($entry['billable_amount'])); ?></div>
-                                            <div class="text-[11px]" style="color: var(--text-muted);"><?php echo e(format_money($entry['billable_rate'])); ?>/h</div>
+                                            <div data-entry-amount><?php echo e(format_money($entry['billable_amount'])); ?></div>
+                                            <div class="text-[11px]" data-entry-rate style="color: var(--text-muted);"><?php echo e(format_money($entry['billable_rate'])); ?>/h</div>
                                             <?php if (is_admin()): ?>
                                             <form method="post" class="entry-billing-form mt-1 flex items-center gap-1" data-entry-id="<?php echo $entry['id']; ?>">
                                                 <?php echo csrf_field(); ?>
@@ -2585,6 +2613,151 @@ include BASE_PATH . '/includes/components/page-header.php';
                 selectAll.indeterminate = checkedCount > 0 && checkedCount < checks.length;
             });
         });
+    })();
+
+    /* ── Detailed report billing preview totals ── */
+    (function () {
+        var rows = Array.prototype.slice.call(document.querySelectorAll('.report-detail-row'));
+        var totalAmountEl = document.getElementById('detail-billable-amount');
+        if (!rows.length || !totalAmountEl) return;
+
+        var currency = <?php echo json_encode(function_exists('get_currency_label') ? get_currency_label() : 'CZK'); ?>;
+
+        function numberValue(value) {
+            var parsed = parseFloat(String(value || '').replace(',', '.'));
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function formatMoney(amount) {
+            return Number(amount || 0).toLocaleString('cs-CZ', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).replace(/\u00a0/g, ' ') + ' ' + currency;
+        }
+
+        function formatDuration(minutes) {
+            minutes = Math.max(0, Math.round(Number(minutes) || 0));
+            var hours = Math.floor(minutes / 60);
+            var mins = minutes % 60;
+            return hours > 0 ? hours + 'h ' + mins + 'min' : mins + ' min';
+        }
+
+        function rowPreview(row) {
+            var billable = row.dataset.billable === '1';
+            var actualMinutes = Number(row.dataset.actualMinutes || 0);
+            var billableMinutes = billable ? Number(row.dataset.billableMinutes || 0) : 0;
+            var originalRate = Number(row.dataset.originalRate || 0);
+            var originalAmount = Number(row.dataset.originalAmount || 0);
+            var costAmount = Number(row.dataset.costAmount || 0);
+            var rate = originalRate;
+            var amount = originalAmount;
+            var bulkPreview = bulkPreviewForRow(row, billableMinutes, originalRate);
+            var form = row.querySelector('.entry-billing-form');
+
+            if (bulkPreview) {
+                rate = bulkPreview.rate;
+                amount = bulkPreview.amount;
+            } else if (form) {
+                var action = form.querySelector('[name="entry_adjust_action"]');
+                var input = form.querySelector('[name="entry_adjust_value"]');
+                var value = numberValue(input ? input.value : '');
+                if (value !== null) {
+                    if (action && action.value === 'set_rate') {
+                        rate = value;
+                        amount = billableMinutes > 0 ? (billableMinutes / 60) * rate : 0;
+                    } else if (action && action.value === 'discount_percent') {
+                        rate = originalRate * (1 - Math.min(Math.max(value, 0), 100) / 100);
+                        amount = billableMinutes > 0 ? (billableMinutes / 60) * rate : 0;
+                    } else if (action && action.value === 'target_total') {
+                        amount = Math.max(0, value);
+                        rate = billableMinutes > 0 ? amount / (billableMinutes / 60) : originalRate;
+                    }
+                }
+            }
+
+            if (!billable) {
+                amount = 0;
+                rate = 0;
+            }
+
+            return {
+                actualMinutes: actualMinutes,
+                billableMinutes: billableMinutes,
+                amount: Math.max(0, amount),
+                rate: Math.max(0, rate),
+                cost: costAmount,
+                profit: Math.max(0, amount) - costAmount
+            };
+        }
+
+        function bulkPreviewForRow(row, billableMinutes, originalRate) {
+            var check = row.querySelector('.bulk-entry-check');
+            var form = document.getElementById('bulk-billing-form');
+            if (!check || !check.checked || !form) return null;
+
+            var action = form.querySelector('[name="bulk_action"]');
+            var selectedAction = action ? action.value : 'set_rate';
+            var value = null;
+            if (selectedAction === 'set_rate') {
+                value = numberValue(form.querySelector('[name="bulk_rate"]')?.value);
+                if (value === null) return null;
+                return { rate: value, amount: billableMinutes > 0 ? (billableMinutes / 60) * value : 0 };
+            }
+            if (selectedAction === 'discount_percent') {
+                value = numberValue(form.querySelector('[name="bulk_discount_percent"]')?.value);
+                if (value === null) return null;
+                var discountedRate = originalRate * (1 - Math.min(Math.max(value, 0), 100) / 100);
+                return { rate: discountedRate, amount: billableMinutes > 0 ? (billableMinutes / 60) * discountedRate : 0 };
+            }
+            if (selectedAction === 'target_total') {
+                value = numberValue(form.querySelector('[name="bulk_target_total"]')?.value);
+                if (value === null) return null;
+                var selectedRows = rows.filter(function (candidate) {
+                    var candidateCheck = candidate.querySelector('.bulk-entry-check');
+                    return candidateCheck && candidateCheck.checked && candidate.dataset.billable === '1';
+                });
+                var selectedMinutes = selectedRows.reduce(function (sum, candidate) {
+                    return sum + Number(candidate.dataset.billableMinutes || 0);
+                }, 0);
+                if (selectedMinutes <= 0) return null;
+                var targetRate = Math.max(0, value) / (selectedMinutes / 60);
+                return { rate: targetRate, amount: billableMinutes > 0 ? (billableMinutes / 60) * targetRate : 0 };
+            }
+            return null;
+        }
+
+        function updatePreview() {
+            var totals = rows.reduce(function (acc, row) {
+                var preview = rowPreview(row);
+                acc.actualMinutes += preview.actualMinutes;
+                acc.billableMinutes += preview.billableMinutes;
+                acc.amount += preview.amount;
+                acc.cost += preview.cost;
+                acc.profit += preview.profit;
+
+                var amountEl = row.querySelector('[data-entry-amount]');
+                var rateEl = row.querySelector('[data-entry-rate]');
+                if (amountEl) amountEl.textContent = formatMoney(preview.amount);
+                if (rateEl) rateEl.textContent = formatMoney(preview.rate) + '/h';
+                return acc;
+            }, { actualMinutes: 0, billableMinutes: 0, amount: 0, cost: 0, profit: 0 });
+
+            var totalTimeEl = document.getElementById('detail-total-time');
+            var billableTimeEl = document.getElementById('detail-billable-time');
+            var profitEl = document.getElementById('detail-profit');
+            if (totalTimeEl) totalTimeEl.textContent = formatDuration(totals.actualMinutes);
+            if (billableTimeEl) billableTimeEl.textContent = formatDuration(totals.billableMinutes);
+            totalAmountEl.textContent = formatMoney(totals.amount);
+            if (profitEl) profitEl.textContent = formatMoney(totals.profit);
+        }
+
+        document.querySelectorAll('.entry-billing-form select, .entry-billing-form input, #bulk-billing-form select, #bulk-billing-form input')
+            .forEach(function (field) {
+                field.addEventListener('input', updatePreview);
+                field.addEventListener('change', updatePreview);
+            });
+
+        updatePreview();
     })();
 
     /* ── Filter persistence (localStorage) ── */
