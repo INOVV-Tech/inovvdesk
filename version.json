@@ -1,13 +1,13 @@
 {
-    "version": "0.3.129",
+    "version": "0.3.130",
     "date": "2026-06-03",
     "min_php": "8.1",
     "changelog": [
-        "Self-hosted FoxDesk can now sync data to FoxDesk Cloud through a token-protected migration bridge",
-        "The migration sync includes core tables, object mapping, and attachment upload to the SaaS storage driver",
-        "Admins can connect to FoxDesk Cloud, analyze the migration plan, and keep ZIP export as an offline fallback",
-        "Final cutover can disable local IMAP/email processing and redirect users to the cloud workspace",
-        "CLI maintenance now skips update checks, email ingest, and recurring tasks after cloud cutover"
+        "Cloud migration can now be run directly from the admin browser without PHP CLI or server SSH access",
+        "Migration progress is saved between short batches so shared hosting timeouts do not interrupt the transfer",
+        "The browser-safe sync runner streams core data first, attachments second, and post-attachment links last",
+        "Admins can inspect the current stage, table offset, attachment offset, sent rows, upload counts, and sync warnings",
+        "The existing CLI sync command remains available for servers that can run long-running PHP commands"
     ],
     "delete_files": []
 }

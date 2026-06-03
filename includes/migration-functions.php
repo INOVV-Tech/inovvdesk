@@ -766,3 +766,335 @@ function migration_cloud_sync_all_tables(string $cloud_url, string $token, int $
     save_setting('migration_cloud_mode', 'ready_for_cutover');
     return $summary;
 }
+
+function migration_cloud_sync_tables_for_web(array $tables): array
+{
+    $enabled = array_merge(migration_cloud_chunk_tables(), migration_cloud_post_attachment_tables());
+    $selected = [];
+
+    foreach ($tables as $table) {
+        $table = (string) $table;
+        if (in_array($table, $enabled, true) && table_exists($table)) {
+            $selected[] = $table;
+        }
+    }
+
+    return array_values(array_unique($selected));
+}
+
+function migration_cloud_empty_sync_state(): array
+{
+    return [
+        'stage' => 'idle',
+        'cloud_url' => '',
+        'started_at' => null,
+        'updated_at' => null,
+        'finished_at' => null,
+        'limits' => [
+            'rows' => 250,
+            'attachments' => 2,
+            'seconds' => 18,
+        ],
+        'tables' => migration_cloud_sync_tables_for_web(migration_cloud_chunk_tables()),
+        'post_attachment_tables' => migration_cloud_sync_tables_for_web(migration_cloud_post_attachment_tables()),
+        'current_table_index' => 0,
+        'current_table' => null,
+        'offset' => 0,
+        'attachment_offset' => 0,
+        'summary' => [
+            'tables' => [],
+            'attachments' => ['sent' => 0, 'uploaded' => 0, 'mapped' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []],
+            'total_sent' => 0,
+            'errors' => [],
+        ],
+        'last_result' => null,
+    ];
+}
+
+function migration_cloud_sync_state(): array
+{
+    $raw = (string) get_setting('migration_cloud_sync_state_json', '');
+    $decoded = $raw !== '' ? json_decode($raw, true) : null;
+    $state = is_array($decoded) ? $decoded : [];
+    $default = migration_cloud_empty_sync_state();
+    $state = array_replace_recursive($default, $state);
+
+    $state['stage'] = in_array((string) ($state['stage'] ?? ''), ['idle', 'plan', 'tables', 'attachments', 'post_attachment_tables', 'complete'], true)
+        ? (string) $state['stage']
+        : 'idle';
+    $state['tables'] = migration_cloud_sync_tables_for_web((array) ($state['tables'] ?? []));
+    $state['post_attachment_tables'] = migration_cloud_sync_tables_for_web((array) ($state['post_attachment_tables'] ?? []));
+    $state['current_table_index'] = max(0, (int) ($state['current_table_index'] ?? 0));
+    $state['offset'] = max(0, (int) ($state['offset'] ?? 0));
+    $state['attachment_offset'] = max(0, (int) ($state['attachment_offset'] ?? 0));
+    $state['limits']['rows'] = max(1, min(1000, (int) ($state['limits']['rows'] ?? 250)));
+    $state['limits']['attachments'] = max(1, min(25, (int) ($state['limits']['attachments'] ?? 2)));
+    $state['limits']['seconds'] = max(5, min(25, (int) ($state['limits']['seconds'] ?? 18)));
+
+    return $state;
+}
+
+function migration_cloud_save_sync_state(array $state): void
+{
+    $state['updated_at'] = gmdate('c');
+    save_setting('migration_cloud_sync_state_json', migration_json_encode($state));
+}
+
+function migration_cloud_reset_sync_state(string $cloud_url, string $token, int $row_limit = 250, int $attachment_limit = 2): array
+{
+    $cloud_url = rtrim(trim($cloud_url), '/');
+    $token = trim($token);
+    if ($cloud_url === '') {
+        throw new InvalidArgumentException('Cloud URL is required.');
+    }
+    if ($token === '') {
+        throw new InvalidArgumentException('Migration token is required.');
+    }
+
+    save_setting('migration_cloud_url', $cloud_url);
+    save_setting('migration_cloud_token', $token);
+    save_setting('migration_cloud_mode', 'connected');
+
+    $state = migration_cloud_empty_sync_state();
+    $state['stage'] = 'plan';
+    $state['cloud_url'] = $cloud_url;
+    $state['started_at'] = gmdate('c');
+    $state['limits']['rows'] = max(1, min(1000, $row_limit));
+    $state['limits']['attachments'] = max(1, min(25, $attachment_limit));
+    migration_cloud_save_sync_state($state);
+
+    save_setting('migration_cloud_last_sync_summary_json', '');
+    return $state;
+}
+
+function migration_cloud_clear_sync_state(): void
+{
+    save_setting('migration_cloud_sync_state_json', '');
+    save_setting('migration_cloud_last_sync_summary_json', '');
+}
+
+function migration_cloud_merge_table_sync_summary(array $table_summary, array $result, int $sent): array
+{
+    foreach (['sent', 'chunks', 'created', 'updated', 'mapped', 'skipped'] as $key) {
+        if (!isset($table_summary[$key])) {
+            $table_summary[$key] = 0;
+        }
+    }
+
+    $table_summary['sent'] += $sent;
+    $table_summary['chunks']++;
+    $api_summary = is_array($result['summary'] ?? null) ? $result['summary'] : [];
+    foreach (['created', 'updated', 'mapped', 'skipped'] as $key) {
+        $table_summary[$key] += (int) ($api_summary[$key] ?? 0);
+    }
+
+    return $table_summary;
+}
+
+function migration_cloud_add_sync_error(array &$state, string $scope, string $message, array $context = []): void
+{
+    if (!isset($state['summary']['errors']) || !is_array($state['summary']['errors'])) {
+        $state['summary']['errors'] = [];
+    }
+
+    if (count($state['summary']['errors']) >= 20) {
+        return;
+    }
+
+    $state['summary']['errors'][] = [
+        'scope' => $scope,
+        'message' => $message,
+        'context' => $context,
+        'at' => gmdate('c'),
+    ];
+}
+
+function migration_cloud_sync_one_table_batch(array &$state, string $cloud_url, string $token, array $tables, string $next_stage): void
+{
+    $index = max(0, (int) ($state['current_table_index'] ?? 0));
+    $limit = max(1, min(1000, (int) ($state['limits']['rows'] ?? 250)));
+
+    while ($index < count($tables) && !table_exists($tables[$index])) {
+        $index++;
+        $state['current_table_index'] = $index;
+        $state['offset'] = 0;
+    }
+
+    if ($index >= count($tables)) {
+        $state['stage'] = $next_stage;
+        $state['current_table_index'] = 0;
+        $state['current_table'] = null;
+        $state['offset'] = 0;
+        return;
+    }
+
+    $table = $tables[$index];
+    $offset = max(0, (int) ($state['offset'] ?? 0));
+    $state['current_table'] = $table;
+
+    $result = migration_cloud_push_table_chunk($cloud_url, $token, $table, $offset, $limit);
+    $sent = (int) ($result['sent_rows'] ?? 0);
+    $state['summary']['tables'][$table] = migration_cloud_merge_table_sync_summary(
+        is_array($state['summary']['tables'][$table] ?? null) ? $state['summary']['tables'][$table] : [],
+        $result,
+        $sent
+    );
+    $state['summary']['total_sent'] = (int) ($state['summary']['total_sent'] ?? 0) + $sent;
+    $state['last_result'] = [
+        'type' => 'table',
+        'table' => $table,
+        'offset' => $offset,
+        'sent_rows' => $sent,
+        'done' => !empty($result['done']),
+    ];
+
+    if ($sent < $limit || !empty($result['done'])) {
+        $state['current_table_index'] = $index + 1;
+        $state['offset'] = 0;
+        $state['current_table'] = null;
+        return;
+    }
+
+    $state['current_table_index'] = $index;
+    $state['offset'] = $offset + $limit;
+}
+
+function migration_cloud_sync_one_attachment_batch(array &$state, string $cloud_url, string $token): void
+{
+    if (!table_exists('attachments')) {
+        $state['stage'] = 'post_attachment_tables';
+        $state['attachment_offset'] = 0;
+        return;
+    }
+
+    $limit = max(1, min(25, (int) ($state['limits']['attachments'] ?? 2)));
+    $offset = max(0, (int) ($state['attachment_offset'] ?? 0));
+    $rows = migration_select_chunk('attachments', $offset, $limit);
+    $summary = is_array($state['summary']['attachments'] ?? null)
+        ? $state['summary']['attachments']
+        : ['sent' => 0, 'uploaded' => 0, 'mapped' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []];
+
+    foreach ($rows as $row) {
+        try {
+            $result = migration_cloud_push_attachment($cloud_url, $token, $row);
+            $summary['sent'] = (int) ($summary['sent'] ?? 0) + 1;
+            if (!empty($result['skipped'])) {
+                $summary['skipped'] = (int) ($summary['skipped'] ?? 0) + 1;
+            } elseif (!empty($result['mapped'])) {
+                $summary['mapped'] = (int) ($summary['mapped'] ?? 0) + 1;
+            } else {
+                $summary['uploaded'] = (int) ($summary['uploaded'] ?? 0) + 1;
+            }
+        } catch (Throwable $e) {
+            $summary['failed'] = (int) ($summary['failed'] ?? 0) + 1;
+            if (!isset($summary['errors']) || !is_array($summary['errors'])) {
+                $summary['errors'] = [];
+            }
+            if (count($summary['errors']) < 20) {
+                $summary['errors'][] = [
+                    'attachment_id' => (int) ($row['id'] ?? 0),
+                    'error' => $e->getMessage(),
+                ];
+            }
+        }
+    }
+
+    $state['summary']['attachments'] = $summary;
+    $state['summary']['total_sent'] = (int) ($state['summary']['total_sent'] ?? 0) + count($rows);
+    $state['last_result'] = [
+        'type' => 'attachments',
+        'offset' => $offset,
+        'sent_rows' => count($rows),
+        'done' => count($rows) < $limit,
+    ];
+
+    if (count($rows) < $limit) {
+        save_setting('migration_cloud_last_attachment_sync_json', migration_json_encode($summary));
+        $state['stage'] = 'post_attachment_tables';
+        $state['attachment_offset'] = 0;
+        $state['current_table_index'] = 0;
+        $state['offset'] = 0;
+        return;
+    }
+
+    $state['attachment_offset'] = $offset + $limit;
+}
+
+function migration_cloud_web_sync_run(string $cloud_url, string $token, array $options = []): array
+{
+    $cloud_url = rtrim(trim($cloud_url), '/');
+    $token = trim($token);
+    if ($cloud_url === '') {
+        throw new InvalidArgumentException('Cloud URL is required.');
+    }
+    if ($token === '') {
+        throw new InvalidArgumentException('Migration token is required.');
+    }
+
+    $state = migration_cloud_sync_state();
+    if (($options['restart'] ?? false) || ($state['stage'] ?? 'idle') === 'idle' || ($state['cloud_url'] ?? '') !== $cloud_url) {
+        $state = migration_cloud_reset_sync_state(
+            $cloud_url,
+            $token,
+            (int) ($options['row_limit'] ?? ($state['limits']['rows'] ?? 250)),
+            (int) ($options['attachment_limit'] ?? ($state['limits']['attachments'] ?? 2))
+        );
+    }
+
+    save_setting('migration_cloud_url', $cloud_url);
+    save_setting('migration_cloud_token', $token);
+    save_setting('migration_cloud_mode', 'syncing');
+
+    $deadline = microtime(true) + max(5, min(25, (int) ($state['limits']['seconds'] ?? 18)));
+    $processed = 0;
+
+    while (microtime(true) < $deadline && $processed < 25) {
+        $stage = (string) ($state['stage'] ?? 'idle');
+        if ($stage === 'plan') {
+            $plan = migration_cloud_plan($cloud_url, $token);
+            $state['last_result'] = ['type' => 'plan', 'ok' => true, 'rows' => (int) ($plan['plan']['total_rows'] ?? 0)];
+            $state['stage'] = 'tables';
+            $processed++;
+            continue;
+        }
+
+        if ($stage === 'tables') {
+            migration_cloud_sync_one_table_batch($state, $cloud_url, $token, (array) ($state['tables'] ?? []), 'attachments');
+            $processed++;
+            continue;
+        }
+
+        if ($stage === 'attachments') {
+            migration_cloud_sync_one_attachment_batch($state, $cloud_url, $token);
+            $processed++;
+            continue;
+        }
+
+        if ($stage === 'post_attachment_tables') {
+            migration_cloud_sync_one_table_batch($state, $cloud_url, $token, (array) ($state['post_attachment_tables'] ?? []), 'complete');
+            $processed++;
+            continue;
+        }
+
+        if ($stage === 'complete') {
+            break;
+        }
+
+        $state['stage'] = 'plan';
+    }
+
+    if (($state['stage'] ?? '') === 'complete') {
+        $state['finished_at'] = $state['finished_at'] ?: gmdate('c');
+        save_setting('migration_cloud_mode', 'ready_for_cutover');
+        save_setting('migration_cloud_last_sync_summary_json', migration_json_encode($state['summary']));
+    }
+
+    migration_cloud_save_sync_state($state);
+
+    return [
+        'success' => true,
+        'processed_batches' => $processed,
+        'done' => ($state['stage'] ?? '') === 'complete',
+        'state' => $state,
+    ];
+}

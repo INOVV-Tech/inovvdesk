@@ -50,6 +50,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['migration_action'] ?? '') 
     }
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['migration_action'] ?? ''), ['start_cloud_sync', 'run_cloud_sync_batch'], true)) {
+    require_csrf_token();
+    $cloud_url = trim((string) ($_POST['cloud_url'] ?? $cloud_url));
+    $token = trim((string) ($_POST['migration_token'] ?? $stored_token));
+    $restart = ($_POST['migration_action'] ?? '') === 'start_cloud_sync';
+    try {
+        $migration_response = migration_cloud_web_sync_run($cloud_url, $token, [
+            'restart' => $restart,
+            'row_limit' => (int) ($_POST['row_limit'] ?? 250),
+            'attachment_limit' => (int) ($_POST['attachment_limit'] ?? 2),
+        ]);
+        $stored_token = $token;
+        if (!empty($migration_response['done'])) {
+            flash('Cloud sync finished. Verify the SaaS workspace before final cutover.', 'success');
+        } else {
+            flash('Cloud sync batch completed. Continue until the stage is complete.', 'success');
+        }
+    } catch (Throwable $e) {
+        flash('Cloud sync batch failed: ' . $e->getMessage(), 'error');
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['migration_action'] ?? '') === 'clear_cloud_sync_state') {
+    require_csrf_token();
+    migration_cloud_clear_sync_state();
+    flash('Saved cloud sync progress was cleared.', 'success');
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['migration_action'] ?? '') === 'mark_cutover') {
     require_csrf_token();
     $target = trim((string) ($_POST['cutover_target_url'] ?? ''));
@@ -94,6 +122,11 @@ $inventory = migration_inventory();
 $last_plan = json_decode((string) get_setting('migration_cloud_last_plan_json', ''), true);
 $last_plan = is_array($last_plan) ? $last_plan : null;
 $display_plan = is_array($migration_response) && isset($migration_response['plan']) ? $migration_response : $last_plan;
+$sync_state = migration_cloud_sync_state();
+$sync_summary = is_array($sync_state['summary'] ?? null) ? $sync_state['summary'] : [];
+$sync_attachment_summary = is_array($sync_summary['attachments'] ?? null) ? $sync_summary['attachments'] : [];
+$sync_stage = (string) ($sync_state['stage'] ?? 'idle');
+$sync_current_table = (string) ($sync_state['current_table'] ?? '');
 
 require_once BASE_PATH . '/includes/header.php';
 ?>
@@ -152,9 +185,143 @@ require_once BASE_PATH . '/includes/header.php';
                 </div>
             </div>
             <div class="mt-4 bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-900">
-                Core data and attachments can be synced from CLI with
-                <code>php bin/sync-to-cloud.php --cloud-url=<?php echo e($cloud_url); ?> --token=TOKEN</code>.
-                Files are streamed over the migration API and stored through the SaaS storage driver. ZIP export remains available below as a fallback.
+                Core data and attachments are streamed over the migration API and stored through the SaaS storage driver.
+                ZIP export remains available below as a fallback when API sync is not available.
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+            <div>
+                <p class="text-sm font-semibold text-blue-600 mb-2">Browser-safe sync runner</p>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">Run migration without server SSH</h2>
+                <p class="text-gray-600 max-w-3xl">
+                    Each click runs a short migration batch and saves progress. Use it on shared hosting where PHP CLI,
+                    cron, or long-running shell commands are not available.
+                </p>
+            </div>
+            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold <?php echo $sync_stage === 'complete' ? 'bg-green-100 text-green-700' : ($sync_stage === 'idle' ? 'bg-gray-100 text-gray-700' : 'bg-blue-100 text-blue-700'); ?>">
+                Stage: <?php echo e($sync_stage); ?>
+            </span>
+        </div>
+
+        <div class="grid md:grid-cols-4 gap-3 mt-5">
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="text-xs uppercase font-semibold text-gray-500">Current table</div>
+                <div class="text-base font-bold text-gray-900 mt-1"><?php echo e($sync_current_table !== '' ? $sync_current_table : '-'); ?></div>
+            </div>
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="text-xs uppercase font-semibold text-gray-500">Table offset</div>
+                <div class="text-base font-bold text-gray-900 mt-1"><?php echo (int) ($sync_state['offset'] ?? 0); ?></div>
+            </div>
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="text-xs uppercase font-semibold text-gray-500">Attachment offset</div>
+                <div class="text-base font-bold text-gray-900 mt-1"><?php echo (int) ($sync_state['attachment_offset'] ?? 0); ?></div>
+            </div>
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="text-xs uppercase font-semibold text-gray-500">Rows sent</div>
+                <div class="text-base font-bold text-gray-900 mt-1"><?php echo (int) ($sync_summary['total_sent'] ?? 0); ?></div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-5 gap-3 mt-3 text-sm">
+            <div class="rounded-lg border border-gray-100 p-3">
+                <div class="text-gray-500">Attachments sent</div>
+                <strong class="text-gray-900"><?php echo (int) ($sync_attachment_summary['sent'] ?? 0); ?></strong>
+            </div>
+            <div class="rounded-lg border border-gray-100 p-3">
+                <div class="text-gray-500">Uploaded</div>
+                <strong class="text-gray-900"><?php echo (int) ($sync_attachment_summary['uploaded'] ?? 0); ?></strong>
+            </div>
+            <div class="rounded-lg border border-gray-100 p-3">
+                <div class="text-gray-500">Mapped</div>
+                <strong class="text-gray-900"><?php echo (int) ($sync_attachment_summary['mapped'] ?? 0); ?></strong>
+            </div>
+            <div class="rounded-lg border border-gray-100 p-3">
+                <div class="text-gray-500">Skipped</div>
+                <strong class="text-gray-900"><?php echo (int) ($sync_attachment_summary['skipped'] ?? 0); ?></strong>
+            </div>
+            <div class="rounded-lg border border-gray-100 p-3">
+                <div class="text-gray-500">Failed</div>
+                <strong class="<?php echo ((int) ($sync_attachment_summary['failed'] ?? 0)) > 0 ? 'text-red-700' : 'text-gray-900'; ?>"><?php echo (int) ($sync_attachment_summary['failed'] ?? 0); ?></strong>
+            </div>
+        </div>
+
+        <div class="grid lg:grid-cols-[1fr_auto_auto_auto] gap-3 mt-5 items-end">
+            <form method="post" class="contents">
+                <?php echo csrf_field(); ?>
+                <input type="hidden" name="migration_action" value="run_cloud_sync_batch">
+                <div class="grid md:grid-cols-4 gap-3">
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">FoxDesk Cloud URL</label>
+                        <input class="form-input" name="cloud_url" value="<?php echo e($cloud_url); ?>" placeholder="https://app.foxdesk.net">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Rows per batch</label>
+                        <input class="form-input" type="number" min="1" max="1000" name="row_limit" value="<?php echo (int) ($sync_state['limits']['rows'] ?? 250); ?>">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Files per batch</label>
+                        <input class="form-input" type="number" min="1" max="25" name="attachment_limit" value="<?php echo (int) ($sync_state['limits']['attachments'] ?? 2); ?>">
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Migration token</label>
+                        <input class="form-input" name="migration_token" value="<?php echo e($stored_token); ?>" placeholder="fdmig_..." autocomplete="off">
+                    </div>
+                </div>
+                <button class="btn btn-primary whitespace-nowrap" type="submit" <?php echo $sync_stage === 'complete' ? 'disabled' : ''; ?>>
+                    Run next batch
+                </button>
+                <button class="btn btn-secondary whitespace-nowrap" type="submit" name="migration_action" value="start_cloud_sync" onclick="return confirm('Restart saved sync progress and start again?')">
+                    Restart sync
+                </button>
+            </form>
+            <form method="post">
+                <?php echo csrf_field(); ?>
+                <input type="hidden" name="migration_action" value="clear_cloud_sync_state">
+                <button class="btn btn-secondary whitespace-nowrap" type="submit" onclick="return confirm('Clear saved sync progress? This does not delete SaaS data.')">
+                    Clear progress
+                </button>
+            </form>
+        </div>
+
+        <?php if (!empty($sync_summary['tables']) && is_array($sync_summary['tables'])): ?>
+            <div class="mt-5 border border-gray-100 rounded-lg overflow-hidden">
+                <div class="grid grid-cols-6 bg-gray-50 text-xs uppercase font-semibold text-gray-500">
+                    <div class="px-3 py-2 col-span-2">Table</div>
+                    <div class="px-3 py-2">Sent</div>
+                    <div class="px-3 py-2">Created</div>
+                    <div class="px-3 py-2">Mapped</div>
+                    <div class="px-3 py-2">Skipped</div>
+                </div>
+                <?php foreach ($sync_summary['tables'] as $table => $table_summary): ?>
+                    <?php $table_summary = is_array($table_summary) ? $table_summary : []; ?>
+                    <div class="grid grid-cols-6 border-t border-gray-100 text-sm">
+                        <div class="px-3 py-2 col-span-2 font-medium text-gray-800"><?php echo e((string) $table); ?></div>
+                        <div class="px-3 py-2 text-gray-600"><?php echo (int) ($table_summary['sent'] ?? 0); ?></div>
+                        <div class="px-3 py-2 text-gray-600"><?php echo (int) ($table_summary['created'] ?? 0); ?></div>
+                        <div class="px-3 py-2 text-gray-600"><?php echo (int) ($table_summary['mapped'] ?? 0); ?></div>
+                        <div class="px-3 py-2 text-gray-600"><?php echo (int) ($table_summary['skipped'] ?? 0); ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+
+        <?php
+            $sync_errors = array_merge(
+                is_array($sync_summary['errors'] ?? null) ? $sync_summary['errors'] : [],
+                is_array($sync_attachment_summary['errors'] ?? null) ? $sync_attachment_summary['errors'] : []
+            );
+        ?>
+        <?php if ($sync_errors): ?>
+            <div class="mt-5 bg-red-50 border border-red-100 rounded-lg p-4 text-sm text-red-900">
+                <div class="font-semibold mb-2">Sync warnings</div>
+                <ul class="list-disc pl-5 space-y-1">
+                    <?php foreach (array_slice($sync_errors, 0, 10) as $sync_error): ?>
+                        <li><?php echo e((string) ($sync_error['message'] ?? $sync_error['error'] ?? 'Unknown sync error')); ?></li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
         <?php endif; ?>
     </div>

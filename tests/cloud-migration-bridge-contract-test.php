@@ -27,10 +27,14 @@ $assert(str_contains($migration, 'function migration_cloud_push_table_chunk'), '
 $assert(str_contains($migration, 'function migration_cloud_push_attachment'), 'Self-hosted attachment push helper is missing.');
 $assert(str_contains($migration, 'function migration_cloud_sync_attachments'), 'Self-hosted attachment sync helper is missing.');
 $assert(str_contains($migration, 'function migration_cloud_sync_all_tables'), 'Self-hosted table sync helper is missing.');
+$assert(str_contains($migration, 'function migration_cloud_web_sync_run'), 'Self-hosted web sync runner is missing.');
+$assert(str_contains($migration, 'function migration_cloud_reset_sync_state'), 'Self-hosted sync state reset helper is missing.');
 $assert(str_contains($migration, 'migration-push-attachment'), 'Self-hosted sync must call the attachment upload endpoint.');
 $assert(str_contains($migration, 'function migration_cloud_mark_cutover'), 'Self-hosted cutover helper is missing.');
 $assert(str_contains($migration, 'self_hosted_to_saas'), 'Migration direction must be explicit.');
 $assert(str_contains($page, 'Sync to SaaS, then cut over once'), 'Cloud migration page must expose sync-first workflow.');
+$assert(str_contains($page, 'Browser-safe sync runner'), 'Cloud migration page must expose the browser-safe sync runner.');
+$assert(str_contains($page, 'run_cloud_sync_batch'), 'Cloud migration page must let admins run sync batches from the browser.');
 $assert(str_contains($page, 'Final cutover'), 'Cloud migration page must expose final cutover.');
 $assert(str_contains($index, 'migration_cloud_should_redirect_after_cutover'), 'Index must redirect after cloud cutover.');
 $assert(str_contains($index, 'migration_cloud_cutover_active'), 'Pseudo-cron must be disabled after cloud cutover.');
