@@ -9,6 +9,7 @@
  */
 
 header('Content-Type: text/plain; charset=utf-8');
+require_once BASE_PATH . '/includes/pseudo-cron.php';
 
 // --- Validate token ---
 $token  = $_GET['token'] ?? '';
@@ -37,9 +38,8 @@ $errors = [];
 // -----------------------------------------------------------------
 // 1. Email ingestion (every 5 minutes)
 // -----------------------------------------------------------------
-$last_email = (int) get_setting('pseudo_cron_last_email', '0');
-if ($now - $last_email >= 300) {
-    save_setting('pseudo_cron_last_email', (string) $now);
+if (pseudo_cron_email_is_due($now)) {
+    pseudo_cron_mark_email_attempt($now, 'endpoint');
     try {
         require_once BASE_PATH . '/includes/email-ingest-functions.php';
         $cfg = email_ingest_config();
@@ -49,9 +49,13 @@ if ($now - $last_email >= 300) {
             && trim((string) ($cfg['password'] ?? '')) !== '';
 
         if ($enabled && function_exists('email_ingest_run')) {
-            email_ingest_run();
+            $email_result = email_ingest_run();
+            pseudo_cron_mark_email_success(time(), $email_result, 'endpoint');
+        } else {
+            pseudo_cron_mark_email_success(time(), ['disabled' => true], 'endpoint');
         }
     } catch (Throwable $e) {
+        pseudo_cron_mark_email_error($e->getMessage(), 'endpoint');
         $errors[] = 'email: ' . $e->getMessage();
         error_log('[pseudo-cron] email error: ' . $e->getMessage());
     }

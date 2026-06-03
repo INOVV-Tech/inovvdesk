@@ -1,13 +1,13 @@
 {
-    "version": "0.3.126",
+    "version": "0.3.127",
     "date": "2026-06-03",
     "min_php": "8.1",
     "changelog": [
-        "The Complete ticket action now selects a real completed status instead of cancel/reject terminal statuses, including Czech status names with accents",
-        "Closed tickets are visible inline in All, Done, archived, and explicit closed-status views instead of disappearing into a hidden closed bucket",
-        "Explicit status filters no longer conflict with Open/Done work views",
-        "Show all and clear-filter links now keep users in the expected ticket view",
-        "Authenticated fallback redirects now use the Work home instead of the old Dashboard route"
+        "Automatic IMAP email ingest now tracks attempts separately from successful runs so failed background runs do not hide future retries",
+        "Shared-hosting pseudo-cron now retries email ingest after a short failed-attempt throttle instead of waiting as if ingest completed",
+        "The cron endpoint, inline fallback, and CLI maintenance command now store the last email ingest source, result, success time, and error",
+        "The admin System background task panel now shows email ingest success, attempts, source, last result, and last error",
+        "Background tasks now display as enabled by default when no explicit setting has been saved"
     ],
     "delete_files": []
 }

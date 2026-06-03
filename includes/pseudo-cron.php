@@ -19,6 +19,52 @@ define('PSEUDO_CRON_TASKS', [
     'pseudo_cron_last_maintenance' => 86400, // 24 hours
 ]);
 
+function pseudo_cron_email_is_due(int $now, int $interval = 300): bool
+{
+    $last_success = (int) get_setting('pseudo_cron_last_email', '0');
+    if ($last_success > 0 && ($now - $last_success) < $interval) {
+        return false;
+    }
+
+    $last_attempt = (int) get_setting('pseudo_cron_last_email_attempt', '0');
+    if ($last_attempt > 0 && ($now - $last_attempt) < 60) {
+        return false;
+    }
+
+    return true;
+}
+
+function pseudo_cron_mark_email_attempt(int $now, string $source): void
+{
+    save_setting('pseudo_cron_last_email_attempt', (string) $now);
+    save_setting('pseudo_cron_last_email_started', (string) $now);
+    save_setting('pseudo_cron_last_email_source', $source);
+}
+
+function pseudo_cron_mark_email_success(int $now, array $result, string $source): void
+{
+    save_setting('pseudo_cron_last_email', (string) $now);
+    save_setting('pseudo_cron_last_email_success', (string) $now);
+    save_setting('pseudo_cron_last_email_error', '');
+    save_setting('pseudo_cron_last_email_error_at', '0');
+    save_setting('pseudo_cron_last_email_source', $source);
+    save_setting('pseudo_cron_last_email_result', json_encode([
+        'checked' => (int) ($result['checked'] ?? 0),
+        'processed' => (int) ($result['processed'] ?? 0),
+        'skipped' => (int) ($result['skipped'] ?? 0),
+        'failed' => (int) ($result['failed'] ?? 0),
+        'disabled' => !empty($result['disabled']) ? 1 : 0,
+        'source' => $source,
+    ], JSON_UNESCAPED_UNICODE));
+}
+
+function pseudo_cron_mark_email_error(string $message, string $source): void
+{
+    save_setting('pseudo_cron_last_email_error', $message);
+    save_setting('pseudo_cron_last_email_error_at', (string) time());
+    save_setting('pseudo_cron_last_email_source', $source);
+}
+
 /**
  * Check if any pseudo-cron task is due and trigger if so.
  * Called on every page load from header.php.
@@ -39,15 +85,15 @@ function pseudo_cron_check()
     $now = time();
 
     // Quick check: is any task overdue?
-    $due = false;
-    $email_due = false;
+    $email_due = pseudo_cron_email_is_due($now);
+    $due = $email_due;
     foreach (PSEUDO_CRON_TASKS as $setting_key => $interval) {
+        if ($setting_key === 'pseudo_cron_last_email') {
+            continue;
+        }
         $last_run = (int) get_setting($setting_key, '0');
         if ($now - $last_run >= $interval) {
             $due = true;
-            if ($setting_key === 'pseudo_cron_last_email') {
-                $email_due = true;
-            }
             break;
         }
     }
@@ -137,6 +183,10 @@ function pseudo_cron_schedule_inline_email_ingest(int $now): void
         return;
     }
 
+    if (!pseudo_cron_email_is_due($now)) {
+        return;
+    }
+
     $lock_time = (int) get_setting('pseudo_cron_email_inline_lock', '0');
     if ($lock_time > 0 && ($now - $lock_time) < 300) {
         return;
@@ -144,7 +194,7 @@ function pseudo_cron_schedule_inline_email_ingest(int $now): void
 
     $scheduled = true;
     save_setting('pseudo_cron_email_inline_lock', (string) $now);
-    save_setting('pseudo_cron_last_email', (string) $now);
+    pseudo_cron_mark_email_attempt($now, 'inline');
 
     register_shutdown_function('pseudo_cron_run_inline_email_ingest', $now);
 }
@@ -170,11 +220,13 @@ function pseudo_cron_run_inline_email_ingest(int $started_at): void
             && trim((string) ($cfg['password'] ?? '')) !== '';
 
         if (!$enabled) {
+            pseudo_cron_mark_email_success(time(), ['disabled' => true], 'inline');
             pseudo_cron_log('info', 'Inline email ingest skipped', ['reason' => 'disabled_or_missing_config']);
             return;
         }
 
         $result = email_ingest_run();
+        pseudo_cron_mark_email_success(time(), $result, 'inline');
         pseudo_cron_log('info', 'Inline email ingest completed', [
             'checked' => (int) ($result['checked'] ?? 0),
             'processed' => (int) ($result['processed'] ?? 0),
@@ -183,6 +235,7 @@ function pseudo_cron_run_inline_email_ingest(int $started_at): void
             'duration_seconds' => max(0, time() - $started_at),
         ]);
     } catch (Throwable $e) {
+        pseudo_cron_mark_email_error($e->getMessage(), 'inline');
         pseudo_cron_log('error', 'Inline email ingest failed', ['error' => $e->getMessage()]);
         error_log('[pseudo-cron] inline email error: ' . $e->getMessage());
     } finally {

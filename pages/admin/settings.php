@@ -2183,25 +2183,27 @@ include BASE_PATH . '/includes/components/page-header.php';
                             <h3><?php echo e(t('Background tasks')); ?></h3>
                             <p><?php echo e(t('Email ingest, recurring tasks, and maintenance.')); ?></p>
                         </div>
-                        <span class="admin-status <?php echo get_setting('pseudo_cron_enabled') ? 'is-success' : 'is-warning'; ?>">
-                            <?php echo e(get_setting('pseudo_cron_enabled') ? t('On') : t('Off')); ?>
+                        <?php $pseudo_cron_enabled = (string) get_setting('pseudo_cron_enabled', '1') !== '0'; ?>
+                        <span class="admin-status <?php echo $pseudo_cron_enabled ? 'is-success' : 'is-warning'; ?>">
+                            <?php echo e($pseudo_cron_enabled ? t('On') : t('Off')); ?>
                         </span>
                     </div>
                     <form method="post" class="admin-toggle-row">
                         <?php echo csrf_field(); ?>
                         <label>
                             <input type="checkbox" name="pseudo_cron_enabled" value="1"
-                                <?php echo get_setting('pseudo_cron_enabled') ? 'checked' : ''; ?>
+                                <?php echo $pseudo_cron_enabled ? 'checked' : ''; ?>
                                 onchange="this.form.submit();">
                             <span><?php echo e(t('Enable background tasks')); ?></span>
                         </label>
                         <input type="hidden" name="save_pseudo_cron_settings" value="1">
                     </form>
-                    <?php if (get_setting('pseudo_cron_enabled')): ?>
+                    <?php if ($pseudo_cron_enabled): ?>
                         <div class="admin-list">
                             <?php
                             $cron_tasks = [
-                                ['key' => 'pseudo_cron_last_email', 'label' => t('Email ingestion'), 'interval' => t('every 5 min')],
+                                ['key' => 'pseudo_cron_last_email', 'label' => t('Email ingestion success'), 'interval' => t('every 5 min')],
+                                ['key' => 'pseudo_cron_last_email_attempt', 'label' => t('Email ingestion attempt'), 'interval' => t('last trigger')],
                                 ['key' => 'pseudo_cron_last_recurring', 'label' => t('Recurring tasks'), 'interval' => t('every 60 min')],
                                 ['key' => 'pseudo_cron_last_maintenance', 'label' => t('Maintenance'), 'interval' => t('every 24 hours')],
                             ];
@@ -2211,6 +2213,39 @@ include BASE_PATH . '/includes/components/page-header.php';
                             ?>
                                 <div><span><?php echo e($ct['label']); ?> <small><?php echo e($ct['interval']); ?></small></span><strong><?php echo e($last_fmt); ?></strong></div>
                             <?php endforeach; ?>
+                        </div>
+                        <?php
+                        $email_result_raw = get_setting('pseudo_cron_last_email_result', '');
+                        $email_result = $email_result_raw !== '' ? json_decode($email_result_raw, true) : null;
+                        $email_error = trim((string) get_setting('pseudo_cron_last_email_error', ''));
+                        $email_error_at = (int) get_setting('pseudo_cron_last_email_error_at', '0');
+                        $email_source = trim((string) get_setting('pseudo_cron_last_email_source', ''));
+                        ?>
+                        <div class="mt-3 rounded-lg border p-3 text-xs space-y-1" style="border-color: var(--border-light); background: var(--surface-secondary); color: var(--text-muted);">
+                            <div>
+                                <strong><?php echo e(t('Email ingest source')); ?>:</strong>
+                                <?php echo e($email_source !== '' ? $email_source : '-'); ?>
+                            </div>
+                            <?php if (is_array($email_result)): ?>
+                                <div>
+                                    <strong><?php echo e(t('Last email ingest result')); ?>:</strong>
+                                    <?php echo e(t('checked {checked}, processed {processed}, skipped {skipped}, failed {failed}', [
+                                        'checked' => (string) ((int) ($email_result['checked'] ?? 0)),
+                                        'processed' => (string) ((int) ($email_result['processed'] ?? 0)),
+                                        'skipped' => (string) ((int) ($email_result['skipped'] ?? 0)),
+                                        'failed' => (string) ((int) ($email_result['failed'] ?? 0)),
+                                    ])); ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($email_error !== ''): ?>
+                                <div style="color: var(--danger, #dc2626);">
+                                    <strong><?php echo e(t('Last email ingest error')); ?>:</strong>
+                                    <?php echo e($email_error); ?>
+                                    <?php if ($email_error_at > 0): ?>
+                                        <span>(<?php echo e(date('Y-m-d H:i:s', $email_error_at)); ?>)</span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </section>

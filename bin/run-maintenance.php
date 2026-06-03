@@ -28,6 +28,7 @@ require_once BASE_PATH . '/config.php';
 require_once BASE_PATH . '/includes/database.php';
 require_once BASE_PATH . '/includes/functions.php';
 require_once BASE_PATH . '/includes/settings-functions.php';
+require_once BASE_PATH . '/includes/pseudo-cron.php';
 require_once BASE_PATH . '/includes/email-ingest-functions.php';
 require_once BASE_PATH . '/includes/update-check-functions.php';
 
@@ -78,6 +79,7 @@ try {
 }
 
 try {
+    pseudo_cron_mark_email_attempt(time(), 'cli');
     $ingest_cfg = email_ingest_config();
     $ingest_enabled = trim((string) ($ingest_cfg['host'] ?? '')) !== ''
         && trim((string) ($ingest_cfg['username'] ?? '')) !== ''
@@ -95,7 +97,9 @@ try {
             'reason' => 'IMAP config missing',
         ];
     }
+    pseudo_cron_mark_email_success(time(), is_array($result['email_ingest']) ? $result['email_ingest'] : [], 'cli');
 } catch (Throwable $e) {
+    pseudo_cron_mark_email_error($e->getMessage(), 'cli');
     $result['ok'] = false;
     $result['errors'][] = 'ingest: ' . $e->getMessage();
 }
@@ -160,4 +164,3 @@ cli_scheduler_log('scheduler', 'info', 'Maintenance run completed', [
     'email_ingest' => $result['email_ingest'],
     'update_check' => $result['update_check'],
 ]);
-
