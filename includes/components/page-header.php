@@ -36,4 +36,8 @@
             </div>
         <?php endif; ?>
     </div>
+
+    <?php if (($GLOBALS['page'] ?? null) === 'admin' && function_exists('is_admin') && is_admin()): ?>
+        <?php include BASE_PATH . '/includes/components/admin-nav.php'; ?>
+    <?php endif; ?>
 </div>

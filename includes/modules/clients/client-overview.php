@@ -31,8 +31,8 @@ function client_overview_ticket_counts(int $organization_id): array
     }
 
     $rows = db_fetch_all(
-        "SELECT id, status_id, is_archived FROM tickets WHERE tenant_id = ? AND organization_id = ?",
-        [current_tenant_id(), $organization_id]
+        "SELECT id, status_id, is_archived FROM tickets WHERE organization_id = ?",
+        [$organization_id]
     );
 
     foreach ($rows as $row) {
@@ -63,10 +63,10 @@ function client_overview_recent_tickets(int $organization_id, string $view = 'op
          FROM tickets t
          LEFT JOIN statuses s ON t.status_id = s.id
          LEFT JOIN users a ON t.assignee_id = a.id
-         WHERE t.tenant_id = ? AND t.organization_id = ?
+         WHERE t.organization_id = ?
          ORDER BY t.updated_at DESC, t.created_at DESC
          LIMIT 80",
-        [current_tenant_id(), $organization_id]
+        [$organization_id]
     );
 
     $filtered = [];
@@ -95,10 +95,8 @@ function client_overview_contacts(int $organization_id): array
     $users = db_fetch_all(
         "SELECT id, first_name, last_name, email, role, is_active, organization_id, permissions, avatar
          FROM users
-         WHERE tenant_id = ?
-           AND email NOT LIKE 'deleted-user-%@invalid.local'
-         ORDER BY role = 'user' DESC, last_name, first_name",
-        [current_tenant_id()]
+         WHERE email NOT LIKE 'deleted-user-%@invalid.local'
+         ORDER BY role = 'user' DESC, last_name, first_name"
     );
 
     foreach ($users as $user) {
@@ -135,11 +133,10 @@ function client_overview_time_summary(int $organization_id): array
          FROM ticket_time_entries tte
          JOIN tickets t ON tte.ticket_id = t.id
          LEFT JOIN organizations o ON t.organization_id = o.id
-         WHERE t.tenant_id = ?
-           AND t.organization_id = ?
+         WHERE t.organization_id = ?
            AND tte.started_at >= ?
            AND tte.started_at < ?",
-        [current_tenant_id(), $organization_id, $start, $end]
+        [$organization_id, $start, $end]
     );
 
     if (!$row) {

@@ -51,6 +51,29 @@ function ticket_detail_primary_action_class(array $action): string
     return 'ticket-primary-action ticket-primary-action--' . $style;
 }
 
+function ticket_detail_priority_key(string $priority_name): string
+{
+    $text = trim($priority_name);
+    $text = function_exists('mb_strtolower') ? mb_strtolower($text, 'UTF-8') : strtolower($text);
+
+    if (preg_match('/\b(urgent|critical|blocker|highest)\b/u', $text)) {
+        return 'urgent';
+    }
+    if (preg_match('/\b(high|major)\b/u', $text)) {
+        return 'high';
+    }
+    if (preg_match('/\b(low|minor)\b/u', $text)) {
+        return 'low';
+    }
+
+    return 'medium';
+}
+
+function ticket_detail_priority_pill_class(string $priority_name): string
+{
+    return 'ticket-priority-pill ticket-priority-pill--' . ticket_detail_priority_key($priority_name);
+}
+
 function ticket_detail_render_status_pill(array $ticket, array $statuses = []): void
 {
     $group = ticket_detail_status_group($ticket, $statuses);
@@ -59,6 +82,15 @@ function ticket_detail_render_status_pill(array $ticket, array $statuses = []): 
     <span class="<?php echo e(ticket_detail_status_pill_class($ticket, $statuses)); ?>"
           data-ticket-status-group="<?php echo e($group); ?>">
         <?php echo e(t($label)); ?>
+    </span>
+    <?php
+}
+
+function ticket_detail_render_priority_pill(string $priority_name): void
+{
+    ?>
+    <span class="<?php echo e(ticket_detail_priority_pill_class($priority_name)); ?>">
+        <?php echo e(t($priority_name)); ?>
     </span>
     <?php
 }

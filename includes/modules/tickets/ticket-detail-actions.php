@@ -95,6 +95,14 @@ function ticket_detail_is_done(array $ticket): bool
         return true;
     }
 
+    if (!empty($ticket['status_name']) || array_key_exists('status_group', $ticket)) {
+        return ticket_status_group_from_status([
+            'name' => (string) ($ticket['status_name'] ?? ''),
+            'status_group' => (string) ($ticket['status_group'] ?? ''),
+            'is_closed' => $ticket['is_closed'] ?? 0,
+        ]) === 'done';
+    }
+
     return ticket_status_group_for_status_id(isset($ticket['status_id']) ? (int) $ticket['status_id'] : null) === 'done';
 }
 
@@ -106,6 +114,7 @@ function ticket_detail_primary_actions(array $ticket, array $user, array $status
     $timer_state = (string) ($options['timer_state'] ?? 'stopped');
     $done_status_id = ticket_detail_first_done_status_id($statuses);
     $is_done = ticket_detail_is_done($ticket);
+    $has_active_timer = $timer_state !== 'stopped';
 
     $actions = [
         [
@@ -115,11 +124,19 @@ function ticket_detail_primary_actions(array $ticket, array $user, array $status
             'style' => 'primary',
             'type' => 'anchor',
             'href' => '#comment-form',
+            'title' => 'Write a reply to this ticket.',
             'visible' => true,
         ],
     ];
 
     if ($is_agent_user && $time_available) {
+        $timer_title = 'Start a timer for this ticket.';
+        if ($timer_state === 'running') {
+            $timer_title = 'Pause this timer without logging time yet.';
+        } elseif ($timer_state === 'paused') {
+            $timer_title = 'Resume the paused timer.';
+        }
+
         $actions[] = [
             'key' => 'start_work',
             'label' => $timer_state === 'running' ? 'Pause work' : ($timer_state === 'paused' ? 'Resume work' : 'Start work'),
@@ -127,6 +144,7 @@ function ticket_detail_primary_actions(array $ticket, array $user, array $status
             'style' => $timer_state === 'running' ? 'warning' : 'secondary',
             'type' => 'button',
             'id' => 'toolbar-timer-btn',
+            'title' => $timer_title,
             'visible' => true,
         ];
     }
@@ -139,11 +157,15 @@ function ticket_detail_primary_actions(array $ticket, array $user, array $status
             'style' => 'secondary',
             'type' => 'anchor',
             'href' => '#ticket-side-panel',
+            'title' => 'Assign this ticket or change ticket properties.',
             'visible' => true,
         ];
     }
 
-    if ($is_agent_user && !$is_done && $done_status_id) {
+    if ($is_agent_user && $done_status_id && (!$is_done || $has_active_timer)) {
+        $complete_title = $timer_state === 'stopped'
+            ? 'Mark this ticket as done.'
+            : 'Mark this ticket as done and stop the active timer.';
         $actions[] = [
             'key' => 'complete',
             'label' => 'Complete',
@@ -152,6 +174,7 @@ function ticket_detail_primary_actions(array $ticket, array $user, array $status
             'type' => 'submit',
             'name' => 'change_status',
             'status_id' => $done_status_id,
+            'title' => $complete_title,
             'visible' => true,
         ];
     }
@@ -164,6 +187,7 @@ function ticket_detail_primary_actions(array $ticket, array $user, array $status
             'style' => 'ghost',
             'type' => 'button',
             'onclick' => 'openEditTicketModal()',
+            'title' => 'Edit ticket details.',
             'visible' => true,
         ];
     }

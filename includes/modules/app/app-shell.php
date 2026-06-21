@@ -37,16 +37,6 @@ function app_shell_navigation(array $user): array
         ],
     ];
 
-    if (!$is_client_user) {
-        $items[] = [
-            'key' => 'inbox',
-            'label' => 'Inbox',
-            'url' => url('inbox'),
-            'icon' => 'inbox',
-            'primary' => true,
-        ];
-    }
-
     $items[] = [
         'key' => 'tickets',
         'label' => 'Tickets',

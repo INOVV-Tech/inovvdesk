@@ -72,7 +72,7 @@ $page_header_subtitle = t('User activity and ticket history.');
 include BASE_PATH . '/includes/components/page-header.php';
 ?>
 
-<div class="admin-legacy-page">
+<div class="workflow-surface workflow-surface--reports admin-legacy-page" data-core-workflow-surface="reports">
     <?php if (is_admin()): ?>
     <section class="reporting-flow-card">
         <div class="reporting-flow-main">
@@ -143,7 +143,7 @@ include BASE_PATH . '/includes/components/page-header.php';
     </section>
     <?php endif; ?>
 
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+    <div class="report-page-toolbar">
         <div class="admin-tabs">
             <?php
             $tab_labels = [
@@ -169,17 +169,16 @@ include BASE_PATH . '/includes/components/page-header.php';
         </div>
 
         <?php if (in_array($tab, ['detailed', 'worklog', 'summary'], true) && !empty($entries)): ?>
-        <div style="display: flex; align-items: center; gap: 0.375rem;">
+        <div class="report-actions">
             <?php if ($tab === 'detailed'): ?>
             <!-- Column Picker -->
             <div class="relative" id="col-picker-wrap">
                 <button type="button" onclick="document.getElementById('col-picker-dropdown').classList.toggle('hidden')"
-                    style="display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; font-size: 0.6875rem; border-radius: 6px; border: 1px solid var(--border-light); background: var(--surface-secondary); color: var(--text-secondary); cursor: pointer;"
+                    class="report-mini-action"
                     title="<?php echo e(t('Columns')); ?>">
                     <?php echo get_icon('columns', 'w-3 h-3 inline-block'); ?><?php echo e(t('Columns')); ?>
                 </button>
-                <div id="col-picker-dropdown" class="hidden absolute right-0 mt-1 w-44 rounded-lg shadow-lg border z-50 p-1.5"
-                     style="background: var(--bg-primary); border-color: var(--border-light);">
+                <div id="col-picker-dropdown" class="report-col-picker-dropdown hidden absolute right-0 mt-1 w-44 rounded-lg shadow-lg border z-50 p-1.5">
                     <?php
                     $col_defs = [
                         'ticket' => t('Ticket'),
@@ -200,7 +199,7 @@ include BASE_PATH . '/includes/components/page-header.php';
                         $col_defs['profit'] = t('Profit');
                     }
                     foreach ($col_defs as $col_key => $col_label): ?>
-                    <label class="flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer" style="color: var(--text-primary);">
+                    <label class="flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer text-theme-primary">
                         <input type="checkbox" class="rounded col-toggle" data-col="<?php echo e($col_key); ?>" checked>
                         <?php echo e($col_label); ?>
                     </label>
@@ -215,14 +214,14 @@ include BASE_PATH . '/includes/components/page-header.php';
             $export_params['export'] = 'csv';
             ?>
             <a href="index.php?<?php echo http_build_query($export_params); ?>"
-                style="display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; font-size: 0.6875rem; border-radius: 6px; border: 1px solid var(--border-light); background: var(--surface-secondary); color: var(--text-secondary); text-decoration: none;"
+                class="report-mini-action"
                 title="<?php echo e(t('Export CSV')); ?>">
                 <?php echo get_icon('download', 'w-3 h-3 inline-block'); ?><?php echo e(t('Export CSV')); ?>
             </a>
 
             <!-- Print -->
             <button type="button" onclick="window.print()"
-                style="display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; font-size: 0.6875rem; border-radius: 6px; border: 1px solid var(--border-light); background: var(--surface-secondary); color: var(--text-secondary); cursor: pointer;"
+                class="report-mini-action"
                 title="<?php echo e(t('Print')); ?>">
                 <?php echo get_icon('print', 'w-3 h-3 inline-block'); ?><?php echo e(t('Print')); ?>
             </button>
@@ -231,7 +230,7 @@ include BASE_PATH . '/includes/components/page-header.php';
     </div>
 
     <?php if (!$time_tracking_available): ?>
-        <div class="card card-body" style="color: var(--text-secondary);">
+        <div class="card card-body text-theme-secondary">
             <?php echo e(t('Time tracking is not available.')); ?>
         </div>
     <?php else: ?>
@@ -288,8 +287,8 @@ include BASE_PATH . '/includes/components/page-header.php';
             $filter_summary_text = implode(' · ', $filter_summary_parts);
             ?>
             <?php if ($has_active_filters): ?>
-            <div class="flex flex-wrap items-center gap-2 mb-1" id="report-filter-pills">
-                <span style="font-size: 0.6875rem; font-weight: 500; color: var(--text-muted);"><?php echo e(t('Filters')); ?>:</span>
+            <div class="report-filter-pills" id="report-filter-pills">
+                <span class="report-filter-pills__label"><?php echo e(t('Filters')); ?>:</span>
                 <?php foreach ($active_filters as $af): ?>
                     <?php
                     $remove_params = $_GET;
@@ -313,13 +312,13 @@ include BASE_PATH . '/includes/components/page-header.php';
                     $remove_url = 'index.php?' . http_build_query($remove_params);
                     ?>
                     <?php if ($af['type'] === 'my_entries'): ?>
-                    <span style="display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; font-size: 0.6875rem; border-radius: 9999px; background: var(--primary-light, rgba(59,130,246,0.1)); color: var(--primary);">
+                    <span class="report-filter-pill">
                         <?php echo get_icon('user', 'w-3 h-3'); ?>
                         <?php echo e(t('My entries')); ?>: <?php echo e($af['label']); ?>
                     </span>
                     <?php else: ?>
                     <a href="<?php echo e($remove_url); ?>"
-                       style="display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; font-size: 0.6875rem; border-radius: 9999px; background: var(--primary-light, rgba(59,130,246,0.1)); color: var(--primary); text-decoration: none;"
+                       class="report-filter-pill"
                        title="<?php echo e(t('Remove filter')); ?>">
                         <?php echo e($af['label']); ?>
                         <svg width="10" height="10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -329,24 +328,24 @@ include BASE_PATH . '/includes/components/page-header.php';
             </div>
             <?php endif; ?>
             <details class="card mb-2" id="report-filters" <?php echo !$filter_collapsed ? 'open' : ''; ?>>
-                <summary class="card-header" style="cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; user-select: none;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <summary class="card-header report-filter-summary">
+                    <div class="report-filter-summary__main">
                         <?php echo get_icon('sliders-horizontal', 'w-3.5 h-3.5'); ?>
-                        <span style="font-size: 0.8125rem; font-weight: 600;"><?php echo e(t('Filters')); ?></span>
-                        <span style="font-size: 0.6875rem; color: var(--text-muted);"><?php echo e($filter_summary_text); ?></span>
+                        <span class="report-filter-summary__title"><?php echo e(t('Filters')); ?></span>
+                        <span class="report-filter-summary__text"><?php echo e($filter_summary_text); ?></span>
                     </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); transition: transform 0.2s;" class="rpt-chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="rpt-chevron report-filter-summary__chevron"><polyline points="6 9 12 15 18 9"></polyline></svg>
                 </summary>
-                <div style="padding: 0.5rem 0.75rem 0.75rem;">
+                <div class="report-filter-body">
                 <form method="get">
                     <input type="hidden" name="page" value="admin">
                     <input type="hidden" name="section" value="reports">
                     <input type="hidden" name="tab" value="<?php echo e($tab); ?>">
 
                     <!-- Row 1: All filter fields on one horizontal line -->
-                    <div style="display: flex; align-items: flex-end; gap: 0.75rem; flex-wrap: nowrap;">
-                        <div style="flex: 1; min-width: 0;">
-                            <label class="block text-xs mb-1 font-medium" style="color: var(--text-secondary);"><?php echo e(t('Clients')); ?></label>
+                    <div class="report-filter-grid">
+                        <div class="report-filter-field">
+                            <label class="block text-xs mb-1 font-medium text-theme-secondary"><?php echo e(t('Clients')); ?></label>
                             <div class="chip-select" id="cs-orgs">
                                 <div class="chip-select__wrap" id="cs-orgs-wrap">
                                     <div class="chip-select__chips" id="cs-orgs-chips"></div>
@@ -359,8 +358,8 @@ include BASE_PATH . '/includes/components/page-header.php';
                         </div>
 
                         <?php if (is_admin()): ?>
-                        <div style="flex: 1; min-width: 0;">
-                            <label class="block text-xs mb-1 font-medium" style="color: var(--text-secondary);"><?php echo e(t('Agents')); ?></label>
+                        <div class="report-filter-field">
+                            <label class="block text-xs mb-1 font-medium text-theme-secondary"><?php echo e(t('Agents')); ?></label>
                             <div class="chip-select" id="cs-agents">
                                 <div class="chip-select__wrap" id="cs-agents-wrap">
                                     <div class="chip-select__chips" id="cs-agents-chips"></div>
@@ -374,10 +373,10 @@ include BASE_PATH . '/includes/components/page-header.php';
                         <?php endif; ?>
 
                         <?php if ($tags_supported): ?>
-                        <div style="flex: 1; min-width: 0;">
-                            <label class="block text-xs mb-1 font-medium" style="color: var(--text-secondary);">
+                        <div class="report-filter-field">
+                            <label class="block text-xs mb-1 font-medium text-theme-secondary">
                                 <?php echo e(t('Tags')); ?>
-                                <span style="font-weight: 400; color: var(--text-muted); font-size: 0.625rem; margin-left: 4px;"><?php echo e(t('OR matching')); ?></span>
+                                <span class="report-filter-field__hint"><?php echo e(t('OR matching')); ?></span>
                             </label>
                             <input type="hidden" name="tags" id="rpt-tags-value" value="<?php echo e($selected_tags_csv); ?>">
                             <div class="chip-select" id="cs-tags">
@@ -392,9 +391,9 @@ include BASE_PATH . '/includes/components/page-header.php';
                         </div>
                         <?php endif; ?>
 
-                        <div style="flex: 1; min-width: 0;">
-                            <label class="block text-xs mb-1 font-medium" style="color: var(--text-secondary);"><?php echo e(t('Time range')); ?></label>
-                            <select name="time_range" id="report-time-range" class="form-select" style="width: 100%;">
+                        <div class="report-filter-field">
+                            <label class="block text-xs mb-1 font-medium text-theme-secondary"><?php echo e(t('Time range')); ?></label>
+                            <select name="time_range" id="report-time-range" class="form-select w-full">
                                 <option value="all" <?php echo $time_range === 'all' ? 'selected' : ''; ?>>
                                     <?php echo e(t('All time')); ?></option>
                                 <option value="today" <?php echo $time_range === 'today' ? 'selected' : ''; ?>>
@@ -428,23 +427,23 @@ include BASE_PATH . '/includes/components/page-header.php';
                     </div>
 
                     <!-- Row 2: Date hint, presets, show amounts, apply -->
-                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <div class="report-filter-actions">
                         <?php if ($range_start && $range_end && $time_range !== 'custom' && $time_range !== 'all'): ?>
-                        <span id="report-range-hint" style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.6875rem; color: var(--text-muted);">
+                        <span id="report-range-hint" class="report-range-hint">
                             <?php echo get_icon('calendar', 'w-3 h-3 inline-block'); ?>
                             <?php echo date('M j', strtotime($range_start)); ?> – <?php echo date('M j, Y', strtotime($range_end)); ?>
                         </span>
                         <?php endif; ?>
 
                         <?php if (is_admin()): ?>
-                        <label style="display: inline-flex; align-items: center; font-size: 0.75rem; color: var(--text-secondary); gap: 4px;">
+                        <label class="report-toggle-label">
                             <input type="checkbox" name="show_money" value="1" class="rounded" <?php echo $show_money ? 'checked' : ''; ?>>
                             <?php echo e(t('Show amounts')); ?>
                         </label>
                         <?php endif; ?>
 
                         <!-- Quick range presets -->
-                        <div style="display: flex; gap: 3px; margin-left: auto;">
+                        <div class="report-preset-list">
                             <?php
                             $quick_presets = [
                                 'today' => t('Today'),
@@ -455,12 +454,8 @@ include BASE_PATH . '/includes/components/page-header.php';
                             ];
                             foreach ($quick_presets as $preset_val => $preset_label): ?>
                             <button type="button"
-                                class="range-preset-btn"
+                                class="range-preset-btn <?php echo $time_range === $preset_val ? 'is-active' : ''; ?>"
                                 data-range="<?php echo e($preset_val); ?>"
-                                style="padding: 2px 8px; font-size: 0.6875rem; border-radius: 9999px; border: none; cursor: pointer; transition: all 0.15s;
-                                       <?php echo $time_range === $preset_val
-                                           ? 'background: var(--primary); color: #fff;'
-                                           : 'background: var(--surface-secondary); color: var(--text-muted);'; ?>"
                                 onclick="setTimeRange('<?php echo e($preset_val); ?>')">
                                 <?php echo e($preset_label); ?>
                             </button>
@@ -471,25 +466,23 @@ include BASE_PATH . '/includes/components/page-header.php';
                     </div>
 
                     <!-- Custom date range (shown only when "Custom range" selected) -->
-                    <div id="report-custom-range"
-                        style="display: <?php echo $time_range === 'custom' ? 'flex' : 'none'; ?>; align-items: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <div id="report-custom-range" class="report-custom-range <?php echo $time_range === 'custom' ? 'is-open' : ''; ?>">
                         <div>
-                            <label class="block text-xs mb-1 font-medium" style="color: var(--text-secondary);"><?php echo e(t('From date')); ?></label>
+                            <label class="block text-xs mb-1 font-medium text-theme-secondary"><?php echo e(t('From date')); ?></label>
                             <input type="date" name="from_date" value="<?php echo e($from_date); ?>" class="form-input">
                         </div>
                         <div>
-                            <label class="block text-xs mb-1 font-medium" style="color: var(--text-secondary);"><?php echo e(t('To date')); ?></label>
+                            <label class="block text-xs mb-1 font-medium text-theme-secondary"><?php echo e(t('To date')); ?></label>
                             <input type="date" name="to_date" value="<?php echo e($to_date); ?>" class="form-input">
                         </div>
                     </div>
 
                     <!-- Confirmation overlay (hidden) -->
-                    <div id="report-confirm" class="report-confirm hidden" style="flex-basis: 100%;">
+                    <div id="report-confirm" class="report-confirm hidden flex-basis-full">
                         <div class="report-confirm__title"><?php echo e(t('Generate report with these filters?')); ?></div>
                         <div id="report-confirm-body"></div>
                         <div class="report-confirm__actions">
-                            <button type="button" id="report-confirm-back" class="btn btn-sm"
-                                    style="background: var(--surface-tertiary); color: var(--text-primary);"><?php echo e(t('Back')); ?></button>
+                            <button type="button" id="report-confirm-back" class="btn btn-sm report-confirm-back"><?php echo e(t('Back')); ?></button>
                             <button type="submit" class="btn btn-primary btn-sm"><?php echo e(t('Generate Report')); ?></button>
                         </div>
                     </div>
@@ -1715,16 +1708,9 @@ include BASE_PATH . '/includes/components/page-header.php';
     const reportCustomRange = document.getElementById('report-custom-range');
     if (reportRangeSelect && reportCustomRange) {
         const toggleRange = () => {
-            reportCustomRange.style.display = reportRangeSelect.value === 'custom' ? 'flex' : 'none';
-            // Update preset button highlights
+            reportCustomRange.classList.toggle('is-open', reportRangeSelect.value === 'custom');
             document.querySelectorAll('.range-preset-btn').forEach(function(btn) {
-                if (btn.dataset.range === reportRangeSelect.value) {
-                    btn.style.background = 'var(--primary)';
-                    btn.style.color = '#fff';
-                } else {
-                    btn.style.background = 'var(--surface-secondary)';
-                    btn.style.color = 'var(--text-muted)';
-                }
+                btn.classList.toggle('is-active', btn.dataset.range === reportRangeSelect.value);
             });
         };
         reportRangeSelect.addEventListener('change', toggleRange);
@@ -2017,7 +2003,7 @@ include BASE_PATH . '/includes/components/page-header.php';
                         if (fd && saved.from_date) fd.value = saved.from_date;
                         if (td && saved.to_date) td.value = saved.to_date;
                         var customRange = document.getElementById('report-custom-range');
-                        if (customRange) customRange.style.display = 'flex';
+                        if (customRange) customRange.classList.add('is-open');
                     }
                 }
             } catch (e) {}

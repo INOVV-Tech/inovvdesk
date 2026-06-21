@@ -87,7 +87,7 @@ foreach ([
 
 $pages = [
     'pages/work.php' => ['work_queue_summary', 'workspace_render_queue_page'],
-    'pages/inbox.php' => ['inbox_summary', 'workspace_render_queue_page'],
+    'pages/inbox.php' => ["redirect('work'", "'triage' => 'unassigned'"],
     'pages/tickets.php' => ['ticket_list_view_from_request', 'ticket_list_view_apply_filters', 'ticket_registry_render_view_tabs'],
     'pages/client.php' => ['client_overview(', 'ticket_list_view_normalize'],
     'pages/admin/reports.php' => ['reporting_flow_steps()', 'billing_review_adjustment_actions()', 'billing_review_bulk_adjustment_actions()'],

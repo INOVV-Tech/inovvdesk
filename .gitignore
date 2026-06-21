@@ -3,4 +3,5 @@ build/
 playwright-report/
 test-results/
 tests/e2e/.auth/
+examples/agent-api/.env
 .DS_Store

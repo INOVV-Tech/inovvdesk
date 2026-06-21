@@ -5,17 +5,25 @@ giving the assistant more access than the user who created the key.
 
 ## Steps
 
-1. Open **Profile -> API access**.
-2. Create a scoped key with a clear name, for example `Codex local assistant`.
-3. Copy the key once.
-4. Configure the local example env:
+1. Sign in as the user whose permissions the assistant should inherit.
+2. Open **Profile -> API access**.
+3. Create a scoped key with a clear name, for example `Codex local assistant`.
+4. Select only the scopes the assistant needs.
+5. Copy the key once.
+
+Do not use **Admin -> Users -> AI agents** for normal Codex/Claude access. That
+admin area manages AI-agent records and cost/rate metadata. Scoped API keys for
+external assistants live in **Profile -> API access** because the key must inherit
+the permissions of the person creating it.
+
+6. Configure the local example env:
 
 ```bash
 cp examples/agent-api/.env.example examples/agent-api/.env
 ```
 
-5. Edit `examples/agent-api/.env` and paste the token.
-6. Run a smoke command:
+7. Edit `examples/agent-api/.env` and paste the token.
+8. Run a smoke command:
 
 ```bash
 sh examples/agent-api/create-ticket.sh
@@ -67,6 +75,9 @@ npm run agent:mcp
 - Log time: `time:write`
 - Prepare report review: `reports:read`
 - Upload attachment: `attachments:write`
+
+Use read-only scopes first when testing. Add write scopes only after the agent's
+workflow is clear.
 
 401 means the key is missing or invalid. 403 means the key is valid but the user
 or token scope cannot perform that action.

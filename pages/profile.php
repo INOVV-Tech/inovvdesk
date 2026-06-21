@@ -131,6 +131,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('profile');
     }
 
+    // API access
+    if (isset($_POST['create_api_token']) && function_exists('generate_api_token')) {
+        $token_name = trim((string) ($_POST['api_token_name'] ?? ''));
+        $expiry = (string) ($_POST['api_token_expiry'] ?? '90');
+        $selected_scopes = $_POST['api_token_scopes'] ?? [];
+
+        if ($token_name === '') {
+            flash(t('Token name is required.'), 'error');
+            redirect('profile');
+        }
+
+        $expires_at = null;
+        if ($expiry !== 'never') {
+            $days = max(1, min(365, (int) $expiry));
+            $expires_at = date('Y-m-d H:i:s', time() + ($days * 86400));
+        }
+
+        $token_result = generate_api_token((int) $user['id'], $token_name, $expires_at, $selected_scopes);
+        if (!empty($token_result['token'])) {
+            $_SESSION['new_profile_api_token'] = $token_result['token'];
+            $_SESSION['new_profile_api_token_scopes'] = $token_result['scopes'] ?? [];
+            flash(t('API key created. Copy it now.'), 'success');
+        } else {
+            flash(t('Could not create API key.'), 'error');
+        }
+        redirect('profile');
+    }
+
+    if (isset($_POST['revoke_api_token']) && function_exists('revoke_api_token')) {
+        $token_id = (int) ($_POST['token_id'] ?? 0);
+        $token = $token_id > 0 && function_exists('api_tokens_table_exists') && api_tokens_table_exists()
+            ? db_fetch_one("SELECT id FROM api_tokens WHERE id = ? AND user_id = ?", [$token_id, (int) $user['id']])
+            : null;
+        if ($token) {
+            revoke_api_token($token_id);
+            flash(t('API key revoked.'), 'success');
+        } else {
+            flash(t('API key not found.'), 'error');
+        }
+        redirect('profile');
+    }
+
     // Upload avatar
     if (isset($_POST['upload_avatar']) && isset($_FILES['avatar'])) {
         if ($_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
@@ -282,6 +324,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Refresh user data
 $user = current_user();
+$api_scope_catalog = function_exists('api_token_scope_catalog') ? api_token_scope_catalog($user) : [];
+$profile_api_tokens = [];
+if (function_exists('api_tokens_table_exists') && api_tokens_table_exists()) {
+    $profile_api_tokens = db_fetch_all("SELECT * FROM api_tokens WHERE user_id = ? ORDER BY created_at DESC", [(int) $user['id']]);
+}
+$new_profile_api_token = $_SESSION['new_profile_api_token'] ?? null;
+$new_profile_api_token_scopes = $_SESSION['new_profile_api_token_scopes'] ?? [];
+unset($_SESSION['new_profile_api_token'], $_SESSION['new_profile_api_token_scopes']);
 
 require_once BASE_PATH . '/includes/header.php';
 ?>
@@ -540,6 +590,116 @@ include BASE_PATH . '/includes/components/page-header.php';
                     <?php echo e(t('Change password')); ?>
                 </button>
             </form>
+        </div>
+
+        <!-- API Access -->
+        <div class="card card-body">
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold uppercase tracking-wider" style="color: var(--text-muted);"><?php echo e(t('API access')); ?></h3>
+                <p class="text-sm mt-1" style="color: var(--text-secondary);"><?php echo e(t('Create a scoped key for assistants, CLI tools, or automations.')); ?></p>
+            </div>
+
+            <?php if ($new_profile_api_token): ?>
+                <div class="mb-4 p-3 rounded-lg border border-green-200 bg-green-50 text-green-900">
+                    <p class="text-sm font-medium mb-2"><?php echo e(t('Copy this API key now. It will not be shown again.')); ?></p>
+                    <code class="block p-2 rounded bg-white border text-xs font-mono break-all select-all"><?php echo e($new_profile_api_token); ?></code>
+                    <?php if (!empty($new_profile_api_token_scopes)): ?>
+                        <p class="text-xs mt-2"><?php echo e(t('Scopes')); ?>: <?php echo e(implode(', ', $new_profile_api_token_scopes)); ?></p>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <form method="post" class="space-y-4 mb-5">
+                <?php echo csrf_field(); ?>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="api-token-name" class="block text-sm font-medium mb-1" style="color: var(--text-secondary);"><?php echo e(t('Token name')); ?></label>
+                        <input type="text" name="api_token_name" id="api-token-name" class="form-input"
+                            placeholder="<?php echo e(t('Codex local assistant')); ?>" maxlength="120">
+                    </div>
+                    <div>
+                        <label for="api-token-expiry" class="block text-sm font-medium mb-1" style="color: var(--text-secondary);"><?php echo e(t('Expires')); ?></label>
+                        <select name="api_token_expiry" id="api-token-expiry" class="form-select">
+                            <option value="30"><?php echo e(t('30 days')); ?></option>
+                            <option value="90" selected><?php echo e(t('90 days')); ?></option>
+                            <option value="365"><?php echo e(t('1 year')); ?></option>
+                            <option value="never"><?php echo e(t('Never')); ?></option>
+                        </select>
+                    </div>
+                </div>
+
+                <?php if (!empty($api_scope_catalog)): ?>
+                    <div>
+                        <div class="text-sm font-medium mb-2" style="color: var(--text-secondary);"><?php echo e(t('Allowed actions')); ?></div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <?php foreach ($api_scope_catalog as $scope => $label): ?>
+                                <label class="flex items-start gap-2 text-sm cursor-pointer rounded-lg border p-2" style="border-color: var(--border-light);">
+                                    <input type="checkbox" name="api_token_scopes[]" value="<?php echo e($scope); ?>" class="mt-0.5 rounded"
+                                        <?php echo in_array($scope, ['work:read', 'tickets:read', 'tickets:write', 'comments:write'], true) ? 'checked' : ''; ?>>
+                                    <span>
+                                        <span class="font-medium" style="color: var(--text-primary);"><?php echo e($scope); ?></span>
+                                        <span class="block text-xs" style="color: var(--text-muted);"><?php echo e(t($label)); ?></span>
+                                    </span>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <button type="submit" name="create_api_token" class="btn btn-primary">
+                    <?php echo e(t('Create API key')); ?>
+                </button>
+            </form>
+
+            <div class="overflow-x-auto">
+                <table class="w-full tickets-table">
+                    <thead>
+                        <tr>
+                            <th class="th-label text-left py-2"><?php echo e(t('Name')); ?></th>
+                            <th class="th-label text-left py-2"><?php echo e(t('Prefix')); ?></th>
+                            <th class="th-label text-left py-2"><?php echo e(t('Scopes')); ?></th>
+                            <th class="th-label text-left py-2"><?php echo e(t('Last used')); ?></th>
+                            <th class="th-label text-right py-2"><?php echo e(t('Actions')); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($profile_api_tokens)): ?>
+                            <tr>
+                                <td colspan="5" class="py-4 text-sm" style="color: var(--text-muted);"><?php echo e(t('No API keys yet.')); ?></td>
+                            </tr>
+                        <?php endif; ?>
+                        <?php foreach ($profile_api_tokens as $token): ?>
+                            <?php
+                            $token_scopes = !empty($token['scopes_json']) ? json_decode((string) $token['scopes_json'], true) : ['*'];
+                            if (!is_array($token_scopes) || empty($token_scopes)) {
+                                $token_scopes = ['*'];
+                            }
+                            $is_active_token = !empty($token['is_active']) && empty($token['revoked_at']);
+                            ?>
+                            <tr class="<?php echo $is_active_token ? '' : 'opacity-60'; ?>">
+                                <td class="py-2 text-sm" style="color: var(--text-primary);"><?php echo e($token['name']); ?></td>
+                                <td class="py-2 text-xs font-mono" style="color: var(--text-muted);"><?php echo e($token['token_prefix']); ?>...</td>
+                                <td class="py-2 text-xs" style="color: var(--text-muted);"><?php echo e(implode(', ', $token_scopes)); ?></td>
+                                <td class="py-2 text-xs" style="color: var(--text-muted);"><?php echo e(!empty($token['last_used_at']) ? format_date($token['last_used_at']) : t('Never')); ?></td>
+                                <td class="py-2 text-right">
+                                    <?php if ($is_active_token): ?>
+                                        <form method="post" class="inline">
+                                            <?php echo csrf_field(); ?>
+                                            <input type="hidden" name="token_id" value="<?php echo (int) $token['id']; ?>">
+                                            <button type="submit" name="revoke_api_token" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('<?php echo e(t('Revoke this API key?')); ?>')">
+                                                <?php echo e(t('Revoke')); ?>
+                                            </button>
+                                        </form>
+                                    <?php else: ?>
+                                        <span class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Revoked')); ?></span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Two-Factor Authentication -->

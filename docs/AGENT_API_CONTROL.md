@@ -44,6 +44,15 @@ FOXDESK_API_TOKEN=fdx_...
    public API. Pasting a key into a conversation can work for short tests, but a
    local environment secret is the safer default.
 
+Important distinction:
+
+- **Profile -> API access** creates scoped personal assistant/API keys.
+- **Admin -> Users -> AI agents** manages AI-agent records, rate metadata, and
+  workspace-level AI-agent administration.
+
+External tools such as Codex, Claude, curl scripts, and MCP clients should use
+Profile API keys. They should not require a separate admin-only setup path.
+
 ## Permission Model
 
 - The token inherits the creator's role, organization visibility, and permission

@@ -6,8 +6,11 @@ $module = file_get_contents($root . '/includes/modules/tickets/ticket-detail-act
 $bootstrap = file_get_contents($root . '/includes/modules/bootstrap.php');
 $page = file_get_contents($root . '/pages/ticket-detail.php');
 $sidebar = file_get_contents($root . '/includes/components/ticket-detail-sidebar.php');
+$handlers = file_get_contents($root . '/includes/components/ticket-form-handlers.php');
+$time_functions = file_get_contents($root . '/includes/ticket-time-functions.php');
+$detail_js = file_get_contents($root . '/assets/js/ticket-detail.js');
 
-if ($module === false || $bootstrap === false || $page === false || $sidebar === false) {
+if ($module === false || $bootstrap === false || $page === false || $sidebar === false || $handlers === false || $time_functions === false || $detail_js === false) {
     fwrite(STDERR, "Unable to read ticket detail action files.\n");
     exit(1);
 }
@@ -28,16 +31,25 @@ $assert(str_contains($module, "'key' => 'complete'"), 'Complete must be a primar
 $assert(str_contains($page, 'ticket_detail_primary_actions('), 'Ticket detail page must consume the action model.');
 $assert(str_contains($page, 'class="card ticket-work-panel"'), 'Ticket detail must render the work panel.');
 $assert(str_contains($module, "'id' => 'toolbar-timer-btn'"), 'Timer button id must stay stable in the action model.');
-$assert(str_contains($page, "document.getElementById('toolbar-timer-btn')"), 'Existing timer JS must still target toolbar-timer-btn.');
+$assert(str_contains($detail_js, "document.getElementById('toolbar-timer-btn')"), 'Existing timer JS must still target toolbar-timer-btn.');
 $assert(str_contains($page, "/includes/components/ticket-detail-sidebar.php"), 'Ticket detail page must include the side properties panel component.');
 $assert(str_contains($sidebar, 'id="ticket-side-panel"'), 'Assign action must target the side properties panel.');
 $assert(str_contains($sidebar, "t('Ticket properties')"), 'Side panel must have a clear properties heading.');
+$assert(str_contains($page, 'title="<?php echo e($action_title); ?>"'), 'Primary actions must expose mouse-over help text.');
+$assert(str_contains($page, 'aria-label="<?php echo e($action_title); ?>"'), 'Primary actions must expose accessible labels.');
+$assert(str_contains($time_functions, 'function stop_active_ticket_timer'), 'Shared active timer stop helper is missing.');
+$assert(str_contains($handlers, 'stop_active_ticket_timer($ticket_id, $user[\'id\'])'), 'Standalone status changes must stop an active timer when completing work.');
 
 if (!function_exists('ticket_status_group_from_status')) {
     function ticket_status_group_from_status(array $status): string
     {
         if (isset($status['status_group']) && trim((string) $status['status_group']) !== '') {
             return (string) $status['status_group'];
+        }
+
+        $name = strtolower(strtr((string) ($status['name'] ?? ''), ['á' => 'a', 'č' => 'c', 'ď' => 'd', 'é' => 'e', 'ě' => 'e', 'í' => 'i', 'ň' => 'n', 'ó' => 'o', 'ř' => 'r', 'š' => 's', 'ť' => 't', 'ú' => 'u', 'ů' => 'u', 'ý' => 'y', 'ž' => 'z']));
+        if (preg_match('/\b(done|complete|completed|hotovo|dokonceno|vyreseno)\b/u', $name)) {
+            return 'done';
         }
 
         return !empty($status['is_closed']) ? 'done' : 'active';
@@ -71,12 +83,38 @@ $complete_actions = array_values(array_filter(
 
 $assert(!empty($complete_actions), 'Complete action should be visible for active agent tickets.');
 $assert((int) $complete_actions[0]['status_id'] === 5, 'Complete action must submit the Done status id, not Canceled.');
+$assert(($complete_actions[0]['title'] ?? '') === 'Mark this ticket as done.', 'Complete action must explain what it does.');
+
+$running_complete_actions = array_values(array_filter(
+    ticket_detail_primary_actions(['status_id' => 1, 'is_closed' => 0], ['role' => 'admin'], $statuses_with_canceled_first, ['timer_state' => 'running']),
+    static fn (array $action): bool => ($action['key'] ?? '') === 'complete'
+));
+$assert(
+    ($running_complete_actions[0]['title'] ?? '') === 'Mark this ticket as done and stop the active timer.',
+    'Complete action must explain that it stops the active timer.'
+);
 
 $done_actions = array_values(array_filter(
     ticket_detail_primary_actions(['status_id' => 5, 'is_closed' => 1], ['role' => 'admin'], $statuses_with_canceled_first),
     static fn (array $action): bool => ($action['key'] ?? '') === 'complete'
 ));
 $assert(empty($done_actions), 'Complete action must not be visible after the ticket is already done.');
+
+$hotovo_actions = array_values(array_filter(
+    ticket_detail_primary_actions(['status_id' => 10, 'status_name' => 'Hotovo', 'is_closed' => 0], ['role' => 'admin'], $statuses_with_canceled_first),
+    static fn (array $action): bool => ($action['key'] ?? '') === 'complete'
+));
+$assert(empty($hotovo_actions), 'Complete action must not be visible for Czech Hotovo status.');
+
+$hotovo_running_actions = array_values(array_filter(
+    ticket_detail_primary_actions(['status_id' => 10, 'status_name' => 'Hotovo', 'is_closed' => 0], ['role' => 'admin'], $statuses_with_canceled_first, ['timer_state' => 'running']),
+    static fn (array $action): bool => ($action['key'] ?? '') === 'complete'
+));
+$assert(!empty($hotovo_running_actions), 'Complete action must remain available to stop an active timer on an already done ticket.');
+$assert(
+    ($hotovo_running_actions[0]['title'] ?? '') === 'Mark this ticket as done and stop the active timer.',
+    'Done ticket with active timer must explain that Complete will stop the timer.'
+);
 
 $assert(ticket_detail_first_done_status_id([
     ['id' => 4, 'name' => 'Canceled', 'is_closed' => 1],

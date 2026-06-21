@@ -16,7 +16,7 @@ $assert($matrix !== false, 'Unable to read self-hosted edition parity matrix.');
 
 foreach ([
     '| Work | shared |',
-    '| Inbox | shared |',
+    '| Intake queues | shared internal |',
     '| Tickets | shared |',
     '| Ticket detail | shared |',
     '| New ticket | shared |',

@@ -148,8 +148,8 @@ include BASE_PATH . '/includes/components/page-header.php';
                     <p><?php echo e(t('No clients yet.')); ?></p>
                 </div>
             <?php else: ?>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
+                <div class="admin-responsive-table-wrap">
+                    <table class="admin-responsive-table admin-clients-table">
                         <thead class="border-b" style="background: var(--surface-secondary); border-color: var(--border-light);">
                             <tr>
                                 <th class="px-6 py-3 text-left th-label">
@@ -173,7 +173,7 @@ include BASE_PATH . '/includes/components/page-header.php';
                             <?php foreach ($clients as $client): ?>
                                 <?php $ticket_count = $ticket_counts[(int) $client['id']] ?? 0; ?>
                                 <tr class="tr-hover">
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-4 admin-responsive-primary" data-label="<?php echo e(t('Name')); ?>">
                                         <div class="flex items-center space-x-3">
                                             <?php if (!empty($client['avatar'])): ?>
                                                 <img src="<?php echo e(upload_url($client['avatar'])); ?>" alt=""
@@ -184,12 +184,11 @@ include BASE_PATH . '/includes/components/page-header.php';
                                                         class="text-sm font-medium"><?php echo strtoupper(substr($client['first_name'], 0, 1)); ?></span>
                                                 </div>
                                             <?php endif; ?>
-                                            <span
-                                                class="font-medium" style="color: var(--text-primary);"><?php echo e($client['first_name'] . ' ' . $client['last_name']); ?></span>
+                                            <span class="admin-cell-title font-medium" style="color: var(--text-primary);"><?php echo e($client['first_name'] . ' ' . $client['last_name']); ?></span>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm" style="color: var(--text-muted);"><?php echo e($client['email']); ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-6 py-4 text-sm admin-cell-muted" data-label="<?php echo e(t('Email')); ?>" style="color: var(--text-muted);"><?php echo e($client['email']); ?></td>
+                                    <td class="px-6 py-4" data-label="<?php echo e(t('Status')); ?>">
                                         <?php if ($client['is_active']): ?>
                                             <span
                                                 class="badge text-xs bg-green-100 text-green-600"><?php echo e(t('Active')); ?></span>
@@ -198,10 +197,10 @@ include BASE_PATH . '/includes/components/page-header.php';
                                                 class="badge text-xs bg-red-100 text-red-600"><?php echo e(t('Inactive')); ?></span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="px-6 py-4 text-sm" style="color: var(--text-muted);">
+                                    <td class="px-6 py-4 text-sm" data-label="<?php echo e(t('Tickets')); ?>" style="color: var(--text-muted);">
                                         <?php echo $ticket_count; ?>
                                     </td>
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="px-6 py-4 text-right admin-responsive-actions" data-label="<?php echo e(t('Actions')); ?>">
                                         <div class="table-actions inline-flex items-center gap-2">
                                             <button onclick="editClient(<?php echo htmlspecialchars(json_encode($client)); ?>)"
                                                 class="text-blue-500 hover:text-blue-600" title="<?php echo e(t('Edit')); ?>"

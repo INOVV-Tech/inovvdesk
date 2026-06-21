@@ -38,5 +38,6 @@ require_once __DIR__ . '/settings/settings-view-model.php';
 require_once __DIR__ . '/settings/settings-templates.php';
 require_once __DIR__ . '/team/team-users.php';
 require_once __DIR__ . '/app/dashboard-compat.php';
+require_once __DIR__ . '/app/app-contract.php';
 require_once __DIR__ . '/app/app-shell.php';
 require_once __DIR__ . '/app/app-feed.php';

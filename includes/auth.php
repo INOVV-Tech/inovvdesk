@@ -466,8 +466,17 @@ function is_impersonating()
  */
 function is_api_token_request()
 {
+    return bearer_token_from_request() !== '';
+}
+
+function bearer_token_from_request(): string
+{
     $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-    return stripos($header, 'Bearer ') === 0;
+    if (stripos($header, 'Bearer ') !== 0) {
+        return '';
+    }
+
+    return trim(substr($header, 7));
 }
 
 /**
@@ -476,6 +485,296 @@ function is_api_token_request()
 function api_tokens_table_exists()
 {
     return table_exists('api_tokens');
+}
+
+function api_token_scope_catalog(array $user = null): array
+{
+    $user = $user ?: (current_user() ?: []);
+    $is_staff = in_array((string) ($user['role'] ?? ''), ['admin', 'agent'], true);
+    $can_time = function_exists('can_view_time') ? can_view_time($user) : $is_staff;
+
+    $catalog = [
+        'work:read' => 'Read Work queues',
+        'tickets:read' => 'Read tickets',
+        'tickets:write' => 'Create and update tickets',
+        'comments:write' => 'Add ticket comments',
+        'attachments:read' => 'Read attachment metadata',
+        'attachments:write' => 'Upload attachments',
+        'notifications:read' => 'Read notifications',
+        'notifications:write' => 'Mark notifications read',
+    ];
+
+    if ($is_staff) {
+        $catalog['users:read'] = 'Read users visible to this account';
+        $catalog['clients:read'] = 'Read client overviews';
+    }
+    if ($is_staff || $can_time) {
+        $catalog['time:read'] = 'Read time entries';
+    }
+    if ($is_staff) {
+        $catalog['time:write'] = 'Add and control time entries';
+    }
+    if (($user['role'] ?? '') === 'admin' || $can_time) {
+        $catalog['reports:read'] = 'Read report billing reviews';
+    }
+    if (($user['role'] ?? '') === 'admin') {
+        $catalog['reports:write'] = 'Prepare and publish reports';
+    }
+
+    return $catalog;
+}
+
+function api_token_allowed_scopes_for_user(array $user): array
+{
+    return array_keys(api_token_scope_catalog($user));
+}
+
+function api_token_normalize_scopes($scopes, array $user): array
+{
+    if ($scopes === null) {
+        return ['*'];
+    }
+    if (is_string($scopes)) {
+        $decoded = json_decode($scopes, true);
+        $scopes = is_array($decoded) ? $decoded : preg_split('/[\s,]+/', $scopes);
+    }
+
+    $allowed = array_fill_keys(api_token_allowed_scopes_for_user($user), true);
+    $normalized = [];
+    foreach ((array) $scopes as $scope) {
+        $scope = strtolower(trim((string) $scope));
+        if ($scope !== '' && $scope !== '*' && isset($allowed[$scope])) {
+            $normalized[$scope] = true;
+        }
+    }
+    if (empty($normalized)) {
+        foreach (['work:read', 'tickets:read'] as $scope) {
+            if (isset($allowed[$scope])) {
+                $normalized[$scope] = true;
+            }
+        }
+    }
+
+    return array_keys($normalized);
+}
+
+function api_token_current_row(): ?array
+{
+    return isset($GLOBALS['api_token_row']) && is_array($GLOBALS['api_token_row']) ? $GLOBALS['api_token_row'] : null;
+}
+
+function api_token_scopes_from_row(array $token_row): array
+{
+    if (!array_key_exists('scopes_json', $token_row) || trim((string) ($token_row['scopes_json'] ?? '')) === '') {
+        return ['*'];
+    }
+    $decoded = json_decode((string) $token_row['scopes_json'], true);
+    return is_array($decoded) && !empty($decoded)
+        ? array_values(array_unique(array_map(static fn($scope) => strtolower(trim((string) $scope)), $decoded)))
+        : ['*'];
+}
+
+function api_token_has_scope(string $scope): bool
+{
+    $token = api_token_current_row();
+    if (!$token) {
+        return false;
+    }
+    $scopes = api_token_scopes_from_row($token);
+    if (in_array('*', $scopes, true)) {
+        return true;
+    }
+    $scope = strtolower(trim($scope));
+    if (in_array($scope, $scopes, true)) {
+        return true;
+    }
+    [$resource] = array_pad(explode(':', $scope, 2), 2, '');
+    return $resource !== '' && in_array($resource . ':*', $scopes, true);
+}
+
+function api_token_required_scope_for_action(string $action): ?string
+{
+    $map = [
+        'upload' => 'attachments:write',
+        'agent-me' => 'work:read',
+        'agent-list-statuses' => 'tickets:read',
+        'agent-list-priorities' => 'tickets:read',
+        'agent-list-users' => 'users:read',
+        'agent-create-ticket' => 'tickets:write',
+        'agent-list-tickets' => 'tickets:read',
+        'agent-get-ticket' => 'tickets:read',
+        'agent-add-comment' => 'comments:write',
+        'agent-update-status' => 'tickets:write',
+        'agent-log-time' => 'time:write',
+        'app-shell' => 'work:read',
+        'app-home' => 'work:read',
+        'app-ticket-list' => 'tickets:read',
+        'app-ticket-detail' => 'tickets:read',
+        'app-ticket-actions' => 'tickets:read',
+        'app-create-ticket' => 'tickets:write',
+        'app-add-comment' => 'comments:write',
+        'app-attachment-metadata' => 'attachments:read',
+        'app-ticket-timer' => 'time:read',
+        'app-ticket-timer-action' => 'time:write',
+        'app-log-time' => 'time:write',
+        'app-client-overview' => 'clients:read',
+        'app-reporting-review' => 'reports:read',
+        'app-notifications' => 'notifications:read',
+        'app-notifications-summary' => 'notifications:read',
+        'app-notification-read-state' => 'notifications:write',
+    ];
+    return $map[$action] ?? null;
+}
+
+function api_token_enforce_action_scope(string $action): void
+{
+    if (empty($GLOBALS['is_api_token_auth'])) {
+        return;
+    }
+    $required = api_token_required_scope_for_action($action);
+    if ($required === null) {
+        api_error('This endpoint is not available for API tokens.', 403);
+    }
+    if (!api_token_has_scope($required)) {
+        api_error('API token scope is not allowed for this action.', 403);
+    }
+}
+
+function api_token_action_is_write(string $action): bool
+{
+    return in_array(strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')), ['POST', 'PUT', 'PATCH', 'DELETE'], true);
+}
+
+function api_token_rate_limit_check(string $action): void
+{
+    $token = api_token_current_row();
+    if (!$token || !table_exists('api_token_audit_logs')) {
+        return;
+    }
+    $limit = (int) (getenv('FOXDESK_API_TOKEN_RATE_LIMIT_PER_MINUTE') ?: 120);
+    if ($limit <= 0) {
+        return;
+    }
+    try {
+        $count = db_fetch_one("SELECT COUNT(*) AS total FROM api_token_audit_logs WHERE token_id = ? AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)", [(int) $token['id']]);
+        if ((int) ($count['total'] ?? 0) >= $limit) {
+            api_error('API token rate limit exceeded.', 429);
+        }
+    } catch (Throwable $e) {
+    }
+}
+
+function api_token_request_id(): string
+{
+    $incoming = trim((string) ($_SERVER['HTTP_X_REQUEST_ID'] ?? ''));
+    if ($incoming !== '' && preg_match('/^[A-Za-z0-9_.:-]{1,64}$/', $incoming)) {
+        return $incoming;
+    }
+    if (empty($GLOBALS['api_request_id'])) {
+        $GLOBALS['api_request_id'] = bin2hex(random_bytes(12));
+    }
+    return $GLOBALS['api_request_id'];
+}
+
+function api_token_idempotency_key(): string
+{
+    $key = trim((string) ($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? $_SERVER['HTTP_X_IDEMPOTENCY_KEY'] ?? ''));
+    return ($key !== '' && strlen($key) <= 128 && preg_match('/^[A-Za-z0-9_.:-]+$/', $key)) ? $key : '';
+}
+
+function api_idempotency_request_hash(string $action): string
+{
+    $raw = (string) file_get_contents('php://input');
+    $post = !empty($_POST) ? json_encode($_POST, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '';
+    return hash('sha256', strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) . "\n" . $action . "\n" . $raw . "\n" . $post);
+}
+
+function api_idempotency_replay_if_available(string $action): void
+{
+    $token = api_token_current_row();
+    $key = api_token_idempotency_key();
+    if (!$token || $key === '' || !api_token_action_is_write($action) || !table_exists('api_idempotency_keys')) {
+        return;
+    }
+    $request_hash = api_idempotency_request_hash($action);
+    $GLOBALS['api_idempotency'] = ['key' => $key, 'request_hash' => $request_hash, 'action' => $action];
+    $row = db_fetch_one("SELECT * FROM api_idempotency_keys WHERE token_id = ? AND action = ? AND idempotency_key = ? AND expires_at > NOW() LIMIT 1", [(int) $token['id'], $action, $key]);
+    if (!$row) {
+        return;
+    }
+    if (!hash_equals((string) $row['request_hash'], $request_hash)) {
+        api_error('Idempotency key was already used with a different request.', 409);
+    }
+    if (!empty($row['response_json'])) {
+        http_response_code((int) ($row['status_code'] ?? 200));
+        header('Content-Type: application/json');
+        header('X-Idempotent-Replay: true');
+        echo $row['response_json'];
+        exit;
+    }
+}
+
+function api_idempotency_store_success(array $response): void
+{
+    $token = api_token_current_row();
+    $state = $GLOBALS['api_idempotency'] ?? null;
+    if (!$token || !is_array($state) || empty($state['key']) || !table_exists('api_idempotency_keys')) {
+        return;
+    }
+    try {
+        db_insert('api_idempotency_keys', [
+            'token_id' => (int) $token['id'],
+            'user_id' => (int) $token['user_id'],
+            'idempotency_key' => (string) $state['key'],
+            'action' => (string) $state['action'],
+            'request_hash' => (string) $state['request_hash'],
+            'response_json' => json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'status_code' => http_response_code() ?: 200,
+            'created_at' => date('Y-m-d H:i:s'),
+            'expires_at' => date('Y-m-d H:i:s', time() + 86400),
+        ]);
+    } catch (Throwable $e) {
+    }
+}
+
+function api_token_resource_from_response(string $action, array $response): array
+{
+    foreach (['ticket_id' => 'ticket', 'comment_id' => 'comment', 'time_entry_id' => 'time_entry', 'attachment_id' => 'attachment'] as $key => $type) {
+        if (isset($response[$key])) {
+            return [$type, (int) $response[$key]];
+        }
+    }
+    if (isset($response['data']) && is_array($response['data'])) {
+        return api_token_resource_from_response($action, $response['data']);
+    }
+    return [str_starts_with($action, 'app-') ? substr($action, 4) : $action, null];
+}
+
+function api_token_log_action(string $action, array $response = [], int $status_code = 200): void
+{
+    $token = api_token_current_row();
+    $user = current_user();
+    if (!$token || !$user || !table_exists('api_token_audit_logs')) {
+        return;
+    }
+    [$resource_type, $resource_id] = api_token_resource_from_response($action, $response);
+    try {
+        db_insert('api_token_audit_logs', [
+            'token_id' => (int) $token['id'],
+            'user_id' => (int) $user['id'],
+            'action' => $action,
+            'method' => strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')),
+            'resource_type' => $resource_type,
+            'resource_id' => $resource_id,
+            'status_code' => $status_code,
+            'request_id' => api_token_request_id(),
+            'idempotency_key' => api_token_idempotency_key() ?: null,
+            'ip_address' => substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45) ?: null,
+            'user_agent' => substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255) ?: null,
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+    } catch (Throwable $e) {
+    }
 }
 
 /**
@@ -493,22 +792,18 @@ function authenticate_api_token()
         return null;
     }
 
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-    if (stripos($header, 'Bearer ') !== 0) {
-        return null;
-    }
-
-    $raw_token = trim(substr($header, 7));
+    $raw_token = bearer_token_from_request();
     if ($raw_token === '' || strlen($raw_token) < 10) {
         return null;
     }
 
     $token_hash = hash('sha256', $raw_token);
 
-    $token_row = db_fetch_one(
-        "SELECT * FROM api_tokens WHERE token_hash = ? AND is_active = 1",
-        [$token_hash]
-    );
+    $sql = "SELECT * FROM api_tokens WHERE token_hash = ? AND is_active = 1";
+    if (column_exists('api_tokens', 'revoked_at')) {
+        $sql .= " AND revoked_at IS NULL";
+    }
+    $token_row = db_fetch_one($sql, [$token_hash]);
 
     if (!$token_row) {
         return null;
@@ -535,6 +830,8 @@ function authenticate_api_token()
     $_SESSION['user_email'] = $user['email'];
     $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
     $_SESSION['user_role'] = $user['role'];
+    $_SESSION['api_token_id'] = (int) $token_row['id'];
+    $GLOBALS['api_token_row'] = $token_row;
 
     // Update last_used_at (fire-and-forget, don't fail on error)
     update_token_last_used((int) $token_row['id']);
@@ -548,7 +845,14 @@ function authenticate_api_token()
 function update_token_last_used($token_id)
 {
     try {
-        db_update('api_tokens', ['last_used_at' => date('Y-m-d H:i:s')], 'id = ?', [$token_id]);
+        $data = ['last_used_at' => date('Y-m-d H:i:s')];
+        if (column_exists('api_tokens', 'last_used_ip')) {
+            $data['last_used_ip'] = substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45) ?: null;
+        }
+        if (column_exists('api_tokens', 'last_used_user_agent')) {
+            $data['last_used_user_agent'] = substr((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 255) ?: null;
+        }
+        db_update('api_tokens', $data, 'id = ?', [$token_id]);
     } catch (Throwable $e) {
         // Non-critical — don't break the request
     }
@@ -560,15 +864,21 @@ function update_token_last_used($token_id)
  * @param int    $user_id  The user this token belongs to.
  * @param string $name     A human-readable label.
  * @param string|null $expires_at  Optional expiration datetime.
- * @return array  ['token' => full plain-text token, 'id' => row id]
+ * @return array  ['token' => full plain-text token, 'id' => row id, 'scopes' => granted scopes]
  */
-function generate_api_token($user_id, $name, $expires_at = null)
+function generate_api_token($user_id, $name, $expires_at = null, $scopes = null)
 {
-    $raw_token = 'ahd_' . bin2hex(random_bytes(20)); // 44 chars total
+    $token_user = get_user((int) $user_id);
+    if (!$token_user) {
+        return ['token' => null, 'id' => null, 'scopes' => []];
+    }
+
+    $granted_scopes = api_token_normalize_scopes($scopes, $token_user);
+    $raw_token = 'fdx_' . bin2hex(random_bytes(24));
     $token_hash = hash('sha256', $raw_token);
     $token_prefix = substr($raw_token, 0, 8);
 
-    $id = db_insert('api_tokens', [
+    $data = [
         'user_id' => (int) $user_id,
         'name' => $name,
         'token_hash' => $token_hash,
@@ -576,9 +886,14 @@ function generate_api_token($user_id, $name, $expires_at = null)
         'expires_at' => $expires_at,
         'is_active' => 1,
         'created_at' => date('Y-m-d H:i:s'),
-    ]);
+    ];
+    if (column_exists('api_tokens', 'scopes_json')) {
+        $data['scopes_json'] = json_encode($granted_scopes, JSON_UNESCAPED_SLASHES);
+    }
 
-    return ['token' => $raw_token, 'id' => $id];
+    $id = db_insert('api_tokens', $data);
+
+    return ['token' => $raw_token, 'id' => $id, 'scopes' => $granted_scopes];
 }
 
 /**
@@ -586,5 +901,9 @@ function generate_api_token($user_id, $name, $expires_at = null)
  */
 function revoke_api_token($token_id)
 {
-    return db_update('api_tokens', ['is_active' => 0], 'id = ?', [$token_id]);
+    $data = ['is_active' => 0];
+    if (column_exists('api_tokens', 'revoked_at')) {
+        $data['revoked_at'] = date('Y-m-d H:i:s');
+    }
+    return db_update('api_tokens', $data, 'id = ?', [$token_id]);
 }

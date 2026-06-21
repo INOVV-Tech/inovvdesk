@@ -31,6 +31,24 @@ foreach ([
 }
 
 foreach ([
+    'id="aiAddAgentForm"',
+    'id="editAiAgentForm"',
+    'name="ticket_scope"',
+    'name="scope_organization_ids[]"',
+    'name="api_token_scope_groups[]"',
+    'save_and_generate_agent_token',
+    "'permissions' => \$permissions_data !== null ? json_encode(\$permissions_data) : null",
+    "'organization_id' => \$organization_id",
+    'team_ai_agent_token_scopes_from_input(',
+    'team_ai_agent_revoke_active_tokens(',
+    'setAiAgentAccess(agent)',
+    'setAiAgentTokenScopeGroups(token)',
+    'bindAiAgentScope(',
+] as $needle) {
+    $assert(str_contains($page, $needle), 'AI agent access management must stay in the AI agents UI: ' . $needle);
+}
+
+foreach ([
     'SELECT u.*, o.name as organization_name',
     'SELECT user_id, SUM({$dur})',
     'SELECT tte.user_id, SUM({$dur})',
@@ -53,6 +71,10 @@ foreach ([
     'function team_users_time_totals',
     'function team_ai_agents_fetch',
     'function team_ai_agent_tokens_fetch',
+    'function team_ai_agent_token_scope_groups',
+    'function team_ai_agent_token_default_scope_groups',
+    'function team_ai_agent_token_scopes_from_input',
+    'function team_ai_agent_revoke_active_tokens',
 ] as $needle) {
     $assert(str_contains($module, $needle), 'Team users module missing: ' . $needle);
 }

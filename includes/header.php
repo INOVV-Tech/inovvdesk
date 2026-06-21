@@ -273,17 +273,6 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     <span><?php echo e(t('Work')); ?></span>
                 </a>
 
-                <?php if (is_admin() || is_agent()): ?>
-                <?php $is_inbox = ($page ?? '') === 'inbox'; ?>
-                <a href="<?php echo url('inbox'); ?>"
-                    class="nav-item <?php echo $is_inbox ? 'active' : ''; ?>"
-                    title="<?php echo e(t('Inbox')); ?>"
-                    <?php echo $is_inbox ? 'aria-current="page"' : ''; ?>>
-                    <?php echo get_icon('inbox', 'nav-item__icon'); ?>
-                    <span><?php echo e(t('Inbox')); ?></span>
-                </a>
-                <?php endif; ?>
-
                 <?php $is_dashboard = ($page ?? '') === 'dashboard'; ?>
                 <a href="<?php echo url('dashboard'); ?>"
                     class="nav-item <?php echo $is_dashboard ? 'active' : ''; ?>"
@@ -341,8 +330,8 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     $sidebar_timers = get_user_all_active_timers($user['id']);
                 }
                 ?>
-                <div id="sidebar-timers" class="mt-3 pt-3 border-t" style="border-color: var(--border-light);<?php echo empty($sidebar_timers) ? ' display:none;' : ''; ?>">
-                    <p class="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5" style="color: var(--text-muted);">
+                <div id="sidebar-timers" class="sidebar-timers mt-3 pt-3 border-t <?php echo empty($sidebar_timers) ? 'is-hidden' : ''; ?>">
+                    <p class="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5 text-theme-muted">
                         <span class="sidebar-timer-dot"></span>
                         <?php echo e(t('Active Timers')); ?>
                         <span class="sidebar-timer-count"><?php echo count($sidebar_timers); ?></span>
@@ -361,11 +350,10 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                                class="sidebar-timer-item flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all sidebar-hover min-w-0"
                                title="<?php echo e($stimer['ticket_title']); ?>">
                                 <span class="flex-shrink-0 w-1.5 h-1.5 rounded-full <?php echo $st_paused ? 'bg-yellow-400' : 'sidebar-timer-pulse'; ?>"></span>
-                                <span class="flex-1 min-w-0 text-xs truncate" style="color: var(--text-secondary);">
+                                <span class="flex-1 min-w-0 text-xs truncate text-theme-secondary">
                                     <?php echo e($stimer['ticket_title']); ?>
                                 </span>
-                                <span class="flex-shrink-0 text-[10px] font-mono font-medium <?php echo $st_paused ? '' : 'timer-display'; ?>"
-                                      style="color: <?php echo $st_paused ? 'var(--corp-warning, #f59e0b)' : 'var(--corp-success, #10b981)'; ?>;"
+                                <span class="sidebar-timer-time flex-shrink-0 text-[10px] font-mono font-medium <?php echo $st_paused ? 'sidebar-timer-time--paused' : 'timer-display'; ?>"
                                       <?php if (!$st_paused): ?>
                                       data-started="<?php echo strtotime($stimer['started_at']); ?>"
                                       data-paused-seconds="<?php echo (int)($stimer['paused_seconds'] ?? 0); ?>"
@@ -373,20 +361,17 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                                 ><?php echo $st_paused ? e(t('Paused')) : e(format_duration_minutes($st_minutes)); ?></span>
                             </a>
                             <button onclick="event.stopPropagation(); sidebarToggleTimer(<?php echo (int)$stimer['ticket_id']; ?>, <?php echo $st_paused ? 'true' : 'false'; ?>)"
-                                    class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                    style="color: var(--text-muted);"
+                                    class="sidebar-icon-action flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="<?php echo $st_paused ? e(t('Resume')) : e(t('Pause')); ?>">
                                 <?php echo $st_paused ? get_icon('play', 'w-3 h-3') : get_icon('pause', 'w-3 h-3'); ?>
                             </button>
                             <button onclick="event.stopPropagation(); sidebarStopTimer(<?php echo (int)$stimer['ticket_id']; ?>)"
-                                    class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
-                                    style="color: var(--text-muted);"
+                                    class="sidebar-icon-action flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="<?php echo e(t('Stop timer')); ?>">
                                 <?php echo get_icon('stop', 'w-3 h-3'); ?>
                             </button>
                             <button onclick="event.stopPropagation(); if(typeof cancelTicket==='function') cancelTicket(<?php echo (int)$stimer['ticket_id']; ?>); else if(confirm('<?php echo e(t('Cancel ticket? The ticket will be deleted.')); ?>')) fetch('index.php?page=api&action=cancel-ticket',{method:'POST',headers:{'X-CSRF-TOKEN':window.csrfToken,'Content-Type':'application/x-www-form-urlencoded'},body:'ticket_id=<?php echo (int)$stimer['ticket_id']; ?>'}).then(function(r){return r.json()}).then(function(d){if(d.success)location.reload();else alert(d.error||'<?php echo e(t('Error')); ?>')});"
-                                    class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500"
-                                    style="color: var(--text-muted);"
+                                    class="sidebar-icon-action sidebar-icon-action--danger flex-shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="<?php echo e(t('Cancel ticket')); ?>">&times;</button>
                         </div>
                         <?php endforeach; ?>
@@ -398,8 +383,7 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
         <!-- Help Button -->
         <div class="px-2.5 pb-0.5">
             <button onclick="toggleHelpPanel()" id="help-panel-btn"
-                class="w-full flex items-center gap-3 p-2 rounded-xl transition-all sidebar-hover"
-                style="color: var(--text-muted);"
+                class="w-full flex items-center gap-3 p-2 rounded-xl transition-all sidebar-hover text-theme-muted"
                 title="<?php echo e(t('Help')); ?> (?)">
                 <?php echo get_icon('question-circle', 'nav-item__icon'); ?>
                 <span class="text-sm"><?php echo e(t('Help')); ?></span>
@@ -407,8 +391,7 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
         </div>
 
         <!-- Sidebar Footer with User Menu -->
-        <div class="px-2.5 pt-1 pb-0.5 mt-auto relative"
-            style="padding-bottom: max(0.125rem, env(safe-area-inset-bottom));">
+        <div class="sidebar-footer px-2.5 pt-1 pb-0.5 mt-auto relative">
             <!-- User Profile Button (clickable for dropdown) -->
             <button onclick="toggleSidebarUserMenu()" id="sidebar-user-btn"
                 class="w-full flex items-center gap-3 p-1.5 rounded-xl transition-all cursor-pointer sidebar-hover"
@@ -416,41 +399,38 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 <?php if (!empty($user['avatar']) && is_safe_avatar_url($user['avatar'])): ?>
                     <img src="<?php echo e(upload_url($user['avatar'])); ?>" alt="Avatar"
                         class="w-10 h-10 rounded-full object-cover ring-2 ring-blue-500/20 flex-shrink-0"
-                        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                    <div class="avatar avatar-md flex-shrink-0" style="border-radius: 12px; display: none;">
+                        onerror="this.classList.add('is-hidden');this.nextElementSibling.classList.remove('is-hidden')">
+                    <div class="avatar avatar-md avatar-fallback flex-shrink-0 is-hidden">
                         <?php echo strtoupper(substr($user['first_name'], 0, 1)); ?>
                     </div>
                 <?php else: ?>
-                    <div class="avatar avatar-md flex-shrink-0" style="border-radius: 12px;">
+                    <div class="avatar avatar-md avatar-fallback flex-shrink-0">
                         <?php echo strtoupper(substr($user['first_name'], 0, 1)); ?>
                     </div>
                 <?php endif; ?>
                 <div class="flex-1 min-w-0 text-left">
-                    <p class="font-medium text-sm truncate" style="color: var(--text-primary);">
+                    <p class="font-medium text-sm truncate text-theme-primary">
                         <?php echo e($user['first_name'] . ' ' . $user['last_name']); ?>
                     </p>
-                    <p class="text-xs truncate" style="color: var(--text-muted);"><?php echo e($user['email']); ?></p>
+                    <p class="text-xs truncate text-theme-muted"><?php echo e($user['email']); ?></p>
                 </div>
-                <span class="sidebar-user-chevron" style="color: var(--text-muted);"><?php echo get_icon('chevron-up', 'w-4 h-4 flex-shrink-0 transition-transform'); ?></span>
+                <span class="sidebar-user-chevron text-theme-muted"><?php echo get_icon('chevron-up', 'w-4 h-4 flex-shrink-0 transition-transform'); ?></span>
             </button>
 
             <!-- User Dropdown Menu (appears above) -->
             <div id="sidebar-user-menu" class="hidden absolute bottom-full left-4 right-4 mb-2 py-2 rounded-xl shadow-lg z-50"
-                role="menu" aria-label="<?php echo e(t('User menu')); ?>"
-                style="background: var(--surface-primary); border: 1px solid var(--border-light);">
+                role="menu" aria-label="<?php echo e(t('User menu')); ?>">
 
                 <!-- Profile -->
                 <a href="<?php echo url('profile'); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('user', 'w-4 h-4'); ?>
                     <span><?php echo e(t('My profile')); ?></span>
                 </a>
 
                 <!-- Dark Mode Toggle -->
                 <button onclick="toggleTheme(); event.stopPropagation();" role="menuitem"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover text-theme-secondary">
                     <span class="theme-icon-light"><?php echo get_icon('sun', 'w-4 h-4'); ?></span>
                     <span class="theme-icon-dark hidden"><?php echo get_icon('moon', 'w-4 h-4'); ?></span>
                     <span class="theme-text-light"><?php echo e(t('Dark mode')); ?></span>
@@ -458,62 +438,54 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 </button>
 
                 <?php if (is_admin() || is_agent()): ?>
-                <div class="border-t my-2" role="separator" style="border-color: var(--border-light);"></div>
+                <div class="border-t my-2 border-theme-light" role="separator"></div>
 
                 <a href="<?php echo url('admin', ['section' => 'reports']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('chart-bar', 'w-4 h-4'); ?>
                     <span><?php echo e(t('Time Reports')); ?></span>
                 </a>
 
                 <?php if (is_admin()): ?>
                 <a href="<?php echo url('admin', ['section' => 'users']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('users', 'w-4 h-4'); ?>
                     <span><?php echo e(t('Users')); ?></span>
                 </a>
                 <a href="<?php echo url('admin', ['section' => 'organizations']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('building', 'w-4 h-4'); ?>
                     <span><?php echo e(t('Organizations')); ?></span>
                 </a>
                 <a href="<?php echo url('admin', ['section' => 'settings']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('cog', 'w-4 h-4'); ?>
                     <span><?php echo e(t('Settings')); ?></span>
                 </a>
                 <a href="<?php echo url('admin', ['section' => 'migration-export']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('cloud-upload-alt', 'w-4 h-4'); ?>
                     <span>Cloud migration</span>
                 </a>
                 <a href="<?php echo url('admin', ['section' => 'recurring-tasks']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('sync-alt', 'w-4 h-4'); ?>
                     <span><?php echo e(t('Recurring tasks')); ?></span>
                 </a>
                 <a href="<?php echo url('admin', ['section' => 'activity']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('chart-line', 'w-4 h-4'); ?>
                     <span><?php echo e(t('Activity')); ?></span>
                 </a>
                 <a href="<?php echo url('tickets', ['archived' => '1']); ?>" role="menuitem"
-                    class="flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover"
-                    style="color: var(--text-secondary);">
+                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('archive', 'w-4 h-4'); ?>
                     <span><?php echo e(t('Archive')); ?></span>
                 </a>
                 <?php endif; ?>
                 <?php endif; ?>
 
-                <div class="border-t my-2" role="separator" style="border-color: var(--border-light);"></div>
+                <div class="border-t my-2 border-theme-light" role="separator"></div>
 
                 <!-- Logout -->
                 <a href="<?php echo url('logout'); ?>" role="menuitem"
@@ -603,7 +575,7 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 <span class="app-shell-context"><?php echo e(t('Workspace')); ?></span>
             </div>
             <div class="flex items-center space-x-4">
-                <form action="<?php echo url('tickets'); ?>" method="get" class="relative">
+                <form action="<?php echo url('tickets'); ?>" method="get" class="header-search-form relative">
                     <input type="hidden" name="page" value="tickets">
                     <input type="text" name="search" id="header-search" placeholder="<?php echo e(t('Search...')); ?>"
                         class="form-input pr-4 header-search-input">
@@ -622,62 +594,42 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     </button>
                 </div>
 
-                <style>
-                    [data-theme="dark"] .header-search-input,
-                    [data-theme="dark"] #header-search {
-                        background: #334155 !important;
-                        color: #f1f5f9 !important;
-                        border-color: #475569 !important;
-                    }
-                    [data-theme="dark"] .header-search-input::placeholder,
-                    [data-theme="dark"] #header-search::placeholder {
-                        color: #cbd5e1 !important;
-                        opacity: 1 !important;
-                    }
-                    [data-theme="dark"] .header-search-input::-webkit-input-placeholder,
-                    [data-theme="dark"] #header-search::-webkit-input-placeholder {
-                        color: #cbd5e1 !important;
-                        opacity: 1 !important;
-                    }
-                </style>
-
             </div>
         </header>
 
         <!-- Notification Panel (shared between mobile & desktop) -->
-        <div id="notification-panel" class="hidden fixed z-50 glass rounded-xl shadow-2xl animate-scale-in"
-            style="width: min(396px, calc(100vw - 2rem)); max-height: 480px; right: 1rem; top: 3.5rem;">
+        <div id="notification-panel" class="notification-panel hidden fixed z-50 glass rounded-xl shadow-2xl animate-scale-in">
             <!-- Header -->
-            <div class="flex items-center justify-between px-4 py-3 border-b" style="border-color: var(--border-light);">
-                <h3 class="font-semibold text-sm" style="color: var(--text-primary);"><?php echo e(t('Notifications')); ?></h3>
+            <div class="flex items-center justify-between px-4 py-3 border-b border-theme-light">
+                <h3 class="font-semibold text-sm text-theme-primary"><?php echo e(t('Notifications')); ?></h3>
                 <div class="flex items-center gap-3">
                     <button onclick="togglePushNotifications()" id="push-toggle-btn"
-                        class="p-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="<?php echo e(t('Push notifications')); ?>" style="color: var(--text-muted); display: none;">
-                        <span class="push-icon-on" style="display:none"><?php echo get_icon('bell', 'w-4 h-4'); ?></span>
+                        class="notification-toggle-btn is-hidden p-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="<?php echo e(t('Push notifications')); ?>">
+                        <span class="push-icon-on is-hidden"><?php echo get_icon('bell', 'w-4 h-4'); ?></span>
                         <span class="push-icon-off"><?php echo get_icon('bell-slash', 'w-4 h-4'); ?></span>
                     </button>
                     <button onclick="toggleNotifSound()" id="notif-sound-toggle"
-                        class="p-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="<?php echo e(t('Toggle sound')); ?>" style="color: var(--text-muted);">
+                        class="notification-toggle-btn p-1 rounded transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="<?php echo e(t('Toggle sound')); ?>">
                         <?php echo get_icon('volume-up', 'w-4 h-4 notif-sound-on'); ?>
-                        <span class="notif-sound-off hidden" style="display:none"><?php echo get_icon('volume-mute', 'w-4 h-4'); ?></span>
+                        <span class="notif-sound-off is-hidden"><?php echo get_icon('volume-mute', 'w-4 h-4'); ?></span>
                     </button>
                     <button onclick="markAllNotificationsRead()" id="notif-mark-all-btn"
-                        class="text-xs font-medium hover:underline" style="color: var(--accent-primary);">
+                        class="notification-link-button text-xs font-medium hover:underline">
                         <?php echo e(t('Mark all as read')); ?>
                     </button>
                 </div>
             </div>
             <!-- Content -->
-            <div id="notification-list" class="overflow-y-auto" style="max-height: 420px;">
+            <div id="notification-list" class="notification-list overflow-y-auto">
                 <div id="notif-loading" class="flex items-center justify-center py-8">
-                    <div class="w-5 h-5 border-2 rounded-full animate-spin" style="border-color: var(--border-light); border-top-color: var(--accent-primary);"></div>
+                    <div class="notification-spinner w-5 h-5 border-2 rounded-full animate-spin"></div>
                 </div>
                 <div id="notif-empty" class="hidden text-center py-8 px-4">
-                    <div style="color: var(--text-muted);" class="mb-3"><?php echo get_icon('bell', 'w-10 h-10 mx-auto opacity-20'); ?></div>
-                    <p class="text-sm font-medium mb-1" style="color: var(--text-secondary);"><?php echo e(t('All caught up!')); ?></p>
-                    <p class="text-xs" style="color: var(--text-muted);"><?php echo e(t('No new notifications. Check back later.')); ?></p>
+                    <div class="text-theme-muted mb-3"><?php echo get_icon('bell', 'w-10 h-10 mx-auto opacity-20'); ?></div>
+                    <p class="text-sm font-medium mb-1 text-theme-secondary"><?php echo e(t('All caught up!')); ?></p>
+                    <p class="text-xs text-theme-muted"><?php echo e(t('No new notifications. Check back later.')); ?></p>
                 </div>
                 <div id="notif-items"></div>
             </div>
@@ -724,134 +676,6 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
         </script>
         <?php endif; ?>
 
-        <!-- Notification Center CSS -->
-        <style>
-            .notif-badge {
-                position: absolute;
-                top: 2px; right: 2px;
-                min-width: 18px; height: 18px;
-                padding: 0 5px;
-                font-size: 11px; font-weight: 600; line-height: 18px;
-                text-align: center;
-                color: #fff;
-                background: #ef4444;
-                border-radius: 9px;
-                pointer-events: none;
-            }
-            .notif-badge.pulse {
-                animation: notif-pulse 2s ease-in-out infinite;
-                box-shadow: 0 0 0 2px var(--bg-primary, #fff);
-            }
-            .notif-sidebar-badge {
-                margin-left: auto;
-                min-width: 18px; height: 18px;
-                padding: 0 5px;
-                font-size: 11px; font-weight: 600; line-height: 18px;
-                text-align: center;
-                color: #fff;
-                background: #ef4444;
-                border-radius: 9px;
-            }
-            @keyframes notif-pulse {
-                0%, 100% { transform: scale(1); }
-                50% { transform: scale(1.15); }
-            }
-            .notif-item {
-                display: flex;
-                align-items: flex-start;
-                gap: 0.75rem;
-                padding: 0.75rem 1rem;
-                cursor: pointer;
-                transition: background 0.15s;
-                border-left: 3px solid transparent;
-            }
-            .notif-item:hover {
-                background: var(--surface-hover, rgba(0,0,0,0.03));
-            }
-            [data-theme="dark"] .notif-item:hover {
-                background: rgba(255,255,255,0.05);
-            }
-            .notif-item.unread {
-                border-left-color: var(--accent-primary, #3b82f6);
-                background: rgba(59, 130, 246, 0.04);
-            }
-            [data-theme="dark"] .notif-item.unread {
-                background: rgba(59, 130, 246, 0.08);
-            }
-            .notif-item .notif-avatar {
-                width: 32px; height: 32px;
-                border-radius: 8px;
-                flex-shrink: 0;
-                display: flex; align-items: center; justify-content: center;
-                font-size: 13px; font-weight: 600;
-                color: #fff;
-                background: var(--text-muted, #9ca3af);
-                overflow: hidden;
-            }
-            .notif-item .notif-avatar img {
-                width: 100%; height: 100%; object-fit: cover;
-            }
-            .notif-item .notif-body {
-                flex: 1; min-width: 0;
-            }
-            .notif-item .notif-text {
-                font-size: 13px; line-height: 1.4;
-                color: var(--text-secondary);
-            }
-            .notif-item.unread .notif-text {
-                color: var(--text-primary);
-                font-weight: 500;
-            }
-            .notif-item .notif-time {
-                font-size: 11px;
-                color: var(--text-muted);
-                margin-top: 2px;
-            }
-            .notif-item .notif-mark-read {
-                flex-shrink: 0;
-                width: 24px; height: 24px;
-                border-radius: 4px;
-                display: none;
-                align-items: center; justify-content: center;
-                cursor: pointer;
-                color: var(--text-muted);
-                background: transparent;
-                border: none;
-                padding: 0;
-                transition: color 0.15s, background 0.15s;
-                margin-top: 4px;
-            }
-            .notif-item .notif-mark-read:hover {
-                color: var(--accent-primary, #3b82f6);
-                background: rgba(59, 130, 246, 0.1);
-            }
-            .notif-item.unread .notif-mark-read { display: flex; }
-            .notif-item.unread:hover .notif-mark-read { display: flex; }
-            @media (max-width: 768px) {
-                .notif-item.unread .notif-mark-read { display: flex; }
-            }
-            .notif-item.unread .notif-time::before {
-                content: '';
-                display: inline-block;
-                width: 6px;
-                height: 6px;
-                border-radius: 50%;
-                background: var(--accent-primary, #3b82f6);
-                margin-right: 4px;
-                vertical-align: middle;
-            }
-            .notif-group-header {
-                padding: 0.5rem 1rem 0.25rem;
-                font-size: 11px; font-weight: 600;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                color: var(--text-muted);
-            }
-            #notification-list::-webkit-scrollbar { width: 4px; }
-            #notification-list::-webkit-scrollbar-track { background: transparent; }
-            #notification-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
-        </style>
-
         <!-- Notification Center JS -->
         <script>
         (function() {
@@ -868,11 +692,11 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 return d.innerHTML;
             }
 
-            function avatarColor(name, hue) {
-                if (typeof hue === 'number') return 'hsl(' + hue + ', 55%, 60%)';
+            function avatarClass(name, hue) {
+                if (typeof hue === 'number') return 'notif-avatar notif-avatar--' + (Math.abs(Math.round(hue)) % 12);
                 var h = 0;
                 for (var i = 0; i < (name||'').length; i++) h = (name.charCodeAt(i) + ((h << 5) - h)) | 0;
-                return 'hsl(' + (Math.abs(h) % 360) + ', 55%, 60%)';
+                return 'notif-avatar notif-avatar--' + (Math.abs(h) % 12);
             }
 
             function avatarUrl(path) {
@@ -889,10 +713,10 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 if (n.actor_avatar) {
                     var src = avatarUrl(n.actor_avatar);
                     var fallbackInit = esc((n.actor_name||'?').charAt(0).toUpperCase());
-                    return '<div class="notif-avatar" style="background:' + avatarColor(n.actor_name, hue) + '"><img src="' + esc(src) + '" onerror="this.style.display=\'none\';this.parentElement.textContent=\'' + fallbackInit + '\'"></div>';
+                    return '<div class="' + avatarClass(n.actor_name, hue) + '"><img src="' + esc(src) + '" onerror="this.classList.add(\'is-hidden\');this.parentElement.textContent=\'' + fallbackInit + '\'"></div>';
                 }
                 var init = (n.actor_name || '?').charAt(0).toUpperCase();
-                return '<div class="notif-avatar" style="background:' + avatarColor(n.actor_name, hue) + '">' + esc(init) + '</div>';
+                return '<div class="' + avatarClass(n.actor_name, hue) + '">' + esc(init) + '</div>';
             }
 
             function renderItem(n) {
@@ -923,8 +747,8 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                             }
                         }
                         if (unreadCount >= 2 && tg.ticket_id) {
-                            html += '<div class="flex items-center justify-end px-3 py-1" style="margin-top: -2px;">'
-                                + '<button class="text-xs font-medium hover:underline" style="color: var(--accent-primary);" onclick="markTicketRead(event,' + tg.ticket_id + ')">'
+                            html += '<div class="notification-ticket-mark-row flex items-center justify-end px-3 py-1">'
+                                + '<button class="notif-action-link text-xs font-medium hover:underline" onclick="markTicketRead(event,' + tg.ticket_id + ')">'
                                 + esc(<?php echo json_encode(t('Mark all for this ticket as read')); ?>)
                                 + '</button></div>';
                         }
@@ -946,14 +770,7 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 _notifOpen = !_notifOpen;
                 if (_notifOpen) {
                     _notifPanel.classList.remove('hidden');
-                    // Position for mobile vs desktop
-                    if (window.innerWidth < 1024) {
-                        _notifPanel.style.top = '3.5rem';
-                        _notifPanel.style.right = '0.5rem';
-                    } else {
-                        _notifPanel.style.top = '3.5rem';
-                        _notifPanel.style.right = '1rem';
-                    }
+                    _notifPanel.classList.toggle('is-mobile-position', window.innerWidth < 1024);
                     if (!_notifLoaded) loadNotifications();
                 } else {
                     _notifPanel.classList.add('hidden');
@@ -990,7 +807,7 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     item.classList.remove('unread');
                     // Hide the button itself
                     var btn = item.querySelector('.notif-mark-read');
-                    if (btn) btn.style.display = 'none';
+                    if (btn) btn.classList.add('is-hidden');
                 }
                 fetch('index.php?page=api&action=mark-notification-read', {
                     method: 'POST',
@@ -1014,12 +831,12 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     if (onclick.indexOf(',' + ticketId + ')') !== -1) {
                         el.classList.remove('unread');
                         var btn = el.querySelector('.notif-mark-read');
-                        if (btn) btn.style.display = 'none';
+                        if (btn) btn.classList.add('is-hidden');
                     }
                 });
                 // Hide the "mark all for this ticket" button
                 var btn = event.target.closest('div');
-                if (btn) btn.style.display = 'none';
+                if (btn) btn.classList.add('is-hidden');
                 // API call
                 fetch('index.php?page=api&action=mark-ticket-notifications-read', {
                     method: 'POST',
@@ -1044,7 +861,7 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     document.querySelectorAll('.dbnotif-card.unread').forEach(function(el) { el.classList.remove('unread'); });
                     document.querySelectorAll('.dbnotif-child-card.unread').forEach(function(el) { el.classList.remove('unread'); });
                     var dbBadge = document.getElementById('dbnotif-badge');
-                    if (dbBadge) dbBadge.style.display = 'none';
+                    if (dbBadge) dbBadge.classList.add('is-hidden');
                     // Sync notifications page (if on notifications page)
                     document.querySelectorAll('.notif-card.unread').forEach(function(el) { el.classList.remove('unread'); });
                     document.querySelectorAll('.notif-child-card.unread').forEach(function(el) { el.classList.remove('unread'); });
@@ -1084,12 +901,10 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                                 while (wrapper.firstChild) items.appendChild(wrapper.firstChild);
                                 // "View all" link
                                 var footer = document.createElement('div');
-                                footer.className = 'text-center py-3 border-t';
-                                footer.style.borderColor = 'var(--border-light)';
+                                footer.className = 'text-center py-3 border-t border-theme-light';
                                 var link = document.createElement('a');
                                 link.href = 'index.php?page=notifications';
-                                link.className = 'text-xs font-medium hover:underline';
-                                link.style.color = 'var(--accent-primary)';
+                                link.className = 'notification-link-button text-xs font-medium hover:underline';
                                 link.textContent = <?php echo json_encode(t('View all notifications')); ?>;
                                 footer.appendChild(link);
                                 items.appendChild(footer);
@@ -1171,9 +986,9 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 if (!btn) return;
                 var onIcon = btn.querySelector('.notif-sound-on');
                 var offIcon = btn.querySelector('.notif-sound-off');
-                if (onIcon) onIcon.style.display = enabled ? '' : 'none';
-                if (offIcon) offIcon.style.display = enabled ? 'none' : '';
-                btn.style.color = enabled ? 'var(--accent-primary, #3b82f6)' : 'var(--text-muted)';
+                if (onIcon) onIcon.classList.toggle('is-hidden', !enabled);
+                if (offIcon) offIcon.classList.toggle('is-hidden', enabled);
+                btn.classList.toggle('is-active', enabled);
             }
 
             // Restore sound preference from localStorage

@@ -402,6 +402,49 @@ function get_active_ticket_timer($ticket_id, $user_id) {
 }
 
 /**
+ * Stop the current user's active timer on a ticket and persist the elapsed time.
+ */
+function stop_active_ticket_timer($ticket_id, $user_id, ?int $comment_id = null)
+{
+    if (!ticket_time_table_exists()) {
+        return null;
+    }
+
+    $active = get_active_ticket_timer($ticket_id, $user_id);
+    if (!$active) {
+        return null;
+    }
+
+    $elapsed_seconds = function_exists('calculate_timer_elapsed')
+        ? calculate_timer_elapsed($active)
+        : max(0, time() - strtotime((string) ($active['started_at'] ?? 'now')));
+    $duration = max(0, (int) floor($elapsed_seconds / 60));
+
+    $update = [
+        'ended_at' => date('Y-m-d H:i:s'),
+        'duration_minutes' => $duration,
+    ];
+    if ($comment_id !== null) {
+        $update['comment_id'] = $comment_id;
+    }
+    if (function_exists('timer_pause_columns_exist') && timer_pause_columns_exist()) {
+        $update['paused_at'] = null;
+    }
+
+    db_update('ticket_time_entries', $update, 'id = ?', [(int) $active['id']]);
+    log_activity($ticket_id, $user_id, 'time_stopped', "Timer stopped ({$duration} min)");
+
+    if (function_exists('log_ticket_history')) {
+        log_ticket_history($ticket_id, $user_id, 'timer_stopped', null, date('Y-m-d H:i:s'));
+    }
+
+    return [
+        'entry_id' => (int) $active['id'],
+        'duration_minutes' => $duration,
+    ];
+}
+
+/**
  * Add manual time entry
  *
  * @param int $ticket_id

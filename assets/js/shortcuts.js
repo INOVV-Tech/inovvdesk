@@ -102,7 +102,6 @@
     function getDefaultItems() {
         var items = [
             { type: 'nav', label: 'Work', desc: 'Open work queues', icon: '\u2302', action: function() { navigateTo('work'); } },
-            { type: 'nav', label: 'Inbox', desc: 'Triage tickets that need a decision', icon: 'I', action: function() { navigateTo('inbox'); } },
             { type: 'nav', label: 'Dashboard', desc: 'View analytics dashboard', icon: 'D', action: function() { navigateTo('dashboard'); } },
             { type: 'nav', label: 'Tickets', desc: 'View all tickets', icon: '\uD83C\uDF9F', action: function() { navigateTo('tickets'); } },
             { type: 'action', label: 'New Ticket', desc: 'Create a new ticket', icon: '\u2795', action: function() { navigateTo('new-ticket'); } },
@@ -403,7 +402,6 @@
             pendingG = false;
             if (e.key === 'd') { navigateTo('dashboard'); return; }
             if (e.key === 'w') { navigateTo('work'); return; }
-            if (e.key === 'i') { navigateTo('inbox'); return; }
             if (e.key === 't') { navigateTo('tickets'); return; }
             if (e.key === 'r') { navigateTo('admin', {section:'reports'}); return; }
             if (e.key === 'o') { navigateTo('admin', {section:'organizations'}); return; }

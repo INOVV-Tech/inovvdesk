@@ -46,9 +46,10 @@ foreach ([
 }
 
 $assert(str_contains($work, 'workspace_render_queue_page'), 'Work page must use workspace queue renderer.');
-$assert(str_contains($inbox, 'workspace_render_queue_page'), 'Inbox page must use workspace queue renderer.');
-$assert(str_contains($inbox, "'contract_surface' => 'inbox'"), 'Inbox page must use the inbox contract surface.');
-$assert(str_contains($inbox, "'contract_collection' => 'inbox'"), 'Inbox page must hydrate from home.inbox.');
+$assert(str_contains($inbox, "redirect('work'"), 'Legacy inbox page must redirect into Work.');
+$assert(!str_contains($inbox, 'workspace_render_queue_page'), 'Inbox page must not render a second workspace queue surface.');
+$assert(!str_contains($inbox, "'contract_surface' => 'inbox'"), 'Inbox page must not expose an inbox UI contract surface.');
+$assert(!str_contains($inbox, "'contract_collection' => 'inbox'"), 'Inbox page must not hydrate a separate inbox surface.');
 
 foreach (['work-shell', 'inbox-shell', 'work-ticket-list', 'inbox-ticket__title', '<style>'] as $oldSelector) {
     $assert(!str_contains($work, $oldSelector), 'Work page should not keep old queue markup: ' . $oldSelector);

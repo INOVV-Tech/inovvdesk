@@ -542,13 +542,55 @@ CREATE TABLE IF NOT EXISTS api_tokens (
     name VARCHAR(255) NOT NULL,
     token_hash CHAR(64) NOT NULL,
     token_prefix VARCHAR(10) NOT NULL,
+    scopes_json TEXT NULL,
     expires_at DATETIME NULL,
     is_active TINYINT(1) DEFAULT 1,
+    revoked_at DATETIME NULL,
     last_used_at DATETIME NULL,
+    last_used_ip VARCHAR(45) NULL,
+    last_used_user_agent VARCHAR(255) NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uniq_token_hash (token_hash),
     INDEX idx_user (user_id),
     INDEX idx_active (is_active),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS api_token_audit_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    token_id INT NULL,
+    user_id INT NOT NULL,
+    action VARCHAR(120) NOT NULL,
+    method VARCHAR(10) NOT NULL,
+    resource_type VARCHAR(80) NULL,
+    resource_id INT NULL,
+    status_code INT DEFAULT 200,
+    request_id VARCHAR(64) NULL,
+    idempotency_key VARCHAR(128) NULL,
+    ip_address VARCHAR(45) NULL,
+    user_agent VARCHAR(255) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_token_created (token_id, created_at),
+    INDEX idx_user_created (user_id, created_at),
+    INDEX idx_action_created (action, created_at),
+    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE SET NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS api_idempotency_keys (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    token_id INT NOT NULL,
+    user_id INT NOT NULL,
+    idempotency_key VARCHAR(128) NOT NULL,
+    action VARCHAR(120) NOT NULL,
+    request_hash CHAR(64) NOT NULL,
+    response_json MEDIUMTEXT NULL,
+    status_code INT DEFAULT 200,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME NOT NULL,
+    UNIQUE KEY uniq_api_idempotency_token_key (token_id, action, idempotency_key),
+    INDEX idx_expires (expires_at),
+    FOREIGN KEY (token_id) REFERENCES api_tokens(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

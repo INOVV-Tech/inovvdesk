@@ -100,11 +100,52 @@ function ticket_email_action_plan(array $events, array $context = []): array
         $suppressed[$event] = ticket_email_suppression_reason($event, $context);
     }
 
+    if (count($email_events) > 1 && empty($context['allow_multiple_email_events'])) {
+        $primary_event = ticket_email_primary_event($email_events);
+        foreach ($email_events as $event) {
+            if ($event !== $primary_event) {
+                $suppressed[$event] = 'covered_by_' . str_replace('.', '_', $primary_event);
+            }
+        }
+        $email_events = [$primary_event];
+    }
+
     return [
         'email_events' => $email_events,
         'email_count' => count($email_events),
         'suppressed' => $suppressed,
     ];
+}
+
+function ticket_email_primary_event(array $events): string
+{
+    $priority = [
+        'ticket.customer_replied' => 10,
+        'ticket.agent_replied' => 10,
+        'ticket.assigned' => 20,
+        'ticket.mentioned' => 30,
+        'ticket.overdue' => 40,
+        'ticket.due_soon' => 50,
+        'ticket.completed' => 60,
+        'ticket.waiting_for_customer' => 70,
+        'ticket.waiting_for_agent' => 80,
+        'ticket.status_changed' => 90,
+        'ticket.created.confirmation' => 100,
+        'ticket.created' => 110,
+    ];
+
+    $best_event = (string) ($events[0] ?? '');
+    $best_score = $priority[$best_event] ?? 999;
+    foreach ($events as $event) {
+        $event = (string) $event;
+        $score = $priority[$event] ?? 999;
+        if ($score < $best_score) {
+            $best_event = $event;
+            $best_score = $score;
+        }
+    }
+
+    return $best_event;
 }
 
 function ticket_notification_user_id(array $user): int

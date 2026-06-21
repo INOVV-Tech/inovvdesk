@@ -16,8 +16,8 @@ function work_queue_definitions(): array
             'scope' => 'personal',
         ],
         'unassigned' => [
-            'label' => 'Unassigned',
-            'description' => 'New work that needs triage.',
+            'label' => 'New tickets',
+            'description' => 'Tickets waiting for an owner.',
             'scope' => 'team',
         ],
         'overdue' => [

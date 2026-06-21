@@ -14,12 +14,13 @@ function assert_inbox_page($condition, $message)
 }
 
 assert_inbox_page(strpos($index, "case 'inbox'") !== false, 'inbox route is not registered.');
-assert_inbox_page(strpos($header, "url('inbox')") !== false, 'sidebar should link to inbox.');
-assert_inbox_page(strpos($inbox, 'inbox_summary') !== false, 'inbox page should use inbox service summary.');
-assert_inbox_page(strpos($inbox, 'workspace_render_queue_page') !== false, 'inbox page should use the shared workspace queue renderer.');
-assert_inbox_page(strpos($inbox, "redirect('work')") !== false, 'client users should be redirected away from inbox.');
-assert_inbox_page(strpos($shortcuts, "navigateTo('inbox')") !== false, 'command palette should include inbox.');
+assert_inbox_page(strpos($header, "url('inbox')") === false, 'sidebar must not expose inbox as a separate workspace agenda.');
+assert_inbox_page(strpos($inbox, "redirect('work'") !== false, 'legacy inbox route should redirect into Work.');
+assert_inbox_page(strpos($inbox, "'triage' => 'unassigned'") !== false, 'legacy triage links should land in Work > New tickets.');
+assert_inbox_page(strpos($inbox, 'workspace_render_queue_page') === false, 'inbox page must not render a second queue surface.');
+assert_inbox_page(strpos($shortcuts, "navigateTo('inbox')") === false, 'command palette must not expose inbox as a separate agenda.');
 foreach ([
+    "t('Inbox')",
     'Decide what should be assigned, started, merged, or closed.',
     'Current inbox',
     'New or unassigned tickets that need a decision.',
@@ -27,7 +28,7 @@ foreach ([
     'Tickets created from inbound email that still need triage.',
     'No ticket needs triage in this queue.',
 ] as $forbidden_copy) {
-    assert_inbox_page(strpos($inbox, $forbidden_copy) === false, 'inbox page should not render redundant helper copy: ' . $forbidden_copy);
+    assert_inbox_page(strpos($inbox, $forbidden_copy) === false, 'legacy inbox route should not render customer-facing inbox copy: ' . $forbidden_copy);
 }
 $workspaceSurface = file_get_contents($root . '/includes/components/workspace-surface.php');
 assert_inbox_page($workspaceSurface !== false && strpos($workspaceSurface, "t('All clear')") !== false, 'empty inbox queue should use concise state copy from the shared renderer.');

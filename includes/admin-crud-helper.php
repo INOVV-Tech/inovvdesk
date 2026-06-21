@@ -256,13 +256,26 @@ function move_item_down($table, $id) {
  * Standard API response helpers
  */
 function api_success($data = []) {
+    $response = array_merge(['success' => true], $data);
+    if (!empty($GLOBALS['is_api_token_auth'])) {
+        $action = (string) ($GLOBALS['api_current_action'] ?? ($_GET['action'] ?? ''));
+        if (function_exists('api_idempotency_store_success')) {
+            api_idempotency_store_success($response);
+        }
+        if (function_exists('api_token_log_action')) {
+            api_token_log_action($action, $response, http_response_code() ?: 200);
+        }
+    }
     header('Content-Type: application/json');
-    echo json_encode(array_merge(['success' => true], $data));
+    echo json_encode($response);
     exit;
 }
 
 function api_error($message, $code = 400) {
     http_response_code($code);
+    if (!empty($GLOBALS['is_api_token_auth']) && function_exists('api_token_log_action')) {
+        api_token_log_action((string) ($GLOBALS['api_current_action'] ?? ($_GET['action'] ?? '')), ['error' => $message], $code);
+    }
     header('Content-Type: application/json');
     echo json_encode(['error' => $message, 'success' => false]);
     exit;
@@ -290,4 +303,3 @@ function get_json_input() {
     $input = json_decode(file_get_contents('php://input'), true);
     return is_array($input) ? $input : [];
 }
-

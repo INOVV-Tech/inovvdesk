@@ -580,7 +580,8 @@
 
             if (state === 'running' || state === 'paused') {
                 toolbar.className = state === 'running' ? 'td-tool-btn td-tool-btn--active-timer' : 'td-tool-btn';
-                toolbar.title = state === 'running' ? t('pauseTimer', 'Pause timer') : t('resumeTimer', 'Resume timer');
+                toolbar.title = state === 'running' ? t('pauseTimerHelp', 'Pause this timer without logging time yet.') : t('resumeTimerHelp', 'Resume the paused timer.');
+                toolbar.setAttribute('aria-label', toolbar.title);
                 toolbar.textContent = '';
                 toolbar.insertAdjacentHTML('afterbegin', state === 'running' ? icons.pauseSm : icons.playSm);
                 if (!toolbarElapsed) {
@@ -593,11 +594,22 @@
                 toolbarElapsed.textContent = timeText || '';
             } else {
                 toolbar.className = 'td-tool-btn';
-                toolbar.title = t('startTimer', 'Start timer');
+                toolbar.title = t('startTimerHelp', 'Start a timer for this ticket.');
+                toolbar.setAttribute('aria-label', toolbar.title);
                 toolbar.textContent = '';
                 toolbar.insertAdjacentHTML('afterbegin', icons.playSm);
                 if (toolbarElapsed) toolbarElapsed.remove();
             }
+        }
+
+        function updateCompleteActionTitle(state) {
+            var completeButton = document.querySelector('button[name="change_status"]');
+            if (!completeButton) return;
+            var title = state === 'running' || state === 'paused'
+                ? t('completeTimerHelp', 'Mark this ticket as done and stop the active timer.')
+                : t('completeHelp', 'Mark this ticket as done.');
+            completeButton.title = title;
+            completeButton.setAttribute('aria-label', title);
         }
 
         function tick() {
@@ -624,7 +636,7 @@
 
             if (state === 'running') {
                 button.className = 'btn btn-warning px-3 py-1.5 text-sm inline-flex items-center gap-1.5 transition-colors';
-                button.title = t('pauseTimer', 'Pause timer');
+                button.title = t('pauseTimerHelp', 'Pause this timer without logging time yet.');
                 button.dataset.state = 'running';
                 buttonIcon.innerHTML = icons.pause;
                 var runningElapsed = Math.floor(Date.now() / 1000) - timerStartTime - pausedSeconds;
@@ -640,11 +652,12 @@
                 var submitRunning = document.getElementById('comment-submit-btn');
                 if (submitRunning) submitRunning.dataset.hasActiveTimer = '1';
                 updateToolbarTimer('running', formatTime(runningElapsed));
+                updateCompleteActionTitle('running');
             } else if (state === 'paused') {
                 var elapsedSec = opts.elapsedSeconds || 0;
                 var elapsedMin = Math.floor(elapsedSec / 60);
                 button.className = 'btn btn-success px-3 py-1.5 text-sm inline-flex items-center gap-1.5 transition-colors';
-                button.title = t('resumeTimer', 'Resume timer');
+                button.title = t('resumeTimerHelp', 'Resume the paused timer.');
                 button.dataset.state = 'paused';
                 buttonIcon.innerHTML = icons.play;
                 buttonText.innerHTML = '<span id="timer-elapsed" class="tabular-nums" data-started="' + timerStartTime + '" data-paused-seconds="' + pausedSeconds + '">' + elapsedMin + ' min</span> <span class="text-xs uppercase ml-1">' + t('paused', 'Paused') + '</span>';
@@ -657,9 +670,10 @@
                 }
                 resetPageTitle();
                 updateToolbarTimer('paused', elapsedMin + ' min');
+                updateCompleteActionTitle('paused');
             } else {
                 button.className = 'btn btn-success px-3 py-1.5 text-sm inline-flex items-center gap-1.5 transition-colors';
-                button.title = t('startTimer', 'Start timer');
+                button.title = t('startTimerHelp', 'Start a timer for this ticket.');
                 button.dataset.state = 'stopped';
                 buttonIcon.innerHTML = icons.play;
                 buttonText.textContent = t('startTimer', 'Start timer');
@@ -676,6 +690,7 @@
                 var submitStopped = document.getElementById('comment-submit-btn');
                 if (submitStopped) submitStopped.dataset.hasActiveTimer = '0';
                 updateToolbarTimer('stopped');
+                updateCompleteActionTitle('stopped');
             }
 
             if (window.attachStopTimerToggleListener) window.attachStopTimerToggleListener();
@@ -814,6 +829,7 @@
         if (currentState === 'running') {
             timerInterval = setInterval(tick, 1000);
         }
+        updateCompleteActionTitle(currentState);
     }
 
     function initAgentCcDropdown() {

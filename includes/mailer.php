@@ -68,6 +68,11 @@ function mailer_load_email_renderer(): void
 function send_ticket_notification_email($to, $subject, $body, array $payload = [], $force_delivery = false)
 {
     mailer_load_email_renderer();
+    if (function_exists('foxdesk_email_normalize_subject')) {
+        $subject = foxdesk_email_normalize_subject($subject);
+    } else {
+        $subject = trim((string) preg_replace('/[\r\n\t]+/', ' ', (string) $subject));
+    }
 
     if (function_exists('foxdesk_render_ticket_email_html')) {
         $settings = function_exists('get_settings') ? get_settings() : [];
@@ -79,6 +84,7 @@ function send_ticket_notification_email($to, $subject, $body, array $payload = [
             'body' => $body,
             'cta_label' => 'Open ticket',
             'cta_url' => '',
+            'preheader' => 'Open FoxDesk to review this ticket update.',
             'reason' => 'You are receiving this because you are connected to this ticket.',
         ], $payload));
 
@@ -404,7 +410,7 @@ function send_status_change_notification($ticket, $old_status, $new_status, $com
     }
 
     if (!$template) {
-        $subject = t('Status changed for ticket') . ' #{ticket_id}: {ticket_title}';
+        $subject = t('Status updated for ticket') . ' #{ticket_id}: {ticket_title}';
         $body = t('Hello,') . "\n\n" . t('The status of your ticket "{ticket_title}" has changed.') . "\n\n";
         $body .= t('Previous status') . ": {old_status}\n";
         $body .= t('New status') . ": {new_status}\n";
@@ -558,7 +564,7 @@ function send_new_comment_notification($ticket, $comment, $commenter, $comment_i
         }
 
         if (!$template) {
-            $subject = t('New comment on ticket') . ' #{ticket_id}: {ticket_title}';
+            $subject = t('Reply on ticket') . ' #{ticket_id}: {ticket_title}';
             $body = t('Hello,') . "\n\n" . t('A new comment was added to your ticket "{ticket_title}".') . "\n\n";
             $body .= t('From') . ": {commenter_name}\n";
             if ($time_spent) {
@@ -828,21 +834,21 @@ function get_builtin_email_template($key, $lang = 'en')
     $templates = [
         'status_change' => [
             'en' => [
-                'subject' => 'Status changed for ticket #{ticket_id}: {ticket_title}',
+                'subject' => 'Status updated for ticket #{ticket_id}: {ticket_title}',
                 'body' => "Hello,\n\nThe status of your ticket \"{ticket_title}\" has changed.\n\nPrevious status: {old_status}\nNew status: {new_status}\n\nComment:\n{comment_text}\n\nTime spent: {time_spent}\n\nView ticket: {ticket_url}\n\nRegards,\n{app_name}"
             ],
             'cs' => [
-                'subject' => 'Stav změněn u požadavku #{ticket_id}: {ticket_title}',
+                'subject' => 'Stav aktualizován u požadavku #{ticket_id}: {ticket_title}',
                 'body' => "Dobrý den,\n\nStav vašeho požadavku \"{ticket_title}\" byl změněn.\n\nPředchozí stav: {old_status}\nNový stav: {new_status}\n\nKomentář:\n{comment_text}\n\nStrávený čas: {time_spent}\n\nZobrazit požadavek: {ticket_url}\n\nS pozdravem,\n{app_name}"
             ]
         ],
         'new_comment' => [
             'en' => [
-                'subject' => 'New comment on ticket #{ticket_id}: {ticket_title}',
+                'subject' => 'Reply on ticket #{ticket_id}: {ticket_title}',
                 'body' => "Hello,\n\nA new comment was added to your ticket \"{ticket_title}\".\n\nFrom: {commenter_name}\nTime spent: {time_spent}\nAttachments: {attachments}\n\n---\n{comment_text}\n---\n\nView comment: {comment_url}\n\nRegards,\n{app_name}"
             ],
             'cs' => [
-                'subject' => 'Nový komentář u požadavku #{ticket_id}: {ticket_title}',
+                'subject' => 'Odpověď u požadavku #{ticket_id}: {ticket_title}',
                 'body' => "Dobrý den,\n\nK vašemu požadavku \"{ticket_title}\" byl přidán nový komentář.\n\nOd: {commenter_name}\nStrávený čas: {time_spent}\nPřílohy: {attachments}\n\n---\n{comment_text}\n---\n\nZobrazit komentář: {comment_url}\n\nS pozdravem,\n{app_name}"
             ]
         ],
@@ -878,11 +884,11 @@ function get_builtin_email_template($key, $lang = 'en')
         ],
         'ticket_assignment' => [
             'en' => [
-                'subject' => 'Ticket assigned #{ticket_code}: {ticket_title}',
+                'subject' => 'Assigned to you #{ticket_code}: {ticket_title}',
                 'body' => "Hello {agent_name},\n\nYou have been assigned a ticket to handle:\n\nTicket: #{ticket_code}\nSubject: {ticket_title}\nAssigned by: {assigner_name}\n\nView ticket: {ticket_url}\n\nRegards,\n{app_name}"
             ],
             'cs' => [
-                'subject' => 'Přiřazen požadavek #{ticket_code}: {ticket_title}',
+                'subject' => 'Přiřazeno vám #{ticket_code}: {ticket_title}',
                 'body' => "Dobrý den {agent_name},\n\nByl vám přiřazen požadavek k řešení:\n\nPožadavek: #{ticket_code}\nPředmět: {ticket_title}\nPřiřadil: {assigner_name}\n\nZobrazit požadavek: {ticket_url}\n\nS pozdravem,\n{app_name}"
             ]
         ],
@@ -1146,7 +1152,7 @@ function send_ticket_confirmation_to_user($ticket)
 
     if (!$template) {
         // Fallback
-        $subject = t('Ticket received') . ': {ticket_title}';
+        $subject = t('Ticket received') . ' #{ticket_code}: {ticket_title}';
         $body = t('Hello,') . "\n\n" . t('We have received your ticket.') . "\n\n" . t('ID') . ": #{ticket_code}\n" . t('Subject') . ": {ticket_title}\n\n" . t('You can track the progress here') . ": {ticket_url}\n\n" . t('Regards,') . "\n{app_name}";
     } else {
         $subject = $template['subject'];

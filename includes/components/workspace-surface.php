@@ -29,7 +29,8 @@ function workspace_render_queue_page(array $options): void
     $contract_surface = (string) ($options['contract_surface'] ?? 'work');
     $contract_collection = (string) ($options['contract_collection'] ?? $contract_surface);
     ?>
-    <div class="workspace-queue-page"
+    <div class="workflow-surface workflow-surface--queue workspace-queue-page"
+         data-core-workflow-surface="work"
          data-workspace-queue-surface
          data-app-contract-surface="<?php echo e($contract_surface); ?>"
          data-app-contract-collection="<?php echo e($contract_collection); ?>"

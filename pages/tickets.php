@@ -527,6 +527,7 @@ include BASE_PATH . '/includes/components/page-header.php';
     position: relative;
     flex-shrink: 1;
     min-width: 0;
+    width: 10rem;
     overflow: visible;
 }
 /* Autosuggest dropdown */
@@ -595,7 +596,7 @@ include BASE_PATH . '/includes/components/page-header.php';
 }
 .ticket-search-wrap .search-icon {
     position: absolute;
-    left: 0.5rem;
+    left: 0.65rem;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
@@ -606,17 +607,18 @@ include BASE_PATH . '/includes/components/page-header.php';
     background: transparent;
     border: 1px solid var(--border-light);
     border-radius: var(--radius-sm);
-    padding: 0.35rem 0.5rem 0.35rem 1.6rem;
+    box-sizing: border-box;
+    padding: 0.35rem 0.5rem 0.35rem 1.85rem;
     font-size: 0.75rem;
     color: var(--text-secondary);
-    width: 2rem;
+    width: 100%;
     min-width: 0;
     max-width: 100%;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 .ticket-search-input::placeholder {
-    color: transparent;
+    color: var(--text-muted);
     font-weight: 400;
     font-size: 0.6875rem;
 }
@@ -626,7 +628,6 @@ include BASE_PATH . '/includes/components/page-header.php';
 }
 .ticket-search-input:focus {
     outline: none;
-    width: 12rem;
     cursor: text;
     border-color: var(--primary);
     background-color: var(--surface-primary);
@@ -636,9 +637,7 @@ include BASE_PATH . '/includes/components/page-header.php';
     color: var(--text-muted);
 }
 @media (min-width: 1280px) {
-    .ticket-search-input { width: 6rem; }
-    .ticket-search-input::placeholder { color: var(--text-muted); }
-    .ticket-search-input:focus { width: 14rem; }
+    .ticket-search-wrap { width: 12rem; }
 }
 .ticket-search-input:focus + .search-icon,
 .ticket-search-wrap:focus-within .search-icon {
@@ -1076,6 +1075,12 @@ $kanban_main_statuses = $ticket_kanban_model['main_statuses'];
 $kanban_archived_closed_statuses = $ticket_kanban_model['archived_closed_statuses'];
 ?>
 
+<div class="workflow-surface workflow-surface--registry ticket-registry-page"
+     data-core-workflow-surface="tickets"
+     data-ticket-registry-surface
+     data-app-contract-surface="tickets"
+     data-app-contract-action="app-ticket-list"
+     data-ticket-contract-mode="refresh">
 <!-- Tickets Table/List with Inline Filters -->
 <?php
 ticket_registry_render_view_tabs(
@@ -1087,7 +1092,7 @@ ticket_registry_render_view_tabs(
 );
 ?>
 
-<div class="card overflow-hidden <?php echo $ticket_view === 'board' ? 'kanban-board-wrapper' : ''; ?>">
+<div class="card ticket-registry-card overflow-hidden <?php echo $ticket_view === 'board' ? 'kanban-board-wrapper' : ''; ?>">
     <?php if (empty($tickets)): ?>
         <?php
         // Check if filters are active to show "Show all" button
@@ -2060,6 +2065,7 @@ ticket_registry_render_view_tabs(
         <?php endif; /* board/list toggle */ ?>
     <?php endif; ?>
 
+</div>
 </div>
 
 <?php if ($ticket_view === 'board'): ?>

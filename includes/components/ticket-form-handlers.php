@@ -215,16 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('ticket', ['id' => $ticket_id]);
         }
 
-        $start_ts = strtotime($active['started_at']);
-        $end_ts = time();
-        $duration = max(0, (int) floor(($end_ts - $start_ts) / 60));
-
-        db_update('ticket_time_entries', [
-            'ended_at' => date('Y-m-d H:i:s'),
-            'duration_minutes' => $duration
-        ], 'id = ?', [$active['id']]);
-
-        log_activity($ticket_id, $user['id'], 'time_stopped', "Timer stopped ({$duration} min)");
+        stop_active_ticket_timer($ticket_id, $user['id']);
         flash(t('Timer stopped.'), 'success');
         redirect('ticket', ['id' => $ticket_id]);
     }
@@ -558,12 +549,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $status_comment = trim($_POST['status_comment'] ?? '');
         $old_status = get_status($ticket['status_id']);
         $new_status = get_status($new_status_id);
+        $status_changed = $new_status_id !== (int) $ticket['status_id'];
 
-        db_update('tickets', ['status_id' => $new_status_id], 'id = ?', [$ticket_id]);
-        log_activity($ticket_id, $user['id'], 'status_changed', "Status changed from '{$old_status['name']}' to '{$new_status['name']}'");
+        if ($status_changed) {
+            db_update('tickets', [
+                'status_id' => $new_status_id,
+                'updated_at' => date('Y-m-d H:i:s'),
+            ], 'id = ?', [$ticket_id]);
+            log_activity($ticket_id, $user['id'], 'status_changed', "Status changed from '{$old_status['name']}' to '{$new_status['name']}'");
+        }
+
+        $stopped_timer = null;
+        if (
+            function_exists('ticket_status_group_from_status')
+            && ticket_status_group_from_status($new_status) === 'done'
+            && ticket_time_table_exists()
+        ) {
+            $stopped_timer = stop_active_ticket_timer($ticket_id, $user['id']);
+        }
 
         // Add comment about status change - NOT internal (visible to customer)
-        if (!empty($status_comment)) {
+        if ($status_changed && !empty($status_comment)) {
             $comment_content = $status_comment;
             db_insert('comments', [
                 'ticket_id' => $ticket_id,
@@ -577,12 +583,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             db_update('tickets', ['updated_at' => date('Y-m-d H:i:s')], 'id = ?', [$ticket_id]);
         }
 
-        // Send notification
-        require_once BASE_PATH . '/includes/mailer.php';
-        send_status_change_notification($ticket, $old_status, $new_status, $status_comment, 0);
+        if ($status_changed) {
+            require_once BASE_PATH . '/includes/mailer.php';
+            send_status_change_notification($ticket, $old_status, $new_status, $status_comment, 0);
+        }
 
         // In-app notification for status change
-        if (function_exists('ticket_event_dispatch_in_app')) {
+        if ($status_changed && function_exists('ticket_event_dispatch_in_app')) {
             ticket_event_dispatch_in_app('ticket.status_changed', $ticket_id, $user['id'], [
                 'old_status' => $old_status['name'] ?? '',
                 'new_status' => $new_status['name'] ?? '',
@@ -590,11 +597,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Auto-resolve action notifications if ticket is now closed
-        if (!empty($new_status['is_closed']) && function_exists('resolve_action_notifications')) {
+        if ($status_changed && !empty($new_status['is_closed']) && function_exists('resolve_action_notifications')) {
             resolve_action_notifications($ticket_id);
         }
 
-        flash(t('Status updated.'), 'success');
+        flash($stopped_timer ? t('Ticket completed and timer stopped.') : ($status_changed ? t('Status updated.') : t('No changes to save.')), 'success');
         // Redirect to referrer (tickets list / dashboard) if provided, otherwise stay on ticket
         $redirect_back = trim($_POST['redirect_to'] ?? '');
         if ($redirect_back !== '' && str_starts_with($redirect_back, 'index.php')) {

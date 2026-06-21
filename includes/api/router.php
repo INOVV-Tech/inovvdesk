@@ -25,6 +25,8 @@ require_once __DIR__ . '/app-handler.php';
  * Route API requests to appropriate handlers
  */
 function route_api_request($action) {
+    $GLOBALS['api_current_action'] = (string) $action;
+
     // Define public actions that don't require authentication
     $public_actions = [];
 
@@ -35,7 +37,8 @@ function route_api_request($action) {
 
     if (is_api_token_request()) {
         $is_agent_endpoint = str_starts_with($action, 'agent-');
-        if (!is_logged_in() || $is_agent_endpoint) {
+        $is_app_endpoint = str_starts_with($action, 'app-');
+        if (!is_logged_in() || $is_agent_endpoint || $is_app_endpoint || $action === 'upload') {
             $token_user = authenticate_api_token();
             if ($token_user) {
                 $GLOBALS['is_api_token_auth'] = true;
@@ -46,6 +49,12 @@ function route_api_request($action) {
     // Check authentication for non-public endpoints
     if (!in_array($action, $public_actions) && !is_logged_in()) {
         api_error('Unauthorized', 401);
+    }
+
+    if (!empty($GLOBALS['is_api_token_auth'])) {
+        api_token_enforce_action_scope($action);
+        api_token_rate_limit_check($action);
+        api_idempotency_replay_if_available($action);
     }
 
     // Route to appropriate handler
@@ -108,6 +117,20 @@ function route_api_request($action) {
         // App shell contract for web/native clients
         'app-shell' => 'api_app_shell',
         'app-home' => 'api_app_home',
+        'app-ticket-list' => 'api_app_ticket_list',
+        'app-ticket-detail' => 'api_app_ticket_detail',
+        'app-ticket-actions' => 'api_app_ticket_actions',
+        'app-create-ticket' => 'api_app_create_ticket',
+        'app-add-comment' => 'api_app_add_comment',
+        'app-attachment-metadata' => 'api_app_attachment_metadata',
+        'app-ticket-timer' => 'api_app_ticket_timer',
+        'app-ticket-timer-action' => 'api_app_ticket_timer_action',
+        'app-log-time' => 'api_app_log_time',
+        'app-client-overview' => 'api_app_client_overview',
+        'app-reporting-review' => 'api_app_reporting_review',
+        'app-notifications' => 'api_app_notifications',
+        'app-notifications-summary' => 'api_app_notifications_summary',
+        'app-notification-read-state' => 'api_app_notification_read_state',
 
         // Dashboard layout
         'save-dashboard-layout' => 'api_save_dashboard_layout',

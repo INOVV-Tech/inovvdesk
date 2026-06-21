@@ -6,7 +6,7 @@ FoxDesk SaaS, but it is not the hosted platform repository.
 ## Classification Rules
 
 - `shared`: helpdesk workflow that should behave the same in SaaS and
-  self-hosted: Work, Inbox, Tickets, Clients, Reports, Search, Notifications,
+  self-hosted: Work, internal intake queues, Tickets, Clients, Reports, Search, Notifications,
   and Email rendering.
 - `saas`: hosted-only platform, billing, tenants, Stripe, Cloudflare Email, R2,
   and operator console behavior. These must not ship as self-hosted app screens.
@@ -20,7 +20,7 @@ FoxDesk SaaS, but it is not the hosted platform repository.
 | Area | Owner | Required parity |
 | --- | --- | --- |
 | Work | shared | Same queue keys: `mine`, `unassigned`, `overdue`, `waiting`, `done_today`. |
-| Inbox | shared | Same triage keys: `triage`, `customer_replies`, `email_imports`. |
+| Intake queues | shared internal | Same internal keys: `triage`, `customer_replies`, `email_imports`. They feed Work/API clients and must not appear as a separate customer-facing agenda. |
 | Tickets | shared | Same registry views: `open`, `waiting`, `done`, `all`, `archived`. |
 | Ticket detail | shared | Same action model: Reply, Start work, Assign, Complete/Edit when allowed. |
 | New ticket | shared | No random client fallback. Empty stays empty unless selected or deterministically inferred. |
@@ -29,6 +29,7 @@ FoxDesk SaaS, but it is not the hosted platform repository.
 | Search | shared | Done/closed tickets must remain discoverable through global search and `all` views. |
 | Notifications | shared | One user action creates at most one meaningful email. |
 | Email rendering | shared | Preserve readable paragraphs, lists, links, and strip quoted history/signatures. |
+| Agent/API control | shared | Scoped API keys let trusted assistants or CLI tools read and write helpdesk data only within the creator's permissions, organization scope, rate limits, and audit trail. |
 | Team/users | shared | Same staff/client roles and permission concepts. |
 | Settings | shared + self-hosted overlays | Shared workflow/security/profile settings plus local update and IMAP diagnostics. |
 | Storage | self-hosted overlay | Local disk attachments with the same permission checks as SaaS. |
@@ -52,6 +53,7 @@ FoxDesk SaaS, but it is not the hosted platform repository.
 | `pages/client.php` and client admin surfaces | shared | Must use client overview/rate concepts consistently. |
 | `pages/admin/reports.php` | shared | Must keep item-level billing review parity. |
 | `pages/admin/settings.php` | shared + self-hosted overlays | Local updater, backups, and IMAP diagnostics live here. |
+| API token management | shared + self-hosted overlays | Users can create scoped assistant/API keys for the local instance; exported keys must migrate inactive. |
 | `pages/admin/migration-export.php` | self-hosted | Migration source and ZIP fallback only. |
 | `install.php` and `upgrade.php` | self-hosted | Local install/update tools. |
 

@@ -242,3 +242,86 @@ function team_ai_agent_tokens_fetch(array $ai_agents): array
         return [];
     }
 }
+
+function team_ai_agent_token_scope_groups(): array
+{
+    return [
+        'ticket_work' => [
+            'label' => 'Tickets and replies',
+            'description' => 'Read, create, update tickets, and add replies.',
+            'scopes' => ['work:read', 'tickets:read', 'tickets:write', 'comments:write', 'users:read', 'clients:read'],
+        ],
+        'time_tracking' => [
+            'label' => 'Time tracking',
+            'description' => 'Read and log time entries.',
+            'scopes' => ['time:read', 'time:write'],
+        ],
+        'attachments' => [
+            'label' => 'Attachments',
+            'description' => 'Read and upload ticket attachments.',
+            'scopes' => ['attachments:read', 'attachments:write'],
+        ],
+        'reports' => [
+            'label' => 'Reports',
+            'description' => 'Read report and billing review data.',
+            'scopes' => ['reports:read'],
+        ],
+        'notifications' => [
+            'label' => 'Notifications',
+            'description' => 'Read and update notifications.',
+            'scopes' => ['notifications:read', 'notifications:write'],
+        ],
+    ];
+}
+
+function team_ai_agent_token_default_scope_groups(): array
+{
+    return ['ticket_work', 'time_tracking', 'attachments', 'reports'];
+}
+
+function team_ai_agent_token_scopes_from_input(array $input): array
+{
+    $groups = team_ai_agent_token_scope_groups();
+    $selected = $input['api_token_scope_groups'] ?? team_ai_agent_token_default_scope_groups();
+    if (!is_array($selected)) {
+        $selected = [$selected];
+    }
+
+    $scopes = [];
+    foreach ($selected as $group_key) {
+        $group_key = (string) $group_key;
+        if (!isset($groups[$group_key])) {
+            continue;
+        }
+        foreach ($groups[$group_key]['scopes'] as $scope) {
+            $scopes[$scope] = true;
+        }
+    }
+
+    if (empty($scopes)) {
+        foreach (['work:read', 'tickets:read'] as $scope) {
+            $scopes[$scope] = true;
+        }
+    }
+
+    return array_keys($scopes);
+}
+
+function team_ai_agent_revoke_active_tokens(int $user_id): void
+{
+    if ($user_id <= 0 || !function_exists('revoke_api_token') || !function_exists('api_tokens_table_exists') || !api_tokens_table_exists()) {
+        return;
+    }
+
+    try {
+        $sql = 'SELECT id FROM api_tokens WHERE user_id = ? AND is_active = 1';
+        if (function_exists('column_exists') && column_exists('api_tokens', 'revoked_at')) {
+            $sql .= ' AND revoked_at IS NULL';
+        }
+        foreach (db_fetch_all($sql, [$user_id]) as $token) {
+            revoke_api_token((int) $token['id']);
+        }
+    } catch (Throwable $e) {
+        // Token cleanup should not block saving the agent.
+    }
+}

@@ -16,7 +16,9 @@ function api_upload() {
         api_error('Method not allowed', 405);
     }
 
-    require_csrf_token(true);
+    if (empty($GLOBALS['is_api_token_auth'])) {
+        require_csrf_token(true);
+    }
     $user = current_user();
     if (!$user) {
         api_error('Unauthorized', 401);

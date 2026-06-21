@@ -35,7 +35,6 @@ foreach ([
 $header = read_core_ux_flow_file($root, 'includes/header.php');
 foreach ([
     "t('Work')",
-    "t('Inbox')",
     "t('Dashboard')",
     "t('All tickets')",
     "t('New ticket')",
@@ -47,10 +46,7 @@ assert_core_ux_flow(
     strpos($header, "url('work')") < strpos($header, "url('dashboard')"),
     'Work must stay ahead of Dashboard in the workspace navigation.'
 );
-assert_core_ux_flow(
-    strpos($header, "url('inbox')") < strpos($header, "url('tickets')"),
-    'Inbox must stay ahead of the ticket registry in the workspace navigation.'
-);
+assert_core_ux_flow(!str_contains($header, "url('inbox')"), 'Inbox must not be exposed as a separate workspace agenda.');
 
 $work = read_core_ux_flow_file($root, 'includes/modules/work/work-queues.php');
 foreach (['mine', 'unassigned', 'overdue', 'waiting', 'done_today'] as $key) {
@@ -61,6 +57,7 @@ $inbox = read_core_ux_flow_file($root, 'includes/modules/inbox/inbox-service.php
 foreach (['triage', 'customer_replies', 'email_imports'] as $key) {
     assert_core_ux_flow(str_contains($inbox, "'" . $key . "'"), 'Inbox queue key missing: ' . $key);
 }
+assert_core_ux_flow(str_contains($inbox, "'label' => 'New tickets'"), 'Internal triage queue must present as New tickets.');
 
 $ticket_views = read_core_ux_flow_file($root, 'includes/modules/tickets/ticket-list-views.php');
 foreach (['open', 'waiting', 'done', 'all', 'archived'] as $key) {
@@ -95,7 +92,8 @@ foreach ([
     'function ticket_detail_is_done',
     'ticket_detail_done_status_score',
     'ticket_detail_status_is_canceled',
-    '$is_agent_user && !$is_done && $done_status_id',
+    "\$has_active_timer = \$timer_state !== 'stopped';",
+    '$is_agent_user && $done_status_id && (!$is_done || $has_active_timer)',
     'cancel|canceled|cancelled|storno|zrusen|reject',
 ] as $needle) {
     assert_core_ux_flow(str_contains($ticket_actions, $needle), 'Ticket complete flow guard missing: ' . $needle);
@@ -108,7 +106,7 @@ foreach (['open_tickets', 'done_tickets', 'archived_tickets', 'clients', 'contac
 
 $pages = [
     'pages/work.php' => ['work_queue_summary', 'workspace_render_queue_page'],
-    'pages/inbox.php' => ['inbox_summary', 'workspace_render_queue_page'],
+    'pages/inbox.php' => ["redirect('work'", "'triage' => 'unassigned'"],
     'pages/tickets.php' => ['ticket_list_view_from_request', 'ticket_list_view_apply_filters', 'ticket_registry_split_model', 'name="search_scope" value="all"'],
     'pages/ticket-detail.php' => ['ticket_detail_primary_actions(', 'Ticket Work Panel'],
     'pages/client.php' => ['client_overview(', 'All tickets'],

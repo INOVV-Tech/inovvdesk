@@ -34,7 +34,7 @@ $assert(str_contains($module, 'function app_shell_search_sections'), 'App shell 
 $assert(str_contains($module, 'function app_shell_reporting'), 'App shell reporting helper is missing.');
 $assert(str_contains($module, "'schema_version' => 1"), 'App shell payload must expose a schema version.');
 $assert(str_contains($module, "'key' => 'work'"), 'Work navigation item is missing.');
-$assert(str_contains($module, "'key' => 'inbox'"), 'Inbox navigation item is missing.');
+$assert(!str_contains($module, "'key' => 'inbox'"), 'Inbox must not be a primary app-shell navigation item.');
 $assert(str_contains($module, "'key' => 'reports'"), 'Reports navigation item is missing.');
 $assert(str_contains($docs, 'sixth behavior change adds an authenticated `app-shell` API contract'), 'Architecture docs must describe milestone 6.');
 

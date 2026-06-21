@@ -16,11 +16,13 @@ $open = ['name' => 'Open', 'is_closed' => 0];
 $active = ['name' => 'In Progress', 'is_closed' => 0];
 $waiting = ['name' => 'Waiting for Customer', 'is_closed' => 0];
 $done = ['name' => 'Closed', 'is_closed' => 1];
+$done_cs = ['name' => 'DOKONČENO', 'is_closed' => 0];
 
 assert_policy(ticket_status_group_from_status($open) === 'new', 'Open should map to new.');
 assert_policy(ticket_status_group_from_status($active) === 'active', 'In Progress should map to active.');
 assert_policy(ticket_status_group_from_status($waiting) === 'waiting', 'Waiting status should map to waiting.');
 assert_policy(ticket_status_group_from_status($done) === 'done', 'Closed status should map to done.');
+assert_policy(ticket_status_group_from_status($done_cs) === 'done', 'Czech done status with uppercase diacritics should map to done.');
 
 assert_policy(!should_send_ticket_email('ticket.status_changed', $ticket, $actor, [
     'old_status' => $open,
@@ -65,6 +67,17 @@ assert_policy(!should_send_ticket_confirmation_email($self_ticket, $admin, $admi
 assert_policy(should_send_ticket_confirmation_email($customer_ticket, $customer, $admin), 'Customer ticket confirmation should still be sent.');
 assert_policy(!should_send_ticket_assignment_email($self_ticket, $admin, $admin), 'Self-assignment should not send an assignment email.');
 assert_policy(should_send_ticket_assignment_email($customer_ticket, $agent, $admin), 'Assignment to another agent should still send an email.');
+
+$assigned_create_plan = ticket_email_action_plan([
+    'ticket.created',
+    'ticket.assigned',
+], [
+    'ticket' => $assigned_on_create_ticket,
+    'actor' => $customer,
+]);
+assert_policy($assigned_create_plan['email_count'] === 1, 'Created plus assigned should collapse to one actionable email event.');
+assert_policy($assigned_create_plan['email_events'] === ['ticket.assigned'], 'Created plus assigned should prefer assignment.');
+assert_policy(($assigned_create_plan['suppressed']['ticket.created'] ?? '') === 'covered_by_ticket_assigned', 'Created suppression should explain assignment coverage.');
 
 $self_create_plan = ticket_email_action_plan([
     'ticket.created',

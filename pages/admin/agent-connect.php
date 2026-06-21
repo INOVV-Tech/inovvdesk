@@ -33,7 +33,13 @@ if (!$agent) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['generate_connect_token'])) {
     require_csrf_token();
     if (function_exists('generate_api_token')) {
-        $token_result = generate_api_token($agent_id, $agent['first_name']);
+        if (function_exists('team_ai_agent_revoke_active_tokens')) {
+            team_ai_agent_revoke_active_tokens($agent_id);
+        }
+        $token_scopes = function_exists('team_ai_agent_token_scopes_from_input')
+            ? team_ai_agent_token_scopes_from_input([])
+            : null;
+        $token_result = generate_api_token($agent_id, $agent['first_name'], null, $token_scopes);
         if ($token_result && !empty($token_result['token'])) {
             $_SESSION['agent_connect_token'] = $token_result['token'];
             $_SESSION['agent_connect_id'] = $agent_id;

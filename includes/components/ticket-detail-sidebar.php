@@ -18,39 +18,38 @@
     ?>
     <div class="ticket-sidebar" id="ticket-side-panel" data-ticket-sidebar-surface>
         <!-- Details -->
-        <div class="card card-body">
+        <div class="card card-body ticket-side-card">
             <div class="ticket-side-heading">
                 <span><?php echo e(t('Ticket properties')); ?></span>
-                <span class="font-mono text-xs" style="color: var(--text-muted);"><?php echo get_ticket_code($ticket_id); ?></span>
+                <span class="font-mono text-xs text-theme-muted"><?php echo get_ticket_code($ticket_id); ?></span>
             </div>
             <?php if (!empty($ticket['organization_name'])): ?>
-                    <div class="flex items-center gap-2 px-2.5 py-2 -mx-1 mb-2 rounded-lg"
-                        style="background: var(--primary-soft);">
-                        <span style="color: var(--primary);"><?php echo get_icon('building', 'w-4 h-4 flex-shrink-0'); ?></span>
-                        <span class="text-sm font-semibold truncate" style="color: var(--primary-dark);"
+                    <div class="ticket-client-pill">
+                        <span class="ticket-client-pill__icon"><?php echo get_icon('building', 'w-4 h-4 flex-shrink-0'); ?></span>
+                        <span class="ticket-client-pill__name"
                             title="<?php echo e($ticket['organization_name']); ?>">
                             <?php echo e($ticket['organization_name']); ?>
                         </span>
                     </div>
             <?php endif; ?>
-            <dl class="space-y-3">
-                <div class="flex justify-between">
-                    <dt class="text-xs" style="color: var(--text-muted);">ID</dt>
-                    <dd class="text-xs font-mono font-medium" style="color: var(--text-primary);">
+            <dl class="ticket-side-list">
+                <div class="ticket-side-row">
+                    <dt class="ticket-side-label">ID</dt>
+                    <dd class="ticket-side-value ticket-side-value--mono">
                         <?php echo get_ticket_code($ticket_id); ?>
                     </dd>
                 </div>
-                <div class="flex justify-between items-center">
-                    <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Status')); ?></dt>
-                    <dd>
+                <div class="ticket-side-row">
+                    <dt class="ticket-side-label"><?php echo e(t('Status')); ?></dt>
+                    <dd class="ticket-side-value">
                         <?php ticket_detail_render_status_pill($ticket, $statuses); ?>
                     </dd>
                 </div>
                 <?php if (is_agent()): ?>
-                <div class="flex justify-between items-center">
-                    <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Assigned')); ?></dt>
-                    <dd>
-                        <select class="text-xs py-0.5 px-1 rounded border-0 cursor-pointer" style="color: var(--text-primary); background: var(--surface-secondary);" onchange="quickEditField('quick-assign', {assignee_id: this.value})">
+                <div class="ticket-side-row">
+                    <dt class="ticket-side-label"><?php echo e(t('Assigned')); ?></dt>
+                    <dd class="ticket-side-value">
+                        <select class="ticket-side-select" onchange="quickEditField('quick-assign', {assignee_id: this.value})">
                             <option value=""><?php echo e(t('-- Unassigned --')); ?></option>
                             <?php foreach ($_sidebar_agents as $_ag): ?>
                                 <option value="<?php echo $_ag['id']; ?>" <?php echo ($ticket['assignee_id'] ?? 0) == $_ag['id'] ? 'selected' : ''; ?>>
@@ -61,11 +60,11 @@
                     </dd>
                 </div>
                 <?php endif; ?>
-                <div class="flex justify-between items-center">
-                    <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Priority')); ?></dt>
-                    <dd>
+                <div class="ticket-side-row">
+                    <dt class="ticket-side-label"><?php echo e(t('Priority')); ?></dt>
+                    <dd class="ticket-side-value">
                         <?php if (is_agent()): ?>
-                        <select class="text-xs py-0.5 px-1 rounded border-0 cursor-pointer" style="color: var(--text-primary); background: var(--surface-secondary);" onchange="quickEditField('quick-priority', {priority_id: this.value})">
+                        <select class="ticket-side-select" onchange="quickEditField('quick-priority', {priority_id: this.value})">
                             <option value=""><?php echo e(t('-- Select --')); ?></option>
                             <?php foreach ($_sidebar_priorities as $_pr): ?>
                                 <option value="<?php echo $_pr['id']; ?>" <?php echo ($ticket['priority_id'] ?? 0) == $_pr['id'] ? 'selected' : ''; ?>>
@@ -74,18 +73,15 @@
                             <?php endforeach; ?>
                         </select>
                         <?php else: ?>
-                        <span class="badge px-2 py-0.5 text-xs"
-                            style="background-color: <?php echo e($priority_color); ?>20; color: <?php echo e($priority_color); ?>">
-                            <?php echo e($priority_name); ?>
-                        </span>
+                        <?php ticket_detail_render_priority_pill($priority_name); ?>
                         <?php endif; ?>
                     </dd>
                 </div>
-                <div class="flex justify-between items-center">
-                    <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Type')); ?></dt>
-                    <dd>
+                <div class="ticket-side-row">
+                    <dt class="ticket-side-label"><?php echo e(t('Type')); ?></dt>
+                    <dd class="ticket-side-value">
                         <?php if (is_agent()): ?>
-                        <select class="text-xs py-0.5 px-1 rounded border-0 cursor-pointer" style="color: var(--text-primary); background: var(--surface-secondary);" onchange="quickEditField('quick-type', {type: this.value})">
+                        <select class="ticket-side-select" onchange="quickEditField('quick-type', {type: this.value})">
                             <option value=""><?php echo e(t('-- Select --')); ?></option>
                             <?php foreach ($_sidebar_types as $_tp): ?>
                                 <option value="<?php echo $_tp['slug']; ?>" <?php echo ($ticket['type'] ?? '') === $_tp['slug'] ? 'selected' : ''; ?>>
@@ -94,23 +90,23 @@
                             <?php endforeach; ?>
                         </select>
                         <?php else: ?>
-                        <span class="text-xs" style="color: var(--text-primary);"><?php echo e(get_type_label($ticket['type'])); ?></span>
+                        <span><?php echo e(get_type_label($ticket['type'])); ?></span>
                         <?php endif; ?>
                     </dd>
                 </div>
                 <?php if ($tags_supported): ?>
-                <div class="space-y-1" id="sidebar-tags-section">
-                    <dt class="text-xs flex items-center justify-between" style="color: var(--text-muted);">
+                <div class="ticket-side-row ticket-side-row--stack" id="sidebar-tags-section">
+                    <dt class="ticket-side-label ticket-side-label--wide">
                         <?php echo e(t('Tags')); ?>
                         <?php if (can_edit_ticket($ticket, $user)): ?>
                             <button type="button" id="sidebar-tags-edit-btn"
-                                class="text-xs font-medium" style="color: var(--primary); cursor: pointer;">
+                                class="ticket-side-edit-button">
                                 <?php echo e(t('Edit')); ?>
                             </button>
                         <?php endif; ?>
                     </dt>
                     <!-- Display mode -->
-                    <dd id="sidebar-tags-display" class="flex flex-wrap gap-1 justify-end">
+                    <dd id="sidebar-tags-display" class="ticket-side-value ticket-side-tags">
                         <?php if (!empty($ticket_tags)): ?>
                             <?php foreach ($ticket_tags as $tag): ?>
                                 <a href="<?php echo e($ticket_tag_filter_url($tag)); ?>" class="ticket-tag-pill"
@@ -119,7 +115,7 @@
                                 </a>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <span class="text-xs" style="color: var(--text-muted);">—</span>
+                            <span class="ticket-side-empty">—</span>
                         <?php endif; ?>
                     </dd>
                     <!-- Edit mode -->
@@ -146,43 +142,42 @@
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
-                <div class="flex justify-between">
-                    <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Created')); ?></dt>
-                    <dd class="text-xs" style="color: var(--text-primary);">
+                <div class="ticket-side-row">
+                    <dt class="ticket-side-label"><?php echo e(t('Created')); ?></dt>
+                    <dd class="ticket-side-value">
                         <?php echo format_date($ticket['created_at']); ?></dd>
                 </div>
                 <?php if (!empty($ticket['due_date'])): ?>
-                        <div class="flex justify-between">
-                            <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Due date')); ?></dt>
-                            <dd class="text-xs">
+                        <div class="ticket-side-row">
+                            <dt class="ticket-side-label"><?php echo e(t('Due date')); ?></dt>
+                            <dd class="ticket-side-value">
                                 <?php
                                 $is_overdue = is_due_date_overdue($ticket['due_date'], !empty($ticket['is_closed']));
                                 ?>
-                                <span class="<?php echo $is_overdue ? 'text-red-600 font-bold' : ''; ?>"
-                                    style="<?php echo !$is_overdue ? 'color: var(--text-primary);' : ''; ?>">
+                                <span class="ticket-date-value <?php echo $is_overdue ? 'ticket-date-value--overdue' : ''; ?>">
                                     <?php echo format_date($ticket['due_date']); ?>
                                 </span>
                             </dd>
                         </div>
                 <?php endif; ?>
                 <?php if (!empty($attachment_list)): ?>
-                        <div class="flex justify-between">
-                            <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Attachments')); ?></dt>
-                            <dd class="text-xs" style="color: var(--text-primary);"><?php echo count($attachment_list); ?>
+                        <div class="ticket-side-row">
+                            <dt class="ticket-side-label"><?php echo e(t('Attachments')); ?></dt>
+                            <dd class="ticket-side-value"><?php echo count($attachment_list); ?>
                                 <?php echo e(t('files')); ?>
                             </dd>
                         </div>
                 <?php endif; ?>
                 <?php if ($time_tracking_available && can_view_time($user)): ?>
-                        <div class="flex justify-between items-center">
-                            <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Logged time')); ?></dt>
-                            <dd>
+                        <div class="ticket-side-row">
+                            <dt class="ticket-side-label"><?php echo e(t('Logged time')); ?></dt>
+                            <dd class="ticket-side-value">
                                 <?php if ($total_time_minutes > 0): ?>
                                         <span class="badge-inline bg-blue-50 text-blue-700">
                                             <?php echo get_icon('clock', 'mr-1'); ?>                <?php echo e(format_duration_minutes($total_time_minutes)); ?>
                                         </span>
                                 <?php else: ?>
-                                        <span class="text-xs" style="color: var(--text-muted);">-</span>
+                                        <span class="ticket-side-empty">-</span>
                                 <?php endif; ?>
                             </dd>
                         </div>
@@ -199,9 +194,9 @@
                         <?php endif; ?>
                 <?php endif; ?>
                 <?php if (is_admin()): ?>
-                        <div class="flex justify-between items-center">
-                            <dt class="text-xs" style="color: var(--text-muted);"><?php echo e(t('Billable rate')); ?></dt>
-                            <dd class="text-xs font-medium" style="color: var(--text-primary);">
+                        <div class="ticket-side-row">
+                            <dt class="ticket-side-label"><?php echo e(t('Billable rate')); ?></dt>
+                            <dd class="ticket-side-value">
                                 <?php echo format_money($ticket_effective_billable_rate); ?>
                             </dd>
                         </div>
@@ -212,10 +207,7 @@
         <?php if (function_exists('can_view_timeline') && can_view_timeline($user)): ?>
         <div class="card card-body">
             <button onclick="openTicketTimeline(<?php echo (int)$ticket['id']; ?>)"
-                class="w-full flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2 transition-colors"
-                style="color: var(--text-secondary); background: var(--surface-secondary);"
-                onmouseover="this.style.background='var(--surface-hover)'"
-                onmouseout="this.style.background='var(--surface-secondary)'">
+                class="ticket-side-action-button">
                 <?php echo get_icon('history', 'w-4 h-4'); ?>
                 <?php echo e(t('Activity Timeline')); ?>
                 <span class="ml-auto"><?php echo get_icon('chevron-right', 'w-3 h-3'); ?></span>
@@ -225,7 +217,7 @@
 
         <?php if (!empty($attachment_list)): ?>
                 <div class="card card-body">
-                    <h3 class="font-semibold text-sm mb-2" style="color: var(--text-primary);">
+                    <h3 class="font-semibold text-sm mb-2 text-theme-primary">
                         <?php echo e(t('All attachments')); ?></h3>
                     <div class="space-y-1">
                         <?php foreach ($attachment_list as $attachment): ?>
@@ -238,8 +230,7 @@
                                 <div class="flex items-start gap-2 p-1.5 rounded group tr-hover">
                                     <?php if ($_is_img): ?>
                                         <a href="<?php echo $_att_url; ?>" target="_blank"
-                                           class="flex-shrink-0 rounded overflow-hidden border cursor-pointer"
-                                           style="border-color: var(--border-light);"
+                                           class="ticket-attachment-thumb"
                                            onclick="event.preventDefault(); openImagePreview('<?php echo $_att_url; ?>', '<?php echo e($attachment['original_name']); ?>');">
                                             <img src="<?php echo $_att_url; ?>" alt="" class="w-8 h-8 object-cover" loading="lazy">
                                         </a>
@@ -249,19 +240,17 @@
                                     <div class="min-w-0 flex-1">
                                         <?php if ($_is_img): ?>
                                             <a href="<?php echo $_att_url; ?>"
-                                               class="text-xs font-medium truncate hover:text-blue-600 block cursor-pointer"
-                                               style="color: var(--text-secondary);"
+                                               class="ticket-attachment-link cursor-pointer"
                                                onclick="event.preventDefault(); openImagePreview('<?php echo $_att_url; ?>', '<?php echo e($attachment['original_name']); ?>');">
                                                 <?php echo e($attachment['original_name']); ?>
                                             </a>
                                         <?php else: ?>
                                             <a href="<?php echo $_att_url; ?>" target="_blank"
-                                               class="text-xs font-medium truncate hover:text-blue-600 block"
-                                               style="color: var(--text-secondary);">
+                                               class="ticket-attachment-link">
                                                 <?php echo e($attachment['original_name']); ?>
                                             </a>
                                         <?php endif; ?>
-                                        <div class="text-xs flex items-center gap-1" style="color: var(--text-muted);">
+                                        <div class="text-xs flex items-center gap-1 text-theme-muted">
                                             <?php echo format_file_size($attachment['file_size']); ?>
                                             <?php if (!empty($uploader_name)): ?>
                                                     &middot; <?php echo e($uploader_name); ?>
@@ -279,8 +268,7 @@
                 <div class="card card-body">
                     <!-- Collapsible Options (collapsed by default) -->
                     <details class="group">
-                        <summary class="flex items-center justify-between cursor-pointer py-1 text-xs"
-                            style="color: var(--text-muted);">
+                        <summary class="flex items-center justify-between cursor-pointer py-1 text-xs text-theme-muted">
                             <span class="flex items-center gap-1.5">
                                 <?php echo get_icon('cog', 'w-3.5 h-3.5'); ?>
                                 <?php echo e(t('More options')); ?>
@@ -352,7 +340,7 @@
                                                     class="form-input text-sm py-1.5 w-full"
                                                     value="<?php echo e($ticket_custom_billable_rate !== null ? number_format((float) $ticket_custom_billable_rate, 2, '.', '') : ''); ?>"
                                                     placeholder="<?php echo e(t('Leave empty to use the company default')); ?>">
-                                                <p class="text-xs" style="color: var(--text-muted);">
+                                                <p class="text-xs text-theme-muted">
                                                     <?php echo e(t('Company default rate: {rate}', ['rate' => format_money($org_billable_rate)])); ?>
                                                 </p>
                                                 <button type="submit" name="update_ticket_billing_rate" class="btn btn-primary btn-xs w-full justify-center">
@@ -369,7 +357,7 @@
                             <div>
                                 <label class="form-label-sm mb-1.5">
                                     <?php echo get_icon('users', 'w-3 h-3 inline mr-1'); ?>        <?php echo e(t('Ticket access')); ?>
-                                    <span style="color: var(--border-light);">(<?php echo count($shared_users); ?>)</span>
+                                    <span class="text-theme-muted">(<?php echo count($shared_users); ?>)</span>
                                 </label>
                                 <?php if (!empty($shared_users)): ?>
                                         <div class="flex flex-wrap gap-1 mb-2">
@@ -425,8 +413,7 @@
                                 <?php if (!empty($share_url)): ?>
                                         <div class="flex gap-1 mb-1.5">
                                             <input type="text" id="share-link-input" readonly value="<?php echo e($share_url); ?>"
-                                                class="form-input text-xs py-1.5 flex-1 font-mono"
-                                                style="background: var(--surface-secondary); color: var(--text-secondary);">
+                                                class="form-input ticket-share-input">
                                             <button type="button" id="share-copy-btn" class="btn btn-secondary btn-xs px-2"
                                                 title="<?php echo e(t('Copy')); ?>">
                                                 <?php echo get_icon('copy', 'w-3 h-3'); ?>
@@ -456,14 +443,13 @@
 
                             <?php if (is_admin() || (is_agent() && can_archive_tickets())): ?>
                                     <!-- Archive -->
-                                    <div class="pt-2 border-t" style="border-color: var(--border-light);">
+                                    <div class="pt-2 border-t border-theme-light">
                                         <?php if (empty($ticket['is_archived'])): ?>
                                                 <form method="post"
                                                     onsubmit="return confirm('<?php echo e(t('Are you sure you want to move this ticket to the archive?')); ?>')">
                                                     <?php echo csrf_field(); ?>
                                                     <button type="submit" name="archive_ticket"
-                                                        class="btn btn-ghost btn-sm w-full justify-center hover:text-orange-600 hover:bg-orange-50"
-                                                        style="color: var(--text-muted);">
+                                                        class="btn btn-ghost btn-sm w-full justify-center hover:text-orange-600 hover:bg-orange-50 text-theme-muted">
                                                         <?php echo get_icon('archive', 'w-4 h-4 mr-1.5'); ?>                        <?php echo e(t('Archive')); ?>
                                                     </button>
                                                 </form>
