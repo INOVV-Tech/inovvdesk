@@ -1165,7 +1165,7 @@ if (db_fetch_one("SHOW TABLES LIKE 'api_tokens'")) {
         'last_used_ip' => "ALTER TABLE api_tokens ADD COLUMN last_used_ip VARCHAR(45) NULL AFTER last_used_at",
         'last_used_user_agent' => "ALTER TABLE api_tokens ADD COLUMN last_used_user_agent VARCHAR(255) NULL AFTER last_used_ip",
     ] as $column => $sql) {
-        if (!db_fetch_one("SHOW COLUMNS FROM api_tokens LIKE ?", [$column])) {
+        if (!column_exists('api_tokens', $column)) {
             try {
                 db_query($sql);
                 $messages[] = "OK: Added column `{$column}` to api_tokens";

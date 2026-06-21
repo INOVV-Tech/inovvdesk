@@ -8,6 +8,101 @@ test('upgrade script runs without fatal errors', async () => {
   expect(output).not.toMatch(/Fatal error|Parse error|Warning/i);
 });
 
+test('update package applies with backup evidence and rollback removes added files', async () => {
+  const markerPath = '/var/www/html/update-e2e-marker.txt';
+  dockerExec(webContainer, ['rm', '-f', markerPath]);
+
+  const packagePath = php(`
+    $zipPath = sys_get_temp_dir() . '/foxdesk-e2e-update-' . uniqid() . '.zip';
+    $zip = new ZipArchive();
+    if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+      fwrite(STDERR, 'cannot open zip');
+      exit(2);
+    }
+    $zip->addFromString('version.json', json_encode([
+      'version' => '99.99.99',
+      'date' => date('Y-m-d'),
+      'min_php' => '8.1',
+      'changelog' => ['E2E update package smoke'],
+      'delete_files' => []
+    ], JSON_PRETTY_PRINT));
+    $zip->addFromString('files/update-e2e-marker.txt', 'created by update package');
+    $zip->close();
+    echo $zipPath;
+  `).trim();
+
+  const validation = php(`
+    define('BASE_PATH', '/var/www/html');
+    require_once BASE_PATH . '/config.php';
+    require_once BASE_PATH . '/includes/database.php';
+    require_once BASE_PATH . '/includes/functions.php';
+    require_once BASE_PATH . '/includes/settings-functions.php';
+    require_once BASE_PATH . '/includes/update-functions.php';
+    $result = validate_update_package(${JSON.stringify(packagePath)});
+    echo json_encode(['valid' => $result['valid'], 'version' => $result['version'] ?? null, 'errors' => $result['errors'] ?? []]);
+  `).trim();
+  expect(JSON.parse(validation)).toMatchObject({ valid: true, version: '99.99.99' });
+
+  const applied = dockerExec(webContainer, [
+    'php',
+    '-r',
+    `
+      define('BASE_PATH', '/var/www/html');
+      require_once BASE_PATH . '/config.php';
+      require_once BASE_PATH . '/includes/database.php';
+      require_once BASE_PATH . '/includes/functions.php';
+      require_once BASE_PATH . '/includes/settings-functions.php';
+      require_once BASE_PATH . '/includes/update-functions.php';
+      apply_update(${JSON.stringify(packagePath)});
+    `
+  ]);
+  expect(applied).toContain('Update complete');
+
+  const evidence = php(`
+    define('BASE_PATH', '/var/www/html');
+    require_once BASE_PATH . '/config.php';
+    require_once BASE_PATH . '/includes/database.php';
+    require_once BASE_PATH . '/includes/functions.php';
+    require_once BASE_PATH . '/includes/settings-functions.php';
+    require_once BASE_PATH . '/includes/update-functions.php';
+    $backups = get_backups();
+    $latest = $backups[0] ?? [];
+    echo json_encode([
+      'marker_exists' => file_exists(BASE_PATH . '/update-e2e-marker.txt'),
+      'marker_body' => file_exists(BASE_PATH . '/update-e2e-marker.txt') ? trim(file_get_contents(BASE_PATH . '/update-e2e-marker.txt')) : '',
+      'backup_id' => $latest['id'] ?? null,
+      'backup_has_files' => !empty($latest['id']) && file_exists(BACKUP_DIR . '/' . $latest['id'] . '/files.zip'),
+      'backup_has_info' => !empty($latest['id']) && file_exists(BACKUP_DIR . '/' . $latest['id'] . '/info.json')
+    ]);
+  `).trim();
+  const parsed = JSON.parse(evidence);
+  expect(parsed).toMatchObject({
+    marker_exists: true,
+    marker_body: 'created by update package',
+    backup_has_files: true,
+    backup_has_info: true
+  });
+  expect(parsed.backup_id).toBeTruthy();
+
+  const rollback = dockerExec(webContainer, [
+    'php',
+    '-r',
+    `
+      define('BASE_PATH', '/var/www/html');
+      require_once BASE_PATH . '/config.php';
+      require_once BASE_PATH . '/includes/database.php';
+      require_once BASE_PATH . '/includes/functions.php';
+      require_once BASE_PATH . '/includes/settings-functions.php';
+      require_once BASE_PATH . '/includes/update-functions.php';
+      rollback_update(${JSON.stringify(parsed.backup_id)}, false);
+    `
+  ]);
+  expect(rollback).toContain('Rollback complete');
+
+  const marker = dockerExec(webContainer, ['sh', '-lc', `test ! -f ${markerPath} && echo removed`]);
+  expect(marker.trim()).toBe('removed');
+});
+
 test('public report token works and expired token is rejected', async ({ page }) => {
   const token = php(`
     define('BASE_PATH', '/var/www/html');

@@ -16,7 +16,7 @@ function api_ticket_column_exists($column) {
     if (!array_key_exists($column, $cache)) {
         $cache[$column] = function_exists('column_exists')
             ? column_exists('tickets', $column)
-            : (bool)db_fetch_one("SHOW COLUMNS FROM tickets LIKE ?", [$column]);
+            : (bool)db_fetch_one("SHOW COLUMNS FROM tickets LIKE '" . str_replace("'", "''", $column) . "'");
     }
 
     return $cache[$column];
