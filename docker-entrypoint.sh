@@ -2,7 +2,6 @@
 set -e
 
 mkdir -p /var/www/html/uploads /var/www/html/storage/tickets /var/www/html/backups
-chown -R www-data:www-data /var/www/html/uploads /var/www/html/storage /var/www/html/backups || true
 
 cat > /var/www/html/config.php <<PHP
 <?php
@@ -43,8 +42,17 @@ define('MAX_UPLOAD_SIZE', 10 * 1024 * 1024);
 date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'America/Sao_Paulo');
 PHP
 
-if [ "$DISABLE_INSTALLER" = "true" ] && [ -f /var/www/html/install.php ]; then
-  rm -f /var/www/html/install.php
+chown -R www-data:www-data /var/www/html/uploads /var/www/html/storage /var/www/html/backups || true
+chown www-data:www-data /var/www/html/config.php || true
+
+if [ "$DISABLE_INSTALLER" = "true" ]; then
+  chmod 640 /var/www/html/config.php || true
+
+  if [ -f /var/www/html/install.php ]; then
+    rm -f /var/www/html/install.php
+  fi
+else
+  chmod 666 /var/www/html/config.php || true
 fi
 
 exec apache2-foreground
