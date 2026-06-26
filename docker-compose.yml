@@ -1,0 +1,48 @@
+services:
+  foxdesk:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      SECRET_KEY: ${SECRET_KEY}
+      APP_NAME: ${APP_NAME}
+      APP_URL: ${APP_URL}
+      APP_TIMEZONE: ${APP_TIMEZONE}
+      APP_DEBUG: ${APP_DEBUG}
+      DISABLE_INSTALLER: ${DISABLE_INSTALLER}
+      IMAP_ENABLED: ${IMAP_ENABLED}
+    volumes:
+      - foxdesk_uploads:/var/www/html/uploads
+      - foxdesk_storage:/var/www/html/storage
+      - foxdesk_backups:/var/www/html/backups
+    expose:
+      - "80"
+
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASS}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS}
+    volumes:
+      - foxdesk_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$$MARIADB_ROOT_PASSWORD || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  foxdesk_db:
+  foxdesk_uploads:
+  foxdesk_storage:
+  foxdesk_backups:
