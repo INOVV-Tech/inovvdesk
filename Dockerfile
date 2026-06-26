@@ -1,7 +1,10 @@
 FROM php:8.2-apache
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 RUN apt-get update && apt-get install -y \
     libzip-dev \
+    libonig-dev \
     unzip \
     mariadb-client \
     && docker-php-ext-install pdo_mysql mbstring zip \
