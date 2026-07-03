@@ -186,7 +186,7 @@ if (is_agent()) {
                 </div>
             <?php endif; ?>
 
-            <?php if ($time_tracking_available && can_view_time($user)): ?>
+            <?php if ($time_tracking_available && ($can_view_time_summary ?? can_view_time($user))): ?>
                 <div class="ticket-side-row">
                     <dt class="ticket-side-label"><?php echo e(t('Logged time')); ?></dt>
                     <dd class="ticket-side-value">

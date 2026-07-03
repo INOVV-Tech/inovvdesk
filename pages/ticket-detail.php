@@ -78,6 +78,10 @@ $active_timer_elapsed = 0;
 $timer_is_paused = false;
 $time_breakdown = $time_tracking_available ? get_ticket_time_breakdown($ticket_id) : ['total' => 0, 'human' => 0, 'ai' => 0];
 $total_time_minutes = $time_breakdown['total'];
+$can_view_time_entries = can_view_time($user);
+$can_view_time_summary = function_exists('can_view_ticket_time_summary')
+    ? can_view_ticket_time_summary($ticket, $user)
+    : $can_view_time_entries;
 $org_billable_rate = 0.0;
 $ticket_custom_billable_rate = function_exists('get_ticket_custom_billable_rate') ? get_ticket_custom_billable_rate($ticket) : null;
 $ticket_effective_billable_rate = function_exists('get_ticket_effective_billable_rate') ? get_ticket_effective_billable_rate($ticket) : 0.0;
@@ -913,7 +917,7 @@ require_once BASE_PATH . '/includes/header.php';
         <?php endif; ?>
 
         <?php
-        $time_entries = ($time_tracking_available && can_view_time($user)) ? get_ticket_time_entries($ticket_id) : [];
+        $time_entries = ($time_tracking_available && $can_view_time_entries) ? get_ticket_time_entries($ticket_id) : [];
         $ticket_timeline = ticket_detail_build_timeline($comments, $time_entries);
         $time_entries_by_comment = $ticket_timeline['time_entries_by_comment'];
         $timeline_items = $ticket_timeline['timeline_items'];
@@ -924,7 +928,7 @@ require_once BASE_PATH . '/includes/header.php';
             <div class="card-header">
                 <h3 class="font-semibold text-theme-primary"><?php echo e(t('Activity')); ?>
                     (<?php echo count($comments); ?> <?php echo e(t('comments')); ?>)</h3>
-                <?php if ($time_tracking_available && $total_time_minutes > 0 && can_view_time($user)): ?>
+                <?php if ($time_tracking_available && $total_time_minutes > 0 && $can_view_time_summary): ?>
                         <span
                             class="text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-700 rounded flex items-center gap-1">
                             <?php echo get_icon('clock', 'w-3 h-3'); ?>

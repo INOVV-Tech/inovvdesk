@@ -126,6 +126,34 @@ function can_view_time($user = null)
 }
 
 /**
+ * Check whether a user can view the aggregate worked-time total on a ticket.
+ *
+ * This is intentionally narrower than can_view_time(): customers may see the
+ * total for tickets they can already access without seeing detailed time
+ * entries, reports, billing data, or agent/user breakdowns.
+ */
+function can_view_ticket_time_summary($ticket, $user = null)
+{
+    if ($user === null) {
+        $user = current_user();
+    }
+
+    if (!$user || !is_array($ticket)) {
+        return false;
+    }
+
+    if (!can_see_ticket($ticket, $user)) {
+        return false;
+    }
+
+    if (can_view_time($user)) {
+        return true;
+    }
+
+    return ($user['role'] ?? '') === 'user';
+}
+
+/**
  * Check whether user can view ticket activity timeline.
  * Admin → always true. Agent → true by default. User → opt-in via permissions.
  */

@@ -42,6 +42,7 @@ foreach ([
     'ticket-attachment-link',
     'deleteAttachment(',
     'ticket-share-input',
+    '$can_view_time_summary ?? can_view_time($user)',
 ] as $needle) {
     $assert(str_contains($page, $needle), 'Ticket detail sidebar missing surface contract: ' . $needle);
 }
