@@ -139,8 +139,9 @@ $total_tickets = get_tickets_count($filters);
 
 $tickets = get_tickets($filters);
 
-// Time tracking totals (admins only)
-$show_time = is_admin() && ticket_time_table_exists();
+// Time tracking totals. Customers see only aggregate totals for tickets already visible to them.
+$show_time = ticket_time_table_exists();
+$can_manage_ticket_time = is_admin() || is_agent();
 $ticket_time_totals = [];
 $ticket_running_entries = [];
 if ($show_time && !empty($tickets)) {
@@ -161,21 +162,23 @@ if ($show_time && !empty($tickets)) {
         $ticket_time_totals[(int) $row['ticket_id']] = (int) $row['total_minutes'];
     }
 
-    $running_rows = db_fetch_all(
-        "SELECT tte.ticket_id, tte.user_id, u.first_name, u.last_name, tte.started_at,
-                " . sql_timer_duration_minutes('tte.') . " as elapsed_minutes
-         FROM ticket_time_entries tte
-         LEFT JOIN users u ON tte.user_id = u.id
-         WHERE tte.ticket_id IN ($placeholders) AND tte.ended_at IS NULL
-         ORDER BY tte.started_at ASC",
-        $ticket_ids
-    );
-    foreach ($running_rows as $row) {
-        $ticket_id = (int) $row['ticket_id'];
-        if (!isset($ticket_running_entries[$ticket_id])) {
-            $ticket_running_entries[$ticket_id] = [];
+    if ($can_manage_ticket_time) {
+        $running_rows = db_fetch_all(
+            "SELECT tte.ticket_id, tte.user_id, u.first_name, u.last_name, tte.started_at,
+                    " . sql_timer_duration_minutes('tte.') . " as elapsed_minutes
+             FROM ticket_time_entries tte
+             LEFT JOIN users u ON tte.user_id = u.id
+             WHERE tte.ticket_id IN ($placeholders) AND tte.ended_at IS NULL
+             ORDER BY tte.started_at ASC",
+            $ticket_ids
+        );
+        foreach ($running_rows as $row) {
+            $ticket_id = (int) $row['ticket_id'];
+            if (!isset($ticket_running_entries[$ticket_id])) {
+                $ticket_running_entries[$ticket_id] = [];
+            }
+            $ticket_running_entries[$ticket_id][] = $row;
         }
-        $ticket_running_entries[$ticket_id][] = $row;
     }
 }
 
@@ -818,7 +821,7 @@ $kanban_archived_closed_statuses = $ticket_kanban_model['archived_closed_statuse
                                         $running_entries = $ticket_running_entries[$ticket['id']] ?? [];
                                         $running_label = '';
                                         $running_elapsed = 0;
-                                        if (!empty($running_entries)) {
+                                        if ($can_manage_ticket_time && !empty($running_entries)) {
                                             $first = $running_entries[0];
                                             $name = trim(($first['first_name'] ?? '') . ' ' . ($first['last_name'] ?? ''));
                                             $name = $name !== '' ? $name : t('Unknown user');
@@ -830,7 +833,7 @@ $kanban_archived_closed_statuses = $ticket_kanban_model['archived_closed_statuse
                                         <span class="text-xs text-theme-muted">
                                             <?php echo get_icon('clock', 'mr-1 w-3 h-3 inline'); ?><?php echo $ticket_total > 0 ? format_duration_minutes($ticket_total) : '-'; ?>
                                         </span>
-                                        <?php if (!empty($running_label)): ?>
+                                        <?php if ($can_manage_ticket_time && !empty($running_label)): ?>
                                             <span class="text-xs text-green-600">
                                                 <?php echo e(t('Running')); ?>: <?php echo e($running_label); ?> -
                                                 <?php echo e(format_duration_minutes($running_elapsed)); ?>
@@ -969,6 +972,10 @@ $kanban_archived_closed_statuses = $ticket_kanban_model['archived_closed_statuse
                             <th class="px-3 py-2.5 text-left" style="width: 110px;">
                                 <span class="text-[10px] font-medium uppercase tracking-wider text-theme-muted"><?php echo e(t('Time')); ?></span>
                             </th>
+                        <?php elseif ($show_time): ?>
+                            <th class="px-3 py-2.5 text-left" style="width: 110px;">
+                                <span class="text-[10px] font-medium uppercase tracking-wider text-theme-muted"><?php echo e(t('Time')); ?></span>
+                            </th>
                         <?php endif; ?>
                         <input type="hidden" name="created_date" value="<?php echo e($created_date_value); ?>">
                         <input type="hidden" name="sort" value="<?php echo e($sort); ?>">
@@ -1052,7 +1059,7 @@ $kanban_archived_closed_statuses = $ticket_kanban_model['archived_closed_statuse
                         </tbody>
                         <tbody class="border-t-2" style="border-top-color: var(--border-light)">
                             <tr class="cursor-pointer bg-theme-secondary" onclick="document.getElementById('closed-tickets-desktop').classList.toggle('hidden')">
-                                <?php $colspan = is_admin() ? 8 : (is_agent() ? 6 : 5); ?>
+                                <?php $colspan = is_admin() ? 8 : (is_agent() ? 6 : ($show_time ? 6 : 5)); ?>
                                 <td colspan="<?php echo $colspan; ?>" class="px-3 py-2 font-medium text-xs text-center text-gray-500 hover:text-gray-700">
                                    <?php echo e($group['label']); ?>
                                 </td>
@@ -1354,6 +1361,15 @@ $kanban_archived_closed_statuses = $ticket_kanban_model['archived_closed_statuse
                                             <?php echo get_icon('clock', 'w-3.5 h-3.5'); ?>
                                         </button>
                                     </div>
+                                </td>
+                            <?php elseif ($show_time): ?>
+                                <td class="px-3 py-2.5 text-xs whitespace-nowrap align-top text-theme-muted">
+                                    <?php $ticket_total = $ticket_time_totals[$ticket['id']] ?? 0; ?>
+                                    <?php if ($ticket_total > 0): ?>
+                                        <span><?php echo e(format_duration_minutes($ticket_total)); ?></span>
+                                    <?php else: ?>
+                                        <span class="ticket-empty-value">&mdash;</span>
+                                    <?php endif; ?>
                                 </td>
                             <?php endif; ?>
                         </tr>
