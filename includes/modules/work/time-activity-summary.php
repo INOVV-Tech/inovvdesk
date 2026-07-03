@@ -175,6 +175,129 @@ function time_activity_user_entries(int $user_id, array $period, ?int $limit = 8
     ", $params);
 }
 
+function time_activity_visible_ticket_filters(array $user): array
+{
+    $filters = [];
+    if (function_exists('column_exists') && column_exists('tickets', 'is_archived')) {
+        $filters['is_archived'] = 0;
+    }
+
+    if (function_exists('build_ticket_visibility_filters_for_user')) {
+        return build_ticket_visibility_filters_for_user($user, $filters);
+    }
+
+    if (($user['role'] ?? '') === 'user') {
+        $filters['viewer_user_id'] = (int) ($user['id'] ?? 0);
+    }
+
+    return $filters;
+}
+
+function time_activity_ticket_visibility_where(array $user, array &$params): string
+{
+    $filters = time_activity_visible_ticket_filters($user);
+    if (function_exists('build_ticket_where_clause')) {
+        $where = build_ticket_where_clause($filters, $params);
+    } else {
+        $where = ' WHERE 1=1';
+        if (($user['role'] ?? '') === 'user') {
+            $where .= ' AND t.user_id = ?';
+            $params[] = (int) ($user['id'] ?? 0);
+        }
+    }
+
+    $where .= time_activity_tenant_filter('tickets', 't', $params);
+    return $where;
+}
+
+function time_activity_visible_ticket_totals(array $user, array $period): array
+{
+    if (empty($user['id']) || !function_exists('ticket_time_table_exists') || !ticket_time_table_exists()) {
+        return time_activity_empty_totals();
+    }
+
+    $today_start = date('Y-m-d 00:00:00');
+    $today_end = date('Y-m-d 23:59:59');
+    $week_start = date('Y-m-d 00:00:00', strtotime('monday this week'));
+    $week_end = date('Y-m-d 23:59:59', strtotime('sunday this week'));
+    $month_start = date('Y-m-01 00:00:00');
+    $month_end = date('Y-m-t 23:59:59');
+    $selected_start = $period['start'] ?? $month_start;
+    $selected_end = $period['end'] ?? $month_end;
+
+    $duration_sql = time_activity_duration_sql();
+    $range_params = [
+        $today_start,
+        $today_end,
+        $week_start,
+        $week_end,
+        $month_start,
+        $month_end,
+        $selected_start,
+        $selected_end,
+    ];
+    $where_params = [];
+    $where = time_activity_ticket_visibility_where($user, $where_params);
+
+    $row = db_fetch_one("
+        SELECT
+            SUM(CASE WHEN tte.started_at >= ? AND tte.started_at <= ? THEN ({$duration_sql}) ELSE 0 END) AS today,
+            SUM(CASE WHEN tte.started_at >= ? AND tte.started_at <= ? THEN ({$duration_sql}) ELSE 0 END) AS week,
+            SUM(CASE WHEN tte.started_at >= ? AND tte.started_at <= ? THEN ({$duration_sql}) ELSE 0 END) AS month,
+            SUM(CASE WHEN tte.started_at >= ? AND tte.started_at <= ? THEN ({$duration_sql}) ELSE 0 END) AS selected
+        FROM ticket_time_entries tte
+        JOIN tickets t ON t.id = tte.ticket_id
+        {$where}
+    ", array_merge($range_params, $where_params));
+
+    return [
+        'today' => (int) ($row['today'] ?? 0),
+        'week' => (int) ($row['week'] ?? 0),
+        'month' => (int) ($row['month'] ?? 0),
+        'selected' => (int) ($row['selected'] ?? 0),
+    ];
+}
+
+function time_activity_visible_ticket_entries(array $user, array $period, ?int $limit = 8): array
+{
+    if (empty($user['id']) || empty($period['start']) || empty($period['end']) || !function_exists('ticket_time_table_exists') || !ticket_time_table_exists()) {
+        return [];
+    }
+
+    $duration_sql = time_activity_duration_sql();
+    $where_params = [];
+    $where = time_activity_ticket_visibility_where($user, $where_params);
+    $params = array_merge($where_params, [$period['start'], $period['end']]);
+    $limit_clause = '';
+    if ($limit !== null) {
+        $limit_clause = ' LIMIT ' . max(1, min(200, (int) $limit));
+    }
+
+    return db_fetch_all("
+        SELECT
+            tte.id,
+            tte.ticket_id,
+            tte.started_at,
+            tte.ended_at,
+            tte.duration_minutes,
+            '' AS summary,
+            {$duration_sql} AS actual_minutes,
+            t.title AS ticket_title,
+            t.hash AS ticket_hash,
+            o.name AS organization_name,
+            s.name AS status_name
+        FROM ticket_time_entries tte
+        JOIN tickets t ON t.id = tte.ticket_id
+        LEFT JOIN organizations o ON o.id = t.organization_id
+        LEFT JOIN statuses s ON s.id = t.status_id
+        {$where}
+          AND tte.started_at >= ?
+          AND tte.started_at <= ?
+        ORDER BY tte.started_at DESC, tte.id DESC
+        {$limit_clause}
+    ", $params);
+}
+
 function time_activity_staff_users(): array
 {
     $params = [];
@@ -226,13 +349,18 @@ function time_activity_work_model(array $user, array $request): array
     $activity_scope = time_activity_scope_from_request($request);
     $user_id = (int) ($user['id'] ?? 0);
     $is_admin_user = function_exists('is_admin') ? is_admin() : (($user['role'] ?? '') === 'admin');
+    $is_customer_user = ($user['role'] ?? '') === 'user';
 
     return [
         'period' => $period,
         'period_options' => time_activity_period_options(),
         'activity_scope' => $activity_scope,
-        'my_totals' => time_activity_user_totals($user_id, $period),
-        'my_entries' => time_activity_user_entries($user_id, $period, $activity_scope['limit']),
+        'my_totals' => $is_customer_user
+            ? time_activity_visible_ticket_totals($user, $period)
+            : time_activity_user_totals($user_id, $period),
+        'my_entries' => $is_customer_user
+            ? time_activity_visible_ticket_entries($user, $period, $activity_scope['limit'])
+            : time_activity_user_entries($user_id, $period, $activity_scope['limit']),
         'team' => $is_admin_user ? time_activity_team_summary($period, 80, $activity_scope['limit']) : [],
     ];
 }

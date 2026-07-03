@@ -51,6 +51,9 @@ assert_work_page($workQueues !== false && strpos($workQueues, 'work_queue_attach
 assert_work_page($timeModel !== false && strpos($timeModel, 'function time_activity_scope_from_request') !== false, 'time activity model must parse work activity scope.');
 assert_work_page(strpos($timeModel, "'all' => t('All work')") !== false, 'time activity model must expose all-work scope.');
 assert_work_page(strpos($timeModel, "'entries' => \$entries") !== false, 'team time model must return per-agent activity entries.');
+assert_work_page(strpos($timeModel, 'function time_activity_visible_ticket_totals') !== false, 'customer work overview must sum visible ticket time, not the customer user id.');
+assert_work_page(strpos($timeModel, 'function time_activity_visible_ticket_entries') !== false, 'customer work log must read visible ticket time entries.');
+assert_work_page(strpos($timeModel, '$is_customer_user') !== false, 'work model must branch customer time away from staff-owned time entries.');
 assert_work_page(strpos($timeModel, 'time_activity_team_summary($period, 80, $activity_scope[\'limit\'])') !== false, 'work model must pass the activity limit into team summaries.');
 
 echo "Work page contract tests passed\n";

@@ -25,6 +25,17 @@ $client = ['id' => 9, 'role' => 'user'];
 $client_mine = work_queue_filters('mine', $client, 8);
 assert_work_queue(($client_mine['viewer_user_id'] ?? null) === 9, 'Client mine queue should use viewer_user_id.');
 
+$work_queues = file_get_contents(BASE_PATH . '/includes/modules/work/work-queues.php');
+assert_work_queue($work_queues !== false, 'Work queue module must be readable.');
+assert_work_queue(
+    strpos($work_queues, "if ((\$user['role'] ?? '') === 'user')") === false,
+    'Client queues must not bypass worked-minute enrichment.'
+);
+assert_work_queue(
+    strpos($work_queues, "\$scope_user_id = ((\$user['role'] ?? '') !== 'user' && \$queue_key === 'mine')") !== false,
+    'Client queues must aggregate ticket worked minutes instead of filtering by the customer user id.'
+);
+
 $unassigned = work_queue_filters('unassigned', $agent, 8);
 assert_work_queue(!empty($unassigned['assignee_unassigned']), 'Unassigned queue should require empty assignee.');
 

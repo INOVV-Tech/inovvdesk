@@ -110,11 +110,8 @@ function work_queue_items(string $queue_key, array $user, int $limit = 8): array
         return [];
     }
     $items = get_tickets(work_queue_filters($queue_key, $user, $limit));
-    if (($user['role'] ?? '') === 'user') {
-        return $items;
-    }
 
-    $scope_user_id = $queue_key === 'mine' ? (int) ($user['id'] ?? 0) : 0;
+    $scope_user_id = (($user['role'] ?? '') !== 'user' && $queue_key === 'mine') ? (int) ($user['id'] ?? 0) : 0;
     return work_queue_attach_worked_minutes($items, $scope_user_id);
 }
 
