@@ -296,31 +296,65 @@
     }
 
     function initManualTime() {
-        var toggle = document.getElementById('manual-toggle');
+        var modeSelect = document.getElementById('work-time-mode');
         var row = document.getElementById('manual-entry-row');
         var duration = document.getElementById('manual-duration-minutes');
+        var durationHours = document.getElementById('manual-duration-hours');
         var dateInput = document.querySelector('input[name="manual_date"]');
         var startInput = document.querySelector('input[name="manual_start_time"]');
         var endInput = document.querySelector('input[name="manual_end_time"]');
         var startAt = document.getElementById('manual-start-at');
         var endAt = document.getElementById('manual-end-at');
+        var timerPanel = document.getElementById('work-time-timer-panel');
         var buttons = document.querySelectorAll('.manual-duration-chip');
         var applying = false;
 
-        function setVisible(show) {
-            if (!row || !toggle) return;
-            row.classList.toggle('hidden', !show);
-            toggle.setAttribute('aria-expanded', show ? 'true' : 'false');
+        function setWorkMode(mode, clearHiddenValues) {
+            mode = mode === 'timer' ? 'timer' : 'manual';
+            if (modeSelect) modeSelect.value = mode;
+            if (row) row.classList.toggle('hidden', mode !== 'manual');
+            if (timerPanel) timerPanel.classList.toggle('hidden', mode !== 'timer');
+
+            var stopToggle = document.getElementById('stop-timer-toggle');
+            var submit = document.getElementById('comment-submit-btn');
+            var hasActiveTimer = submit && submit.dataset.hasActiveTimer === '1';
+            if (stopToggle) {
+                if (mode === 'timer' && hasActiveTimer) {
+                    stopToggle.disabled = false;
+                    stopToggle.checked = true;
+                } else if (mode === 'manual') {
+                    stopToggle.checked = false;
+                    stopToggle.disabled = true;
+                }
+            }
+
+            if (clearHiddenValues && mode === 'timer') {
+                clearSnapshot(true, true);
+            }
+            window.updateSubmitLabel();
         }
+        window.setWorkTimeMode = setWorkMode;
 
         function clearSnapshot(clearDurationValue, clearRangeValues) {
             if (clearDurationValue && duration) duration.value = '';
+            if (clearDurationValue && durationHours) durationHours.value = '';
             if (startAt) startAt.value = '';
             if (endAt) endAt.value = '';
             if (clearRangeValues) {
                 if (startInput) startInput.value = '';
                 if (endInput) endInput.value = '';
             }
+        }
+
+        function syncDurationFromHours() {
+            if (!durationHours) return false;
+            var hours = parseFloat(String(durationHours.value || '').replace(',', '.'));
+            if (hours > 0) {
+                if (duration) duration.value = Math.round(hours * 60);
+                return true;
+            }
+            if (duration) duration.value = '';
+            return false;
         }
 
         function applyDuration(minutes) {
@@ -335,13 +369,14 @@
             var start = new Date(end.getTime() - (parsed * 60 * 1000));
             applying = true;
             if (duration) duration.value = parsed;
+            if (durationHours) durationHours.value = (parsed / 60).toFixed(parsed % 60 === 0 ? 0 : 2);
             dateInput.value = formatDateInput(start);
             startInput.value = formatTimeInput(start);
             endInput.value = formatTimeInput(end);
             if (startAt) startAt.value = formatDateTimeLocal(start);
             if (endAt) endAt.value = formatDateTimeLocal(end);
             applying = false;
-            setVisible(true);
+            setWorkMode('manual', false);
             window.updateSubmitLabel();
         }
 
@@ -351,12 +386,12 @@
             window.updateSubmitLabel();
         }
 
-        if (toggle && row) {
-            toggle.addEventListener('click', function () {
-                setVisible(row.classList.contains('hidden'));
+        if (modeSelect) {
+            modeSelect.addEventListener('change', function () {
+                setWorkMode(this.value, true);
             });
         }
-        if ((duration && duration.value) || (startInput && startInput.value) || (endInput && endInput.value)) setVisible(true);
+        if ((duration && duration.value) || (startInput && startInput.value) || (endInput && endInput.value)) setWorkMode('manual', false);
         if (duration) {
             duration.addEventListener('change', function () {
                 if (this.value) applyDuration(this.value);
@@ -372,6 +407,25 @@
                 }
             });
             duration.addEventListener('input', function () { window.updateSubmitLabel(); });
+        }
+        if (durationHours) {
+            durationHours.addEventListener('change', function () {
+                if (syncDurationFromHours()) applyDuration(duration.value);
+                else {
+                    clearSnapshot(true, true);
+                    window.updateSubmitLabel();
+                }
+            });
+            durationHours.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (syncDurationFromHours()) applyDuration(duration.value);
+                }
+            });
+            durationHours.addEventListener('input', function () {
+                syncDurationFromHours();
+                window.updateSubmitLabel();
+            });
         }
         buttons.forEach(function (button) {
             button.addEventListener('click', function () { applyDuration(this.dataset.minutes); });
@@ -646,6 +700,7 @@
             }
 
             if (state === 'running') {
+                if (window.setWorkTimeMode) window.setWorkTimeMode('timer', true);
                 button.className = 'btn btn-warning px-3 py-1.5 text-sm inline-flex items-center gap-1.5 transition-colors';
                 button.title = t('pauseTimerHelp', 'Pause this timer without logging time yet.');
                 button.dataset.state = 'running';
@@ -665,6 +720,7 @@
                 updateToolbarTimer('running', formatTime(runningElapsed));
                 updateCompleteActionTitle('running');
             } else if (state === 'paused') {
+                if (window.setWorkTimeMode) window.setWorkTimeMode('timer', true);
                 var elapsedSec = opts.elapsedSeconds || 0;
                 var elapsedMin = Math.floor(elapsedSec / 60);
                 button.className = 'btn btn-success px-3 py-1.5 text-sm inline-flex items-center gap-1.5 transition-colors';

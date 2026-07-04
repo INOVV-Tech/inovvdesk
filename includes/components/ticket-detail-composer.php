@@ -126,48 +126,55 @@
                 <?php endif; ?>
 
                 <?php if (is_agent() && $time_tracking_available): ?>
-                        <!-- Manual Time Entry (expandable, between attachments and submit row) -->
-                        <div id="manual-entry-row" class="hidden mt-2 pt-2 border-t border-theme-light">
-                            <input type="hidden" name="manual_start_at" id="manual-start-at">
-                            <input type="hidden" name="manual_end_at" id="manual-end-at">
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2">
-                                <div>
-                                    <label class="form-label-sm mb-1"><?php echo e(t('Time (min)')); ?></label>
-                                    <input type="number" name="manual_duration_minutes" id="manual-duration-minutes"
-                                        min="1" max="1440" step="1" placeholder="15"
-                                        class="form-input text-sm h-9">
+                        <?php $work_time_mode = $timer_state === 'stopped' ? 'manual' : 'timer'; ?>
+                        <div class="work-time-entry" data-work-time-entry>
+                            <div class="work-time-entry__head">
+                                <div class="work-time-entry__title">
+                                    <?php echo get_icon('clock', 'w-4 h-4'); ?>
+                                    <span><?php echo e(t('Work time')); ?></span>
                                 </div>
-                                <div>
-                                    <label class="form-label-sm mb-1"><?php echo e(t('Date')); ?></label>
-                                    <input type="date" name="manual_date" value="<?php echo e(date('Y-m-d')); ?>"
-                                        class="form-input text-sm h-9">
-                                </div>
-                                <div>
-                                    <label class="form-label-sm mb-1"><?php echo e(t('Start')); ?></label>
-                                    <input type="time" name="manual_start_time" class="form-input text-sm h-9">
-                                </div>
-                                <div>
-                                    <label class="form-label-sm mb-1"><?php echo e(t('End')); ?></label>
-                                    <input type="time" name="manual_end_time" class="form-input text-sm h-9">
-                                </div>
+                                <label class="work-time-entry__mode">
+                                    <span><?php echo e(t('Mode')); ?></span>
+                                    <select id="work-time-mode" class="form-select text-sm" aria-label="<?php echo e(t('Time tracking mode')); ?>">
+                                        <option value="manual" <?php echo $work_time_mode === 'manual' ? 'selected' : ''; ?>><?php echo e(t('Manual time')); ?></option>
+                                        <option value="timer" <?php echo $work_time_mode === 'timer' ? 'selected' : ''; ?>><?php echo e(t('Timer')); ?></option>
+                                    </select>
+                                </label>
                             </div>
-                            <div class="mt-2 flex flex-wrap gap-2">
-                                <button type="button" class="manual-duration-chip btn btn-ghost px-2 py-1 text-xs" data-minutes="5">+5</button>
-                                <button type="button" class="manual-duration-chip btn btn-ghost px-2 py-1 text-xs" data-minutes="10">+10</button>
-                                <button type="button" class="manual-duration-chip btn btn-ghost px-2 py-1 text-xs" data-minutes="15">+15</button>
-                                <button type="button" class="manual-duration-chip btn btn-ghost px-2 py-1 text-xs" data-minutes="30">+30</button>
-                                <button type="button" class="manual-duration-chip btn btn-ghost px-2 py-1 text-xs" data-minutes="60">+60</button>
-                            </div>
-                        </div>
-                <?php endif; ?>
 
-                <!-- Submit row: timer + notification on LEFT, CC + send on RIGHT -->
-                <div class="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-                    <div class="flex items-center gap-2 flex-wrap min-w-0">
-                        <?php if (is_agent() && $time_tracking_available): ?>
-                                <!-- Unified timer control — single button that changes state -->
-                                <div id="timer-controls" data-ticket-id="<?php echo $ticket_id; ?>"
-                                    data-paused="<?php echo $timer_is_paused ? '1' : '0'; ?>" class="flex items-center gap-2">
+                            <div id="manual-entry-row" class="work-time-entry__panel <?php echo $work_time_mode === 'manual' ? '' : 'hidden'; ?>" data-work-time-panel="manual">
+                                <input type="hidden" name="manual_duration_minutes" id="manual-duration-minutes">
+                                <input type="hidden" name="manual_start_at" id="manual-start-at">
+                                <input type="hidden" name="manual_end_at" id="manual-end-at">
+                                <div class="work-time-entry__grid">
+                                    <div>
+                                        <label class="form-label-sm mb-1"><?php echo e(t('Hours worked')); ?></label>
+                                        <input type="number" id="manual-duration-hours" min="0.02" max="24" step="0.25" placeholder="2.5" class="form-input text-sm h-9">
+                                    </div>
+                                    <div>
+                                        <label class="form-label-sm mb-1"><?php echo e(t('Date')); ?></label>
+                                        <input type="date" name="manual_date" value="<?php echo e(date('Y-m-d')); ?>" class="form-input text-sm h-9">
+                                    </div>
+                                    <div>
+                                        <label class="form-label-sm mb-1"><?php echo e(t('Start')); ?></label>
+                                        <input type="time" name="manual_start_time" class="form-input text-sm h-9">
+                                    </div>
+                                    <div>
+                                        <label class="form-label-sm mb-1"><?php echo e(t('End')); ?></label>
+                                        <input type="time" name="manual_end_time" class="form-input text-sm h-9">
+                                    </div>
+                                </div>
+                                <div class="work-time-entry__chips">
+                                    <button type="button" class="manual-duration-chip" data-minutes="15">15 min</button>
+                                    <button type="button" class="manual-duration-chip" data-minutes="30">30 min</button>
+                                    <button type="button" class="manual-duration-chip" data-minutes="60">1h</button>
+                                    <button type="button" class="manual-duration-chip" data-minutes="120">2h</button>
+                                    <button type="button" class="manual-duration-chip" data-minutes="240">4h</button>
+                                </div>
+                            </div>
+
+                            <div id="work-time-timer-panel" class="work-time-entry__panel <?php echo $work_time_mode === 'timer' ? '' : 'hidden'; ?>" data-work-time-panel="timer">
+                                <div id="timer-controls" data-ticket-id="<?php echo $ticket_id; ?>" data-paused="<?php echo $timer_is_paused ? '1' : '0'; ?>" class="work-time-timer">
                                     <button type="button" id="btn-timer-action"
                                         class="btn <?php echo $timer_state === 'running' ? 'btn-warning' : 'btn-success'; ?> px-3 py-1.5 text-sm inline-flex items-center gap-1.5 transition-colors"
                                         data-state="<?php echo $timer_state; ?>"
@@ -194,25 +201,23 @@
                                             <?php endif; ?>
                                         </span>
                                     </button>
-                                    <!-- Log on submit checkbox (visible when timer active) -->
                                     <label id="timer-log-toggle"
                                         class="<?php echo $timer_state === 'stopped' ? 'hidden' : ''; ?> inline-flex items-center gap-1.5 text-xs cursor-pointer select-none whitespace-nowrap text-theme-secondary">
-                                        <input type="checkbox" name="stop_timer" id="stop-timer-toggle" value="1" <?php echo $timer_state !== 'stopped' ? 'checked' : 'disabled'; ?>
-                                            class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
+                                        <input type="checkbox" name="stop_timer" id="stop-timer-toggle" value="1" <?php echo $timer_state !== 'stopped' ? 'checked' : 'disabled'; ?> class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4">
                                         <span><?php echo e(t('Log on submit')); ?></span>
                                     </label>
-                                    <!-- Discard button (visible when timer active) -->
                                     <button type="button" id="btn-discard-timer"
                                         class="<?php echo $timer_state === 'stopped' ? 'hidden' : ''; ?> btn btn-ghost px-2 py-1.5 hover:text-red-500 transition-colors text-theme-muted" title="<?php echo e(t('Discard timer')); ?>">
                                         <?php echo get_icon('trash', 'w-4 h-4'); ?>
                                     </button>
                                 </div>
-                                <!-- Manual entry toggle -->
-                                <button type="button" id="manual-toggle" class="btn btn-ghost px-2 py-1.5 text-theme-muted" aria-expanded="false"
-                                    title="<?php echo e(t('Manual entry')); ?>">
-                                    <?php echo get_icon('pen', 'w-4 h-4'); ?>
-                                </button>
-                        <?php endif; ?>
+                            </div>
+                        </div>
+                <?php endif; ?>
+
+                <!-- Submit row: notification on LEFT, CC + send on RIGHT -->
+                <div class="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+                    <div class="flex items-center gap-2 flex-wrap min-w-0">
                         <label class="flex items-center text-sm cursor-pointer whitespace-nowrap text-theme-secondary">
                             <input type="checkbox" name="skip_notification" value="1" class="mr-2 rounded">
                             <span><?php echo e(t('Do not send email notification')); ?></span>
