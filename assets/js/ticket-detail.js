@@ -359,7 +359,7 @@
 
         function applyDuration(minutes) {
             var parsed = parseInt(minutes, 10) || 0;
-            if (!parsed || !dateInput || !startInput || !endInput) {
+            if (!parsed) {
                 clearSnapshot(false, true);
                 window.updateSubmitLabel();
                 return;
@@ -370,11 +370,11 @@
             applying = true;
             if (duration) duration.value = parsed;
             if (durationHours) durationHours.value = (parsed / 60).toFixed(parsed % 60 === 0 ? 0 : 2);
-            dateInput.value = formatDateInput(start);
-            startInput.value = formatTimeInput(start);
-            endInput.value = formatTimeInput(end);
-            if (startAt) startAt.value = formatDateTimeLocal(start);
-            if (endAt) endAt.value = formatDateTimeLocal(end);
+            if (dateInput) dateInput.value = formatDateInput(start);
+            if (startInput) startInput.value = formatTimeInput(start);
+            if (endInput) endInput.value = formatTimeInput(end);
+            if (dateInput && startInput && endInput && startAt) startAt.value = formatDateTimeLocal(start);
+            if (dateInput && startInput && endInput && endAt) endAt.value = formatDateTimeLocal(end);
             applying = false;
             setWorkMode('manual', false);
             window.updateSubmitLabel();
