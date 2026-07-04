@@ -12,6 +12,7 @@ $ticket_types = get_ticket_types();
 $tags_supported = function_exists('ticket_tags_column_exists') && ticket_tags_column_exists();
 $organizations = [];
 $allowed_organization_ids = [];
+$single_available_organization_id = null;
 
 try {
     if (is_admin()) {
@@ -28,10 +29,19 @@ try {
             }));
         }
     }
+    if (!empty($organizations)) {
+        $allowed_organization_ids = array_map(static function ($org) {
+            return (int) ($org['id'] ?? 0);
+        }, $organizations);
+    }
     $allowed_organization_ids = normalize_organization_ids($allowed_organization_ids);
+    if (count($allowed_organization_ids) === 1) {
+        $single_available_organization_id = (int) $allowed_organization_ids[0];
+    }
 } catch (Throwable $e) {
     $organizations = [];
     $allowed_organization_ids = [];
+    $single_available_organization_id = null;
 }
 
 // Load staff users for "Assign to" and all users for "On behalf of" (admin/agent only)
@@ -60,6 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $due_date = !empty($_POST['due_date']) ? $_POST['due_date'] : null;
         $tags = $tags_supported ? trim($_POST['tags'] ?? '') : '';
         $organization_id = !empty($_POST['organization_id']) ? (int) $_POST['organization_id'] : null;
+        if ($organization_id === null && $single_available_organization_id !== null) {
+            $organization_id = $single_available_organization_id;
+        }
         $assignee_id = (is_admin() || is_agent()) && !empty($_POST['assignee_id']) ? (int) $_POST['assignee_id'] : null;
         $on_behalf_of = (is_admin() || is_agent()) && !empty($_POST['on_behalf_of']) ? (int) $_POST['on_behalf_of'] : null;
         $status_id = (is_admin() || is_agent()) && !empty($_POST['status_id']) ? (int) $_POST['status_id'] : null;
@@ -99,6 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Keep the validation error raised above.
         } elseif (empty($title)) {
             $error = t('Enter a subject.');
+        } elseif ($organization_id === null && count($allowed_organization_ids) > 1) {
+            $error = t('Select a company.');
         } elseif ($organization_id !== null && $organization_id > 0 && !in_array($organization_id, $allowed_organization_ids, true)) {
             $error = t('Selected organization is not available.');
         } elseif (
@@ -297,7 +312,16 @@ if (!$default_type && !empty($ticket_types)) {
     $default_type = $ticket_types[0];
 }
 $default_type_slug = $default_type ? $default_type['slug'] : 'general';
-$default_organization_id = null;
+$default_organization_id = $single_available_organization_id;
+$single_available_organization = null;
+if ($single_available_organization_id !== null) {
+    foreach ($organizations as $org) {
+        if ((int) ($org['id'] ?? 0) === $single_available_organization_id) {
+            $single_available_organization = $org;
+            break;
+        }
+    }
+}
 $default_assignee_id = null;
 $is_postback = $_SERVER['REQUEST_METHOD'] === 'POST';
 if ($is_postback && !empty($_POST['import_organization_id'])) {
@@ -393,11 +417,19 @@ include BASE_PATH . '/includes/components/page-header.php';
                     <div id="file-preview" class="mt-1.5 space-y-1 hidden"></div>
                 </div>
 
-                <?php if (!empty($organizations)): ?>
+                <?php if ($single_available_organization_id !== null): ?>
                 <div>
                     <label class="block text-sm font-medium mb-1 text-theme-secondary"><?php echo e(t('Company')); ?></label>
-                    <select name="organization_id" class="form-select" autocomplete="off" data-reset-on-fresh-ticket="1">
-                        <option value=""><?php echo e(t('-- No organization --')); ?></option>
+                    <input type="hidden" name="organization_id" value="<?php echo (int) $single_available_organization_id; ?>">
+                    <div class="form-input flex items-center h-10 text-sm text-theme-secondary" aria-readonly="true">
+                        <?php echo e($single_available_organization['name'] ?? t('Assigned automatically')); ?>
+                    </div>
+                </div>
+                <?php elseif (count($organizations) > 1): ?>
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-theme-secondary"><?php echo e(t('Company')); ?></label>
+                    <select name="organization_id" class="form-select" autocomplete="off" data-reset-on-fresh-ticket="1" required aria-required="true">
+                        <option value="" disabled <?php echo $default_organization_id === null ? 'selected' : ''; ?>><?php echo e(t('Select a company')); ?></option>
                         <?php foreach ($organizations as $org): ?>
                             <option value="<?php echo (int) $org['id']; ?>" <?php echo $default_organization_id === (int) $org['id'] ? 'selected' : ''; ?>>
                                 <?php echo e($org['name']); ?>

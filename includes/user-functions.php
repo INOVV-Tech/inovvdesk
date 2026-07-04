@@ -687,3 +687,17 @@ function get_user_organization_ids($user_id)
 
     return normalize_organization_ids($org_ids);
 }
+
+/**
+ * Return the user's only organization, or null when they have none/multiple.
+ */
+function get_user_single_organization_id($user): ?int
+{
+    $user_id = is_array($user) ? (int) ($user['id'] ?? 0) : (int) $user;
+    if ($user_id <= 0) {
+        return null;
+    }
+
+    $organization_ids = get_user_organization_ids($user_id);
+    return count($organization_ids) === 1 ? (int) $organization_ids[0] : null;
+}

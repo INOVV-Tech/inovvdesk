@@ -388,7 +388,30 @@
 
         if (modeSelect) {
             modeSelect.addEventListener('change', function () {
-                setWorkMode(this.value, true);
+                var nextMode = this.value === 'timer' ? 'timer' : 'manual';
+                if (
+                    nextMode === 'manual'
+                    && window.isWorkTimerRunning
+                    && window.isWorkTimerRunning()
+                    && window.pauseActiveWorkTimer
+                ) {
+                    if (!window.confirm(t('confirmPauseTimerForManualTime', 'Switching to Hours worked will pause the active timer. Continue?'))) {
+                        setWorkMode('timer', false);
+                        return;
+                    }
+
+                    modeSelect.disabled = true;
+                    window.pauseActiveWorkTimer()
+                        .then(function (paused) {
+                            setWorkMode(paused ? 'manual' : 'timer', false);
+                        })
+                        .finally(function () {
+                            modeSelect.disabled = false;
+                        });
+                    return;
+                }
+
+                setWorkMode(nextMode, true);
             });
         }
         if ((duration && duration.value) || (startInput && startInput.value) || (endInput && endInput.value)) setWorkMode('manual', false);
@@ -720,7 +743,7 @@
                 updateToolbarTimer('running', formatTime(runningElapsed));
                 updateCompleteActionTitle('running');
             } else if (state === 'paused') {
-                if (window.setWorkTimeMode) window.setWorkTimeMode('timer', true);
+                if (!opts.keepWorkMode && window.setWorkTimeMode) window.setWorkTimeMode('timer', true);
                 var elapsedSec = opts.elapsedSeconds || 0;
                 var elapsedMin = Math.floor(elapsedSec / 60);
                 button.className = 'btn btn-success px-3 py-1.5 text-sm inline-flex items-center gap-1.5 transition-colors';
@@ -780,6 +803,47 @@
             selfDispatch = false;
         }
 
+        function pauseRunningTimer(options) {
+            options = options || {};
+            if (currentState !== 'running') return Promise.resolve(true);
+            if (busy) return Promise.resolve(false);
+
+            busy = true;
+            if (button) button.disabled = true;
+
+            return timerAction('pause-timer')
+                .then(function (data) {
+                    if (data.success) {
+                        setTimerState('paused', {
+                            elapsedSeconds: data.elapsed_seconds || 0,
+                            keepWorkMode: !!options.keepWorkMode
+                        });
+                        dispatchTimerChanged();
+                        showToast(data.message || t('timerPaused', 'Timer paused.'), 'success');
+                        return true;
+                    }
+
+                    showToast(data.error || t('failPauseTimer', 'Failed to pause timer.'), 'error');
+                    if (button) button.disabled = false;
+                    return false;
+                })
+                .catch(function () {
+                    showToast(t('genericError', 'An error occurred.'), 'error');
+                    if (button) button.disabled = false;
+                    return false;
+                })
+                .finally(function () {
+                    busy = false;
+                });
+        }
+
+        window.isWorkTimerRunning = function () {
+            return currentState === 'running';
+        };
+        window.pauseActiveWorkTimer = function () {
+            return pauseRunningTimer({ keepWorkMode: true });
+        };
+
         function onActionClick() {
             if (busy) return;
             busy = true;
@@ -810,22 +874,8 @@
             }
 
             if (currentState === 'running') {
-                timerAction('pause-timer')
-                    .then(function (data) {
-                        if (data.success) {
-                            setTimerState('paused', { elapsedSeconds: data.elapsed_seconds || 0 });
-                            dispatchTimerChanged();
-                            showToast(data.message || t('timerPaused', 'Timer paused.'), 'success');
-                        } else {
-                            showToast(data.error || t('failPauseTimer', 'Failed to pause timer.'), 'error');
-                            button.disabled = false;
-                        }
-                    })
-                    .catch(function () {
-                        showToast(t('genericError', 'An error occurred.'), 'error');
-                        button.disabled = false;
-                    })
-                    .finally(function () { busy = false; });
+                busy = false;
+                pauseRunningTimer();
                 return;
             }
 

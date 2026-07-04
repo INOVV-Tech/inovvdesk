@@ -434,16 +434,14 @@ function create_ticket($data) {
     $default_status = get_default_status();
     $default_priority = get_default_priority();
 
-    // Client-created tickets can inherit the client's primary organization.
-    // Staff-created tickets must choose a client explicitly to avoid accidental
-    // assignment to the creator's own/default company.
     $user = get_user($data['user_id']);
-    $organization_id = (!empty($user['organization_id']) && ($user['role'] ?? '') === 'user')
-        ? (int) $user['organization_id']
+    $single_organization_id = ($user && function_exists('get_user_single_organization_id'))
+        ? get_user_single_organization_id($user)
         : null;
+    $organization_id = $single_organization_id;
     if (array_key_exists('organization_id', $data)) {
         $candidate_org = (int) ($data['organization_id'] ?? 0);
-        $organization_id = $candidate_org > 0 ? $candidate_org : null;
+        $organization_id = $candidate_org > 0 ? $candidate_org : $single_organization_id;
     }
 
     $ticket_data = [

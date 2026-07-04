@@ -380,9 +380,16 @@ function api_app_create_ticket()
         }
         $data['priority_id'] = (int) $input['priority_id'];
     }
-    if (array_key_exists('organization_id', $input)) {
-        $organization_id = $input['organization_id'] ? (int) $input['organization_id'] : null;
-        if ($organization_id !== null && !can_user_use_organization($organization_id, $user)) {
+    $organization_ids = function_exists('get_user_organization_ids') ? get_user_organization_ids((int) $user['id']) : [];
+    $single_organization_id = function_exists('get_user_single_organization_id') ? get_user_single_organization_id($user) : null;
+    $organization_id = array_key_exists('organization_id', $input)
+        ? ($input['organization_id'] ? (int) $input['organization_id'] : $single_organization_id)
+        : $single_organization_id;
+    if ($organization_id === null && count($organization_ids) > 1) {
+        api_error('Organization is required.', 422);
+    }
+    if ($organization_id !== null) {
+        if (!can_user_use_organization($organization_id, $user)) {
             api_error('Forbidden', 403);
         }
         $data['organization_id'] = $organization_id;

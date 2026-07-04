@@ -246,12 +246,16 @@ function api_quick_start() {
 
     require_once BASE_PATH . '/includes/ticket-crud-functions.php';
 
+    $organization_id = function_exists('get_user_single_organization_id')
+        ? get_user_single_organization_id($user)
+        : null;
+
     // Create ticket with minimal data
     $ticket_id = create_ticket([
         'title' => t('Quick ticket'),
         'description' => '',
         'user_id' => $user['id'],
-        'organization_id' => null,
+        'organization_id' => $organization_id,
         'assignee_id' => $user['id'],
     ]);
 
@@ -1450,19 +1454,19 @@ function api_quick_create_ticket() {
     }
 
     $org_raw = trim((string)($_POST['organization_id'] ?? ''));
-    if ($org_raw !== '') {
-        $oid = (int)$org_raw;
-        if ($oid > 0) {
-            if (!api_get_active_organization_by_id($oid)) {
-                api_error(t('Invalid company.'), 400);
-            }
-            if (!can_user_use_organization($oid, $user)) {
-                api_error(t('Selected organization is not available.'), 403);
-            }
-            $data['organization_id'] = $oid;
-        } else {
-            $data['organization_id'] = null;
+    $allowed_org_ids = function_exists('get_user_organization_ids') ? get_user_organization_ids((int) $user['id']) : [];
+    $single_org_id = function_exists('get_user_single_organization_id') ? get_user_single_organization_id($user) : null;
+    $oid = $org_raw !== '' ? (int) $org_raw : ($single_org_id ?? 0);
+    if ($oid > 0) {
+        if (!api_get_active_organization_by_id($oid)) {
+            api_error(t('Invalid company.'), 400);
         }
+        if (!can_user_use_organization($oid, $user)) {
+            api_error(t('Selected organization is not available.'), 403);
+        }
+        $data['organization_id'] = $oid;
+    } elseif (count($allowed_org_ids) > 1) {
+        api_error(t('Select a company.'), 400);
     }
 
     $priority_raw = trim((string)($_POST['priority_id'] ?? ''));

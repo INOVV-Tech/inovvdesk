@@ -123,8 +123,10 @@ foreach ($pages as $path => $needles) {
 }
 
 $new_ticket = read_core_ux_flow_file($root, 'pages/new-ticket.php');
-assert_core_ux_flow(str_contains($new_ticket, "'organization_id' => \$organization_id"), 'New ticket must pass the selected client explicitly, including a blank client.');
-assert_core_ux_flow(str_contains($new_ticket, '$default_organization_id = null'), 'New ticket must default to no selected client.');
+assert_core_ux_flow(str_contains($new_ticket, "'organization_id' => \$organization_id"), 'New ticket must pass the resolved client explicitly.');
+assert_core_ux_flow(str_contains($new_ticket, '$single_available_organization_id'), 'New ticket must auto-select the only available client.');
+assert_core_ux_flow(str_contains($new_ticket, "t('Select a company.')"), 'New ticket must require company selection when multiple companies are available.');
+assert_core_ux_flow(str_contains($new_ticket, 'type="hidden" name="organization_id"'), 'New ticket must submit a hidden company when only one company is available.');
 assert_core_ux_flow(str_contains($new_ticket, 'data-reset-on-fresh-ticket="1"'), 'New ticket form must reset client selection for fresh tickets.');
 assert_core_ux_flow(str_contains($new_ticket, 'assets/js/attachment-paste-drop.js'), 'New ticket must load paste/drop attachment support.');
 assert_core_ux_flow(str_contains($new_ticket, 'FoxDeskAttachmentPasteDrop.bind'), 'New ticket must bind pasted and dropped files to attachments.');
@@ -132,14 +134,14 @@ assert_core_ux_flow(str_contains($new_ticket, "targetSelectors: ['#new-ticket-fo
 
 $ticket_crud = read_core_ux_flow_file($root, 'includes/ticket-crud-functions.php');
 foreach ([
-    "(\$user['role'] ?? '') === 'user'",
+    "get_user_single_organization_id(\$user)",
     "array_key_exists('organization_id', \$data)",
-    "\$candidate_org > 0 ? \$candidate_org : null",
+    "\$candidate_org > 0 ? \$candidate_org : \$single_organization_id",
 ] as $needle) {
-    assert_core_ux_flow(str_contains($ticket_crud, $needle), 'Ticket creation must avoid random staff client fallback: ' . $needle);
+    assert_core_ux_flow(str_contains($ticket_crud, $needle), 'Ticket creation must auto-select a single available client without random fallback: ' . $needle);
 }
 
 $ticket_api = read_core_ux_flow_file($root, 'includes/api/ticket-handler.php');
-assert_core_ux_flow(str_contains($ticket_api, "'organization_id' => null"), 'Quick ticket must explicitly start without a client.');
+assert_core_ux_flow(str_contains($ticket_api, 'get_user_single_organization_id($user)'), 'Quick ticket must inherit the only available client.');
 
 echo "Core UX flow parity contract OK\n";
