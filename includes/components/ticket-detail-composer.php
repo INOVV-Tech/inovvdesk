@@ -135,7 +135,7 @@
                                         <input type="hidden" name="manual_duration_minutes" id="manual-duration-minutes">
                                         <label class="work-time-inline__hours">
                                             <span><?php echo e(t('Hours worked')); ?></span>
-                                            <input type="number" id="manual-duration-hours" min="0.02" max="24" step="0.01" placeholder="0.83" class="form-input text-sm h-9">
+                                            <input type="number" name="manual_duration_hours" id="manual-duration-hours" min="0.02" max="24" step="0.01" placeholder="0.83" class="form-input text-sm h-9" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
                                         </label>
                                     </div>
                                     <div id="work-time-timer-panel" class="<?php echo $work_time_mode === 'timer' ? '' : 'hidden'; ?>" data-work-time-panel="timer">
@@ -184,7 +184,42 @@
                                     </select>
                                     <script>
                                         (function () {
-                                            window.FoxDeskSyncWorkTimeMode = window.FoxDeskSyncWorkTimeMode || function (mode) {
+                                            var updateSubmitLabel = function () {
+                                                var submit = document.getElementById('comment-submit-btn');
+                                                if (!submit) return;
+                                                var stopToggle = document.getElementById('stop-timer-toggle');
+                                                var hasActiveTimer = submit.dataset.hasActiveTimer === '1';
+                                                var stopRequested = hasActiveTimer && stopToggle && stopToggle.checked && !stopToggle.disabled;
+                                                var modeSelect = document.getElementById('work-time-mode');
+                                                var hours = document.getElementById('manual-duration-hours');
+                                                var minutes = document.getElementById('manual-duration-minutes');
+                                                var hasManualTime = modeSelect && modeSelect.value === 'manual' && (
+                                                    (hours && hours.value !== '') ||
+                                                    (minutes && minutes.value !== '')
+                                                );
+                                                var label = submit.dataset.defaultText || 'Send update';
+                                                if (stopRequested) label = submit.dataset.stopText || label;
+                                                else if (hasManualTime) label = submit.dataset.logTimeText || label;
+                                                var text = submit.querySelector('.btn-text');
+                                                if (text) text.textContent = label;
+                                            };
+                                            var syncManualHours = function () {
+                                                var modeSelect = document.getElementById('work-time-mode');
+                                                var hours = document.getElementById('manual-duration-hours');
+                                                var minutes = document.getElementById('manual-duration-minutes');
+                                                if (!hours || !minutes) return;
+                                                if (modeSelect && modeSelect.value !== 'manual') {
+                                                    minutes.value = '';
+                                                    updateSubmitLabel();
+                                                    return;
+                                                }
+                                                var value = String(hours.value || '').replace(',', '.');
+                                                var parsed = parseFloat(value);
+                                                minutes.value = parsed > 0 ? String(Math.round(parsed * 60)) : '';
+                                                updateSubmitLabel();
+                                            };
+                                            window.FoxDeskSyncManualHours = syncManualHours;
+                                            window.FoxDeskSyncWorkTimeMode = function (mode) {
                                                 mode = mode === 'timer' ? 'timer' : 'manual';
                                                 var select = document.getElementById('work-time-mode');
                                                 if (!select) return;
@@ -193,6 +228,11 @@
                                                 var timer = root.querySelector('[data-work-time-panel="timer"]');
                                                 if (manual) manual.classList.toggle('hidden', mode !== 'manual');
                                                 if (timer) timer.classList.toggle('hidden', mode !== 'timer');
+                                                if (mode === 'timer' && manual) {
+                                                    manual.querySelectorAll('input').forEach(function (input) {
+                                                        input.value = '';
+                                                    });
+                                                }
                                                 var stopToggle = root.querySelector('#stop-timer-toggle');
                                                 var submit = document.getElementById('comment-submit-btn');
                                                 var hasActiveTimer = submit && submit.dataset.hasActiveTimer === '1';
@@ -204,10 +244,28 @@
                                                     stopToggle.checked = true;
                                                 }
                                                 select.value = mode;
+                                                syncManualHours();
+                                                updateSubmitLabel();
+                                            };
+                                            var bindWorkTimeFallback = function () {
+                                                var hours = document.getElementById('manual-duration-hours');
+                                                if (hours && !hours.dataset.workTimeFallbackBound) {
+                                                    hours.dataset.workTimeFallbackBound = '1';
+                                                    hours.addEventListener('input', syncManualHours);
+                                                    hours.addEventListener('change', syncManualHours);
+                                                }
+                                                var form = document.getElementById('comment-form');
+                                                if (form && !form.dataset.workTimeFallbackBound) {
+                                                    form.dataset.workTimeFallbackBound = '1';
+                                                    form.addEventListener('submit', syncManualHours);
+                                                }
                                             };
                                             var syncCurrentWorkTimeMode = function () {
+                                                bindWorkTimeFallback();
                                                 var select = document.getElementById('work-time-mode');
                                                 if (select) window.FoxDeskSyncWorkTimeMode(select.value);
+                                                syncManualHours();
+                                                updateSubmitLabel();
                                             };
                                             syncCurrentWorkTimeMode();
                                             window.addEventListener('pageshow', syncCurrentWorkTimeMode);

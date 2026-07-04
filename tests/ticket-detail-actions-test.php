@@ -39,6 +39,10 @@ $assert(str_contains($page, 'title="<?php echo e($action_title); ?>"'), 'Primary
 $assert(str_contains($page, 'aria-label="<?php echo e($action_title); ?>"'), 'Primary actions must expose accessible labels.');
 $assert(str_contains($time_functions, 'function stop_active_ticket_timer'), 'Shared active timer stop helper is missing.');
 $assert(str_contains($handlers, 'stop_active_ticket_timer($ticket_id, $user[\'id\'])'), 'Standalone status changes must stop an active timer when completing work.');
+$assert(str_contains($handlers, 'manual_duration_hours'), 'Ticket comments must accept visible manual hours as a time source.');
+$assert(str_contains($handlers, "str_replace(',', '.', \$manual_hours_input)"), 'Manual hours must support comma decimal input.');
+$assert(str_contains($handlers, '* 60'), 'Manual hours must be converted to minutes before logging time.');
+$assert(str_contains($detail_js, "document.getElementById('manual-duration-hours')"), 'Submit label must recognize the visible manual hours field.');
 
 if (!function_exists('ticket_status_group_from_status')) {
     function ticket_status_group_from_status(array $status): string

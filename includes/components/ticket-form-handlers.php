@@ -295,14 +295,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stop_timer = is_agent() && isset($_POST['stop_timer']);
         $manual_date_input = trim($_POST['manual_date'] ?? date('Y-m-d'));
         $manual_duration_input = trim((string) ($_POST['manual_duration_minutes'] ?? ''));
+        $manual_hours_input = trim((string) ($_POST['manual_duration_hours'] ?? ''));
         $manual_start_time_input = trim($_POST['manual_start_time'] ?? '');
         $manual_end_time_input = trim($_POST['manual_end_time'] ?? '');
         $manual_start_at_input = trim((string) ($_POST['manual_start_at'] ?? ''));
         $manual_end_at_input = trim((string) ($_POST['manual_end_at'] ?? ''));
         $manual_start_input = '';
         $manual_end_input = '';
-        $manual_duration_minutes = $manual_duration_input !== '' ? (int) $manual_duration_input : 0;
-        $manual_quick_requested = is_agent() && $manual_duration_input !== '';
+        $manual_duration_minutes = 0;
+        if ($manual_hours_input !== '') {
+            $manual_hours_value = str_replace(',', '.', $manual_hours_input);
+            $manual_duration_minutes = is_numeric($manual_hours_value)
+                ? (int) round(((float) $manual_hours_value) * 60)
+                : 0;
+        } elseif ($manual_duration_input !== '') {
+            $manual_duration_minutes = (int) $manual_duration_input;
+        }
+        $manual_quick_requested = is_agent() && ($manual_duration_input !== '' || $manual_hours_input !== '');
 
         if ($manual_start_time_input !== '' || $manual_end_time_input !== '') {
             $base_date = $manual_date_input !== '' ? $manual_date_input : date('Y-m-d');

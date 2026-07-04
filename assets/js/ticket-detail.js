@@ -565,6 +565,7 @@
             var stopRequested = hasActiveTimer && stopToggle && stopToggle.checked;
             var hasManualTime =
                 (document.getElementById('manual-duration-minutes') && document.getElementById('manual-duration-minutes').value) ||
+                (document.getElementById('manual-duration-hours') && document.getElementById('manual-duration-hours').value) ||
                 (document.querySelector('input[name="manual_start_time"]') && document.querySelector('input[name="manual_start_time"]').value) ||
                 (document.querySelector('input[name="manual_end_time"]') && document.querySelector('input[name="manual_end_time"]').value);
 
