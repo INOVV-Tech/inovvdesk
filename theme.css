@@ -7880,6 +7880,10 @@ width: 100%;
     align-items: center;
 }
 
+.work-time-inline .hidden {
+    display: none !important;
+}
+
 .work-time-inline__hours {
     display: inline-flex;
     align-items: center;

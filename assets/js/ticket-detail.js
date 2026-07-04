@@ -414,7 +414,16 @@
                 setWorkMode(nextMode, true);
             });
         }
-        if ((duration && duration.value) || (startInput && startInput.value) || (endInput && endInput.value)) setWorkMode('manual', false);
+        if (modeSelect) {
+            setWorkMode(modeSelect.value, false);
+        } else if (
+            (duration && duration.value)
+            || (durationHours && durationHours.value)
+            || (startInput && startInput.value)
+            || (endInput && endInput.value)
+        ) {
+            setWorkMode('manual', false);
+        }
         if (duration) {
             duration.addEventListener('change', function () {
                 if (this.value) applyDuration(this.value);

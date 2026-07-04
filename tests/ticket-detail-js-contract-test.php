@@ -56,6 +56,7 @@ foreach ([
     'confirmPauseTimerForManualTime',
     'window.pauseActiveWorkTimer',
     'window.isWorkTimerRunning',
+    'setWorkMode(modeSelect.value, false)',
     'updateCompleteActionTitle',
     'completeTimerHelp',
     'completeHelp',
@@ -84,6 +85,7 @@ foreach ([
     'body.ticket-timeline-open',
     '.ticket-timeline-overlay.is-open',
     '.ticket-timeline-empty',
+    '.work-time-inline .hidden',
 ] as $themeNeedle) {
     $assert(str_contains($theme, $themeNeedle), 'Theme CSS missing ticket timeline state: ' . $themeNeedle);
 }
