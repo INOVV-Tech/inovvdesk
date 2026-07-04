@@ -135,7 +135,7 @@
                                         <input type="hidden" name="manual_duration_minutes" id="manual-duration-minutes">
                                         <label class="work-time-inline__hours">
                                             <span><?php echo e(t('Hours worked')); ?></span>
-                                            <input type="number" id="manual-duration-hours" min="0.02" max="24" step="0.25" placeholder="2.5" class="form-input text-sm h-9">
+                                            <input type="number" id="manual-duration-hours" min="0.02" max="24" step="0.01" placeholder="0.83" class="form-input text-sm h-9">
                                         </label>
                                     </div>
                                     <div id="work-time-timer-panel" class="<?php echo $work_time_mode === 'timer' ? '' : 'hidden'; ?>" data-work-time-panel="timer">
@@ -178,10 +178,42 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <select id="work-time-mode" class="form-select text-sm work-time-inline__mode" aria-label="<?php echo e(t('Time tracking mode')); ?>">
+                                    <select id="work-time-mode" class="form-select text-sm work-time-inline__mode" aria-label="<?php echo e(t('Time tracking mode')); ?>" onchange="if (window.FoxDeskSyncWorkTimeMode) window.FoxDeskSyncWorkTimeMode(this.value);">
                                         <option value="manual" <?php echo $work_time_mode === 'manual' ? 'selected' : ''; ?>><?php echo e(t('Hours worked')); ?></option>
                                         <option value="timer" <?php echo $work_time_mode === 'timer' ? 'selected' : ''; ?>><?php echo e(t('Timer')); ?></option>
                                     </select>
+                                    <script>
+                                        (function () {
+                                            window.FoxDeskSyncWorkTimeMode = window.FoxDeskSyncWorkTimeMode || function (mode) {
+                                                mode = mode === 'timer' ? 'timer' : 'manual';
+                                                var select = document.getElementById('work-time-mode');
+                                                if (!select) return;
+                                                var root = select.closest('[data-work-time-entry]') || document;
+                                                var manual = root.querySelector('[data-work-time-panel="manual"]');
+                                                var timer = root.querySelector('[data-work-time-panel="timer"]');
+                                                if (manual) manual.classList.toggle('hidden', mode !== 'manual');
+                                                if (timer) timer.classList.toggle('hidden', mode !== 'timer');
+                                                var stopToggle = root.querySelector('#stop-timer-toggle');
+                                                var submit = document.getElementById('comment-submit-btn');
+                                                var hasActiveTimer = submit && submit.dataset.hasActiveTimer === '1';
+                                                if (stopToggle && mode === 'manual') {
+                                                    stopToggle.checked = false;
+                                                    stopToggle.disabled = true;
+                                                } else if (stopToggle && mode === 'timer' && hasActiveTimer) {
+                                                    stopToggle.disabled = false;
+                                                    stopToggle.checked = true;
+                                                }
+                                                select.value = mode;
+                                            };
+                                            var syncCurrentWorkTimeMode = function () {
+                                                var select = document.getElementById('work-time-mode');
+                                                if (select) window.FoxDeskSyncWorkTimeMode(select.value);
+                                            };
+                                            syncCurrentWorkTimeMode();
+                                            window.addEventListener('pageshow', syncCurrentWorkTimeMode);
+                                            setTimeout(syncCurrentWorkTimeMode, 0);
+                                        })();
+                                    </script>
                                 </div>
                         <?php endif; ?>
                         <label class="flex items-center text-sm cursor-pointer whitespace-nowrap text-theme-secondary">
