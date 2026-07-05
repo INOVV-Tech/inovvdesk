@@ -65,6 +65,14 @@ function app_shell_navigation(array $user): array
         ];
     }
 
+    $items[] = [
+        'key' => 'feedback',
+        'label' => 'Feedback',
+        'url' => ($user['role'] ?? '') === 'admin' ? url('admin', ['section' => 'feedback']) : url('feedback'),
+        'icon' => 'comment',
+        'primary' => false,
+    ];
+
     if (is_admin()) {
         $items[] = [
             'key' => 'settings',

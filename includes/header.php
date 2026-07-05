@@ -396,6 +396,20 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
             </div>
         <?php endif; ?>
 
+        <?php
+        $is_feedback = ($page ?? '') === 'feedback' || (($page ?? '') === 'admin' && ($_GET['section'] ?? '') === 'feedback');
+        $feedback_url = is_admin() ? url('admin', ['section' => 'feedback']) : url('feedback');
+        ?>
+        <div class="px-2.5 pb-0.5">
+            <a href="<?php echo $feedback_url; ?>"
+                class="nav-item <?php echo $is_feedback ? 'active' : ''; ?>"
+                title="<?php echo e(t('Feedback')); ?>"
+                <?php echo $is_feedback ? 'aria-current="page"' : ''; ?>>
+                <?php echo get_icon('comment', 'nav-item__icon'); ?>
+                <span><?php echo e(t('Feedback')); ?></span>
+            </a>
+        </div>
+
         <!-- Help Button -->
         <div class="px-2.5 pb-0.5">
             <button onclick="toggleHelpPanel()" id="help-panel-btn"

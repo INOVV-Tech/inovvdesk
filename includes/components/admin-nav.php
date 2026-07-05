@@ -27,6 +27,7 @@ $admin_nav_groups = [
             'settings' => ['label' => t('Settings'), 'icon' => 'cog'],
             'recurring-tasks' => ['label' => t('Recurring tasks'), 'icon' => 'tasks'],
             'activity' => ['label' => t('Activity'), 'icon' => 'clock'],
+            'feedback' => ['label' => t('Feedback'), 'icon' => 'comment'],
         ],
     ],
     [

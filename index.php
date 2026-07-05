@@ -336,6 +336,10 @@ switch ($page) {
         require_once BASE_PATH . '/pages/new-ticket.php';
         break;
 
+    case 'feedback':
+        require_once BASE_PATH . '/pages/feedback.php';
+        break;
+
     case 'admin':
         $admin_page = isset($_GET['section']) ? $_GET['section'] : 'statuses';
 
@@ -385,6 +389,9 @@ switch ($page) {
                 break;
             case 'activity':
                 require_once BASE_PATH . '/pages/admin/activity.php';
+                break;
+            case 'feedback':
+                require_once BASE_PATH . '/pages/admin/feedback.php';
                 break;
             case 'migration-export':
                 require_once BASE_PATH . '/pages/admin/migration-export.php';

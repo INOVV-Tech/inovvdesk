@@ -71,6 +71,12 @@ function admin_settings_management_links(): array
             'icon' => 'list-alt',
             'url' => url('admin', ['section' => 'activity']),
         ],
+        [
+            'label' => t('Feedback'),
+            'description' => t('User suggestions and adjustment requests.'),
+            'icon' => 'comment',
+            'url' => url('admin', ['section' => 'feedback']),
+        ],
     ];
 }
 

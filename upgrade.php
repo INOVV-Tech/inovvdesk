@@ -1279,6 +1279,37 @@ if (!$check) {
     }
 }
 
+// Create platform feedback table
+$check = db_fetch_one("SHOW TABLES LIKE 'platform_feedback'");
+if (!$check) {
+    try {
+        db_query("
+            CREATE TABLE platform_feedback (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NULL,
+                type ENUM('improvement','adjustment','bug','other') NOT NULL DEFAULT 'improvement',
+                message TEXT NOT NULL,
+                page_context VARCHAR(255) NULL,
+                source_url VARCHAR(500) NULL,
+                status ENUM('new','reviewed','closed') NOT NULL DEFAULT 'new',
+                admin_note TEXT NULL,
+                reviewed_by INT NULL,
+                reviewed_at DATETIME NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+                INDEX idx_status_created (status, created_at),
+                INDEX idx_user_created (user_id, created_at),
+                INDEX idx_type_created (type, created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $messages[] = "OK: Created table `platform_feedback`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to create table `platform_feedback`: " . $e->getMessage();
+    }
+}
+
 // Add last_notifications_seen_at to users
 $check = db_fetch_one("SHOW COLUMNS FROM `users` LIKE 'last_notifications_seen_at'");
 if (!$check) {

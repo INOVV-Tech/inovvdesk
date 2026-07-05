@@ -58,6 +58,8 @@ platform, billing, tenant, R2, or Cloudflare managed-service controls.
 | `pages/reset-password.php` | 180 | already modular | shared customer workflow | Keep reset hardening tests green. |
 | `pages/cron.php` | 177 | self-hosted migration/update page | self-hosted maintenance | Keep scheduler entrypoint thin; reuse CLI helpers. |
 | `pages/forgot-password.php` | 168 | already modular | shared customer workflow | Keep rate-limit guard isolated. |
+| `pages/feedback.php` | 148 | already modular | shared customer workflow | Keep feedback storage and notification rules in `includes/feedback-functions.php`. |
+| `pages/admin/feedback.php` | 128 | already modular | shared customer workflow | Keep admin feedback list/status logic in `includes/feedback-functions.php`. |
 | `pages/work.php` | 64 | already modular | shared customer workflow | Work queues live in `includes/modules/work/work-queues.php`. |
 | `pages/inbox.php` | 62 | already modular | shared customer workflow | Inbox behavior lives in `includes/modules/inbox/inbox-service.php`. |
 
@@ -74,6 +76,7 @@ platform, billing, tenant, R2, or Cloudflare managed-service controls.
 | Search | `includes/modules/search/global-search.php` | Global search model. |
 | Email | `includes/modules/email/email-renderer.php` | Transactional email rendering. |
 | Notifications | `includes/modules/notifications/notification-policy.php` | Notification noise reduction policy. |
+| Feedback | `includes/feedback-functions.php` | User feedback storage, status updates, and optional admin email notification. |
 | Clients | `includes/modules/clients/client-overview.php` | Client detail summary. |
 | Team | `includes/modules/team/team-users.php` | Users/team filter state, organization assignment normalization, permission payloads, user list read model, time totals, and AI-agent token read model. |
 

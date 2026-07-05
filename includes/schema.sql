@@ -451,6 +451,27 @@ CREATE TABLE IF NOT EXISTS page_views (
     INDEX idx_user_page (user_id, page)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Platform feedback from users
+CREATE TABLE IF NOT EXISTS platform_feedback (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    type ENUM('improvement','adjustment','bug','other') NOT NULL DEFAULT 'improvement',
+    message TEXT NOT NULL,
+    page_context VARCHAR(255) NULL,
+    source_url VARCHAR(500) NULL,
+    status ENUM('new','reviewed','closed') NOT NULL DEFAULT 'new',
+    admin_note TEXT NULL,
+    reviewed_by INT NULL,
+    reviewed_at DATETIME NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_status_created (status, created_at),
+    INDEX idx_user_created (user_id, created_at),
+    INDEX idx_type_created (type, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Allowed inbound senders table
 CREATE TABLE IF NOT EXISTS allowed_senders (
     id INT AUTO_INCREMENT PRIMARY KEY,
