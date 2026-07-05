@@ -306,11 +306,13 @@
         var startAt = document.getElementById('manual-start-at');
         var endAt = document.getElementById('manual-end-at');
         var timerPanel = document.getElementById('work-time-timer-panel');
+        var workTimeRoot = modeSelect ? modeSelect.closest('[data-work-time-entry]') : null;
         var buttons = document.querySelectorAll('.manual-duration-chip');
         var applying = false;
 
         function setWorkMode(mode, clearHiddenValues) {
             mode = mode === 'timer' ? 'timer' : 'manual';
+            if (workTimeRoot) workTimeRoot.dataset.mode = mode;
             if (modeSelect) modeSelect.value = mode;
             if (row) row.classList.toggle('hidden', mode !== 'manual');
             if (timerPanel) timerPanel.classList.toggle('hidden', mode !== 'timer');

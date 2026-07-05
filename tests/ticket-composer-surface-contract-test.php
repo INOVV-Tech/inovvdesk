@@ -24,6 +24,8 @@ foreach ([
     'id="comment-upload-zone"',
     'id="comment-file-input"',
     'id="manual-entry-row"',
+    'work-time-inline__label',
+    'data-mode="<?php echo e($work_time_mode); ?>"',
     'name="manual_duration_hours"',
     'id="manual-duration-hours"',
     'step="0.01"',
