@@ -11,6 +11,7 @@ $admin_nav_groups = [
             'users' => ['label' => t('Users'), 'icon' => 'users'],
             'clients' => ['label' => t('Clients'), 'icon' => 'user'],
             'organizations' => ['label' => t('Companies'), 'icon' => 'building'],
+            'company-signup-links' => ['label' => t('Signup links'), 'icon' => 'link'],
         ],
     ],
     [

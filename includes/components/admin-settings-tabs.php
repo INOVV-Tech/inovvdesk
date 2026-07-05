@@ -42,6 +42,12 @@ function admin_settings_management_links(): array
             'url' => url('admin', ['section' => 'organizations']),
         ],
         [
+            'label' => t('Signup links'),
+            'description' => t('Public client registration links for companies.'),
+            'icon' => 'link',
+            'url' => url('admin', ['section' => 'company-signup-links']),
+        ],
+        [
             'label' => t('Ticket workflow'),
             'description' => t('Statuses, priorities, and ticket types.'),
             'icon' => 'tasks',

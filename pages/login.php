@@ -405,6 +405,13 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['verify_2fa'])) {
                     </div>
                 <?php endif; ?>
 
+                <?php if (isset($_GET['registered']) && $_GET['registered'] === '1'): ?>
+                    <div
+                        class="alert alert-success mb-6 animate-fade-in text-sm rounded-lg p-3 bg-green-50 text-green-600 border border-green-200 dark:bg-green-900/30 dark:border-green-800/50 dark:text-green-400">
+                        <?php echo e(t('Account created. Sign in with your email and password.')); ?>
+                    </div>
+                <?php endif; ?>
+
                 <?php if (isset($_GET['sent']) && $_GET['sent'] === '1'): ?>
                     <div
                         class="alert alert-info mb-6 animate-fade-in text-sm rounded-lg p-3 bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-800/50 dark:text-blue-400">

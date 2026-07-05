@@ -28,6 +28,12 @@ Options -Indexes
 # Fallback for CGI/FastCGI setups
 SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
 
+# Public company registration links
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^register/company/([A-Za-z0-9_-]+)/?$ index.php?page=company-register&token=$1 [L,QSA]
+</IfModule>
+
 # ── Block direct access to sensitive files ───────────────────────────────────
 <FilesMatch "^(config\.php|config\.example\.php|docker-setup\.php|version\.json|\.maintenance)$">
   <IfModule mod_authz_core.c>

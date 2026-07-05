@@ -1310,6 +1310,38 @@ if (!$check) {
     }
 }
 
+// Create public company signup links table
+$check = db_fetch_one("SHOW TABLES LIKE 'company_signup_links'");
+if (!$check) {
+    try {
+        db_query("
+            CREATE TABLE company_signup_links (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                organization_id INT NOT NULL,
+                token_hash CHAR(64) NOT NULL,
+                label VARCHAR(255) NULL,
+                max_uses INT NULL,
+                used_count INT NOT NULL DEFAULT 0,
+                expires_at DATETIME NULL,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                created_by INT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                revoked_at DATETIME NULL,
+                UNIQUE KEY uniq_company_signup_token_hash (token_hash),
+                INDEX idx_company_signup_org (organization_id),
+                INDEX idx_company_signup_active (is_active),
+                INDEX idx_company_signup_expires (expires_at),
+                FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $messages[] = "OK: Created table `company_signup_links`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to create table `company_signup_links`: " . $e->getMessage();
+    }
+}
+
 // Add last_notifications_seen_at to users
 $check = db_fetch_one("SHOW COLUMNS FROM `users` LIKE 'last_notifications_seen_at'");
 if (!$check) {

@@ -107,6 +107,21 @@ function foxdesk_authenticated_home_page(): string
     return 'work';
 }
 
+if (!isset($_GET['page'])) {
+    $request_path = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '');
+    $script_dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+
+    if ($script_dir !== '' && $script_dir !== '.' && str_starts_with($request_path, $script_dir . '/')) {
+        $request_path = substr($request_path, strlen($script_dir));
+    }
+
+    $request_path = '/' . ltrim($request_path, '/');
+    if (preg_match('#^/register/company/([A-Za-z0-9_-]+)/?$#', $request_path, $matches)) {
+        $_GET['page'] = 'company-register';
+        $_GET['token'] = $matches[1];
+    }
+}
+
 // Get current page
 $page = isset($_GET['page']) ? $_GET['page'] : foxdesk_authenticated_home_page();
 $action = isset($_GET['action']) ? $_GET['action'] : '';
@@ -127,7 +142,7 @@ if (
 }
 
 // Pages that don't require login
-$public_pages = ['login', 'logout', 'forgot-password', 'reset-password', 'ticket-share', 'report-share', 'report-public', 'api', 'health', 'cron'];
+$public_pages = ['login', 'logout', 'forgot-password', 'reset-password', 'company-register', 'ticket-share', 'report-share', 'report-public', 'api', 'health', 'cron'];
 
 // Check authentication
 if (!in_array($page, $public_pages)) {
@@ -296,6 +311,10 @@ switch ($page) {
         require_once BASE_PATH . '/pages/reset-password.php';
         break;
 
+    case 'company-register':
+        require_once BASE_PATH . '/pages/company-register.php';
+        break;
+
     case 'dashboard':
         require_once BASE_PATH . '/pages/dashboard.php';
         break;
@@ -392,6 +411,9 @@ switch ($page) {
                 break;
             case 'feedback':
                 require_once BASE_PATH . '/pages/admin/feedback.php';
+                break;
+            case 'company-signup-links':
+                require_once BASE_PATH . '/pages/admin/company-signup-links.php';
                 break;
             case 'migration-export':
                 require_once BASE_PATH . '/pages/admin/migration-export.php';
