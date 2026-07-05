@@ -5,6 +5,19 @@
 
 $settings = get_settings();
 $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+$base_url = rtrim(get_base_url(), '/');
+$public_asset_url = static function (string $path) use ($base_url): string {
+    return $base_url . '/' . ltrim(foxdesk_asset_url($path), '/');
+};
+$public_app_url = static function (string $path) use ($base_url): string {
+    if (preg_match('#^https?://#i', $path)) {
+        return $path;
+    }
+    return $base_url . '/' . ltrim($path, '/');
+};
+$login_url = $public_app_url(url('login'));
+$app_logo = get_setting('app_logo', '');
+$app_logo_url = $app_logo !== '' ? $public_app_url(upload_url($app_logo)) : '';
 $token = trim((string) ($_POST['token'] ?? $_GET['token'] ?? ''));
 $validation = company_signup_validate_link_token($token);
 $link = $validation['link'] ?? null;
@@ -38,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $result = company_signup_register_client($token, $name, $email, $password);
             if (!empty($result['ok'])) {
-                header('Location: index.php?page=login&registered=1');
+                header('Location: ' . $public_app_url('index.php?page=login&registered=1'));
                 exit;
             }
 
@@ -58,8 +71,8 @@ $can_register = !empty($validation['ok']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo e($page_title); ?> - <?php echo e($app_name); ?></title>
-    <link href="<?php echo e(foxdesk_asset_url('tailwind.min.css')); ?>" rel="stylesheet">
-    <link href="<?php echo e(foxdesk_asset_url('theme.css')); ?>" rel="stylesheet">
+    <link href="<?php echo e($public_asset_url('tailwind.min.css')); ?>" rel="stylesheet">
+    <link href="<?php echo e($public_asset_url('theme.css')); ?>" rel="stylesheet">
     <script>
         (function () {
             const saved = localStorage.getItem('theme') || 'light';
@@ -67,37 +80,136 @@ $can_register = !empty($validation['ok']);
         })();
     </script>
     <style>
-        .company-register-bg {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, var(--corp-slate-100) 0%, var(--corp-slate-50) 52%, #eef4ff 100%);
+        .company-register-shell {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            margin: 0;
+            background: var(--surface-primary);
         }
 
-        [data-theme="dark"] .company-register-bg {
-            background: linear-gradient(135deg, var(--corp-slate-950) 0%, var(--corp-slate-900) 52%, #0b1828 100%);
+        .company-register-brand {
+            display: none;
+        }
+
+        .company-register-main {
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            position: relative;
         }
 
         .company-register-card {
+            width: 100%;
+            max-width: 440px;
             background: var(--glass-bg);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-lg);
-            backdrop-filter: blur(14px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 1rem;
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+        }
+
+        .company-register-logo {
+            width: 3.25rem;
+            height: 3.25rem;
+            border-radius: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--corp-blue-500) 0%, var(--corp-blue-600) 100%);
+            color: #fff;
+            box-shadow: 0 10px 40px -10px rgba(59, 130, 246, 0.5);
+            overflow: hidden;
+        }
+
+        .company-register-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .company-register-form-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        @media (min-width: 1024px) {
+            .company-register-brand {
+                display: flex;
+                width: 50%;
+                min-height: 100vh;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+                overflow: hidden;
+                background: linear-gradient(135deg, #3c50e0 0%, #1c2434 100%);
+                color: white;
+                border-right: 1px solid var(--border-light);
+                padding: 3rem;
+            }
+
+            .company-register-brand::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background:
+                    linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 38%),
+                    radial-gradient(circle at 20% 20%, rgba(255,255,255,0.16), transparent 28%);
+                pointer-events: none;
+            }
+
+            .company-register-brand-content {
+                position: relative;
+                z-index: 1;
+                max-width: 30rem;
+            }
+
+            .company-register-main {
+                width: 50%;
+                padding: 2rem;
+            }
         }
     </style>
 </head>
 
-<body class="min-h-screen font-sans text-theme-primary">
-    <div class="company-register-bg"></div>
-    <main class="relative z-10 min-h-screen flex items-center justify-center px-4 py-10">
-        <section class="company-register-card w-full max-w-md rounded-2xl p-8">
+<body class="company-register-shell font-sans text-theme-primary">
+    <aside class="company-register-brand" aria-hidden="true">
+        <div class="company-register-brand-content text-center">
+            <?php if ($app_logo_url !== ''): ?>
+                <img src="<?php echo e($app_logo_url); ?>" alt="" class="w-24 h-24 rounded-full object-cover mx-auto mb-8 shadow-2xl ring-4 ring-white/10">
+            <?php else: ?>
+                <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl bg-white/15 ring-4 ring-white/10">
+                    <span class="text-white text-4xl font-bold"><?php echo e(strtoupper(substr($app_name, 0, 1))); ?></span>
+                </div>
+            <?php endif; ?>
+            <h1 class="text-4xl font-bold mb-4"><?php echo e($app_name); ?></h1>
+            <p class="text-slate-200 text-lg leading-relaxed">
+                <?php echo e(t('Create your account to open and follow tickets with your company.')); ?>
+            </p>
+        </div>
+    </aside>
+
+    <main class="company-register-main">
+        <section class="company-register-card animate-fade-in">
             <div class="mb-8">
-                <div class="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style="background: var(--primary); color: white;">
-                    <?php echo get_icon('user-plus', 'w-6 h-6'); ?>
+                <div class="company-register-logo mb-5">
+                    <?php if ($app_logo_url !== ''): ?>
+                        <img src="<?php echo e($app_logo_url); ?>" alt="<?php echo e($app_name); ?>">
+                    <?php else: ?>
+                        <?php echo get_icon('user-plus', 'w-6 h-6'); ?>
+                    <?php endif; ?>
                 </div>
                 <p class="text-sm font-semibold uppercase tracking-wide text-theme-muted"><?php echo e($app_name); ?></p>
-                <h1 class="text-3xl font-bold mt-2 mb-2"><?php echo e(t('Create your account')); ?></h1>
-                <p class="text-theme-muted">
-                    <?php echo e(t('Your account will be linked to')); ?> <?php echo e($company_name); ?>.
+                <h1 class="text-3xl font-bold mt-2 mb-2 text-theme-primary"><?php echo e(t('Create your account')); ?></h1>
+                <p class="text-theme-muted leading-relaxed">
+                    <?php echo e(t('Your account will be linked to')); ?> <strong class="text-theme-primary"><?php echo e($company_name); ?></strong>.
                 </p>
             </div>
 
@@ -105,7 +217,7 @@ $can_register = !empty($validation['ok']);
                 <div class="alert alert-error mb-6 text-sm rounded-lg p-3 bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400">
                     <?php echo e($validation['message'] ?? t('This signup link is invalid.')); ?>
                 </div>
-                <a href="<?php echo url('login'); ?>" class="btn btn-secondary w-full justify-center">
+                <a href="<?php echo e($login_url); ?>" class="btn btn-secondary w-full justify-center">
                     <?php echo e(t('Go to sign in')); ?>
                 </a>
             <?php else: ?>
@@ -113,67 +225,36 @@ $can_register = !empty($validation['ok']);
                     <div class="alert alert-error mb-6 text-sm rounded-lg p-3 bg-red-50 text-red-600 border border-red-200 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400">
                         <?php echo e($form_error); ?>
                         <?php if ($email_exists_error): ?>
-                            <a href="<?php echo url('login'); ?>" class="font-semibold underline ml-1"><?php echo e(t('Sign in')); ?></a>
+                            <a href="<?php echo e($login_url); ?>" class="font-semibold underline ml-1"><?php echo e(t('Sign in')); ?></a>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
-                <form method="post" class="space-y-5">
+                <form method="post" class="company-register-form-grid">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="token" value="<?php echo e($token); ?>">
 
                     <div>
                         <label class="block text-sm font-medium mb-1.5"><?php echo e(t('Name')); ?></label>
-                        <input
-                            type="text"
-                            name="name"
-                            value="<?php echo e($field_values['name']); ?>"
-                            class="form-input w-full rounded-lg px-4 py-2.5"
-                            autocomplete="name"
-                            required
-                            autofocus
-                        >
+                        <input type="text" name="name" value="<?php echo e($field_values['name']); ?>" class="form-input w-full rounded-lg px-4 py-2.5" autocomplete="name" required autofocus>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium mb-1.5"><?php echo e(t('Email')); ?></label>
-                        <input
-                            type="email"
-                            name="email"
-                            value="<?php echo e($field_values['email']); ?>"
-                            class="form-input w-full rounded-lg px-4 py-2.5"
-                            autocomplete="email"
-                            inputmode="email"
-                            autocapitalize="none"
-                            required
-                        >
+                        <input type="email" name="email" value="<?php echo e($field_values['email']); ?>" class="form-input w-full rounded-lg px-4 py-2.5" autocomplete="email" inputmode="email" autocapitalize="none" required>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium mb-1.5"><?php echo e(t('Password')); ?></label>
-                        <input
-                            type="password"
-                            name="password"
-                            class="form-input w-full rounded-lg px-4 py-2.5"
-                            autocomplete="new-password"
-                            minlength="8"
-                            required
-                        >
+                        <input type="password" name="password" class="form-input w-full rounded-lg px-4 py-2.5" autocomplete="new-password" minlength="8" required>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium mb-1.5"><?php echo e(t('Confirm password')); ?></label>
-                        <input
-                            type="password"
-                            name="confirm_password"
-                            class="form-input w-full rounded-lg px-4 py-2.5"
-                            autocomplete="new-password"
-                            minlength="8"
-                            required
-                        >
+                        <input type="password" name="confirm_password" class="form-input w-full rounded-lg px-4 py-2.5" autocomplete="new-password" minlength="8" required>
                     </div>
 
-                    <button type="submit" class="btn btn-primary w-full justify-center py-2.5 text-base">
+                    <button type="submit" class="btn btn-primary w-full justify-center py-2.5 text-base mt-2">
                         <?php echo get_icon('user-plus', 'w-4 h-4'); ?>
                         <?php echo e(t('Create account')); ?>
                     </button>
@@ -181,7 +262,7 @@ $can_register = !empty($validation['ok']);
 
                 <p class="mt-6 text-center text-sm text-theme-muted">
                     <?php echo e(t('Already have an account?')); ?>
-                    <a href="<?php echo url('login'); ?>" class="font-semibold" style="color: var(--primary);">
+                    <a href="<?php echo e($login_url); ?>" class="font-semibold" style="color: var(--primary);">
                         <?php echo e(t('Sign in')); ?>
                     </a>
                 </p>
