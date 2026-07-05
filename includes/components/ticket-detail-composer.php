@@ -134,7 +134,7 @@
                                     <span class="work-time-inline__label"><?php echo e(t('Hours worked')); ?></span>
                                     <div id="manual-entry-row" class="work-time-inline__manual <?php echo $work_time_mode === 'manual' ? '' : 'hidden'; ?>" data-work-time-panel="manual">
                                         <input type="hidden" name="manual_duration_minutes" id="manual-duration-minutes">
-                                        <input type="number" name="manual_duration_hours" id="manual-duration-hours" min="0.02" max="24" step="0.01" placeholder="0.83" class="form-input text-sm h-9" aria-label="<?php echo e(t('Hours worked')); ?>" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
+                                        <input type="number" name="manual_duration_hours" id="manual-duration-hours" min="0.02" max="24" step="0.01" placeholder="1.00" class="form-input text-sm h-9" aria-label="<?php echo e(t('Hours worked')); ?>" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
                                     </div>
                                     <div id="work-time-timer-panel" class="<?php echo $work_time_mode === 'timer' ? '' : 'hidden'; ?>" data-work-time-panel="timer">
                                         <div id="timer-controls" data-ticket-id="<?php echo $ticket_id; ?>"
