@@ -1239,16 +1239,16 @@ window.FoxDeskTicketDetailConfig = <?php echo json_encode($ticket_detail_js_conf
 
 <!-- Tag inline editing -->
 <?php if ($tags_supported && can_edit_ticket($ticket, $user)): ?>
-<script src="assets/js/chip-select.js?v=<?php echo APP_VERSION; ?>"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/chip-select.js')); ?>"></script>
 <?php endif; ?>
 
 <!-- Quill Editor JS (1.3.7 stable) -->
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-<script src="assets/js/quill-image-upload.js?v=<?php echo APP_VERSION; ?>"></script>
-<script src="assets/js/attachment-paste-drop.js?v=<?php echo APP_VERSION; ?>"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/quill-image-upload.js')); ?>"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/attachment-paste-drop.js')); ?>"></script>
 
 <!-- Autosave for comment editor -->
-<script src="assets/js/autosave.js?v=<?php echo APP_VERSION; ?>"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/autosave.js')); ?>"></script>
 
 <?php if (function_exists('can_view_timeline') && can_view_timeline($user)): ?>
 <!-- Timeline Modal -->
@@ -1287,6 +1287,6 @@ window.FoxDeskTicketDetailConfig = <?php echo json_encode($ticket_detail_js_conf
 
 <?php endif; ?>
 
-<script src="assets/js/ticket-detail.js?v=<?php echo APP_VERSION; ?>"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/ticket-detail.js')); ?>"></script>
 
 <?php require_once BASE_PATH . '/includes/footer.php';

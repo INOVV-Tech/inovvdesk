@@ -1477,7 +1477,7 @@ window.FoxDeskTicketListConfig = {
     }
 };
 </script>
-<script src="assets/js/ticket-list.js?v=<?php echo defined('APP_VERSION') ? APP_VERSION : '1'; ?>" defer></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/ticket-list.js')); ?>" defer></script>
 
 
 <template id="tl-due-popover-tpl">

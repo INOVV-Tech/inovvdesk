@@ -861,7 +861,7 @@ include BASE_PATH . '/includes/components/page-header.php';
     }
 </style>
 
-<script src="assets/js/attachment-paste-drop.js?v=<?php echo APP_VERSION; ?>"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/attachment-paste-drop.js')); ?>"></script>
 <script>
     const ICONS = {
         'times': '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
@@ -1391,7 +1391,7 @@ include BASE_PATH . '/includes/components/page-header.php';
 <!-- Quill 1.3.7 (stable version) -->
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-<script src="assets/js/quill-image-upload.js?v=<?php echo APP_VERSION; ?>"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/quill-image-upload.js')); ?>"></script>
 <script>
     // Initialize Quill Editor
     (function() {

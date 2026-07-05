@@ -119,12 +119,12 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
     <link rel="preload" id="favicon-timer" as="image" type="image/svg+xml" href="data:image/svg+xml,<?php echo rawurlencode('<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'><rect width=\'32\' height=\'32\' rx=\'6\' fill=\'#22c55e\'/><circle cx=\'16\' cy=\'16\' r=\'10\' fill=\'none\' stroke=\'white\' stroke-width=\'2\'/><path d=\'M16 10 L16 16 L20 16\' fill=\'none\' stroke=\'white\' stroke-width=\'2\' stroke-linecap=\'round\'/></svg>'); ?>">
     <?php endif; ?>
 
-    <link href="tailwind.min.css?v=<?php echo APP_VERSION; ?>" rel="stylesheet">
+    <link href="<?php echo e(foxdesk_asset_url('tailwind.min.css')); ?>" rel="stylesheet">
 
-    <link href="theme.css?v=<?php echo APP_VERSION; ?>" rel="stylesheet">
+    <link href="<?php echo e(foxdesk_asset_url('theme.css')); ?>" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
-    <script defer src="assets/js/app-header.js?v=<?php echo APP_VERSION; ?>"></script>
-    <script defer src="assets/js/shortcuts.js?v=<?php echo APP_VERSION; ?>"></script>
+    <script defer src="<?php echo e(foxdesk_asset_url('assets/js/app-header.js')); ?>"></script>
+    <script defer src="<?php echo e(foxdesk_asset_url('assets/js/shortcuts.js')); ?>"></script>
 
     <!-- Flatpickr — lazy-loaded only when date inputs exist on page -->
     <script>

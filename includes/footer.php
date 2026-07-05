@@ -175,7 +175,7 @@ function closeImagePreview() {
 }
 function _lbEsc(e) { if (e.key === 'Escape') closeImagePreview(); }
 </script>
-<script defer src="assets/js/app-footer.js?v=<?php echo defined('APP_VERSION') ? APP_VERSION : '1'; ?>"></script>
+<script defer src="<?php echo e(function_exists('foxdesk_asset_url') ? foxdesk_asset_url('assets/js/app-footer.js') : 'assets/js/app-footer.js?v=' . (defined('APP_VERSION') ? APP_VERSION : '1')); ?>"></script>
 </body>
 
 </html>

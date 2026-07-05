@@ -455,6 +455,28 @@ function url($page, $params = [])
 }
 
 /**
+ * Generate local asset URL with a cache-busting version.
+ */
+function foxdesk_asset_url($path)
+{
+    $path = ltrim((string) $path, '/');
+    $version = defined('APP_VERSION') ? APP_VERSION : '1';
+    $full_path = defined('BASE_PATH')
+        ? BASE_PATH . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path)
+        : null;
+
+    if ($full_path && is_file($full_path)) {
+        $mtime = @filemtime($full_path);
+        if ($mtime) {
+            $version .= '.' . $mtime;
+        }
+    }
+
+    $separator = str_contains($path, '?') ? '&' : '?';
+    return $path . $separator . 'v=' . rawurlencode($version);
+}
+
+/**
  * Generate secure ticket URL using hash
  */
 function ticket_url($ticket, $params = [])

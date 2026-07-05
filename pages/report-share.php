@@ -20,7 +20,7 @@ function render_report_share_message($app_name, $title, $message)
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title><?php echo e($title); ?> - <?php echo e($app_name); ?></title>
         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-        <link href="theme.css" rel="stylesheet">
+        <link href="<?php echo e(foxdesk_asset_url('theme.css')); ?>" rel="stylesheet">
     </head>
 
     <body class="bg-gray-100 min-h-screen">
@@ -103,7 +103,7 @@ $expires_label = !empty($share['expires_at']) ? format_date($share['expires_at']
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo e(t('Time report')); ?> - <?php echo e($app_name); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="theme.css" rel="stylesheet">
+    <link href="<?php echo e(foxdesk_asset_url('theme.css')); ?>" rel="stylesheet">
 </head>
 
 <body class="bg-gray-100 min-h-screen">
