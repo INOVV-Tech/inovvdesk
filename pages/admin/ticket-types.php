@@ -109,8 +109,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int)$_POST['id'];
         
         // Check if type is used
-        $tickets_count = db_fetch_one("SELECT COUNT(*) as c FROM tickets WHERE type = (SELECT slug FROM ticket_types WHERE id = ?)", [$id]);
-        if ($tickets_count && $tickets_count['c'] > 0) {
+        $type = db_fetch_one("SELECT slug FROM ticket_types WHERE id = ?", [$id]);
+        $usage_count = 0;
+        if ($type) {
+            $usage_params = [$type['slug']];
+            $usage_sql = "SELECT COUNT(*) as c FROM tickets WHERE type = ?";
+            if (function_exists('column_exists') && column_exists('tickets', 'ticket_type_id')) {
+                $usage_sql = "SELECT COUNT(*) as c FROM tickets WHERE (type = ? OR ticket_type_id = ?)";
+                $usage_params[] = $id;
+            }
+            $usage_count = (int) (db_fetch_one($usage_sql, $usage_params)['c'] ?? 0);
+        }
+
+        if ($usage_count > 0) {
             flash(t('Cannot delete a type that is used by tickets.'), 'error');
         } else {
             db_query("DELETE FROM ticket_types WHERE id = ?", [$id]);

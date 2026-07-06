@@ -73,6 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tab === 'workflow') {
         if ($type) {
             $usage_params = [$type['slug']];
             $usage_sql = "SELECT COUNT(*) as c FROM tickets WHERE type = ?";
+            if (function_exists('column_exists') && column_exists('tickets', 'ticket_type_id')) {
+                $usage_sql = "SELECT COUNT(*) as c FROM tickets WHERE (type = ? OR ticket_type_id = ?)";
+                $usage_params[] = $id;
+            }
             $usage_sql .= admin_crud_tenant_filter('tickets', $usage_params);
             $usage_count = (int) (db_fetch_one($usage_sql, $usage_params)['c'] ?? 0);
         }
@@ -87,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tab === 'workflow') {
     }
 
     // Handle Set Default
-    if (isset($_POST['set_default'])) {
+    if (isset($_POST['set_default_type'])) {
         $id = (int)$_POST['id'];
         admin_crud_clear_default('ticket_types');
         admin_crud_update_record('ticket_types', $id, ['is_default' => 1]);
@@ -272,7 +276,7 @@ $type_icons = [
                                     <button type="submit" name="update_type" class="flex-1 btn btn-primary btn-sm text-xs">
                                         <?php echo e(t('Save')); ?>
                                     </button>
-                                    <button type="submit" name="set_default" class="flex-1 btn btn-sm text-xs" style="background: var(--border-light); color: var(--text-secondary);">
+                                    <button type="submit" name="set_default_type" class="flex-1 btn btn-sm text-xs" style="background: var(--border-light); color: var(--text-secondary);">
                                         <?php echo e(t('Set Default')); ?>
                                     </button>
                                 </div>

@@ -13,9 +13,11 @@ function settings_workflow_handlers(): array
         'create_priority' => BASE_PATH . '/pages/admin/priorities-content.php',
         'update_priority' => BASE_PATH . '/pages/admin/priorities-content.php',
         'delete_priority' => BASE_PATH . '/pages/admin/priorities-content.php',
+        'set_default_priority' => BASE_PATH . '/pages/admin/priorities-content.php',
         'create_type' => BASE_PATH . '/pages/admin/ticket-types-content.php',
         'update_type' => BASE_PATH . '/pages/admin/ticket-types-content.php',
         'delete_type' => BASE_PATH . '/pages/admin/ticket-types-content.php',
+        'set_default_type' => BASE_PATH . '/pages/admin/ticket-types-content.php',
         'toggle_type' => BASE_PATH . '/pages/admin/ticket-types-content.php',
     ];
 }

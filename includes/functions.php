@@ -6,6 +6,7 @@
 // Load specialized function files
 require_once BASE_PATH . '/includes/security-helpers.php';
 require_once BASE_PATH . '/includes/settings-functions.php';
+require_once BASE_PATH . '/includes/admin-crud-helper.php';
 require_once BASE_PATH . '/includes/user-functions.php';
 require_once BASE_PATH . '/includes/ticket-functions.php';
 require_once BASE_PATH . '/includes/modules/bootstrap.php';

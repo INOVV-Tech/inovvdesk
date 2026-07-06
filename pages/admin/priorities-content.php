@@ -67,6 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tab === 'workflow') {
         }
         redirect('admin', ['section' => 'settings', 'tab' => 'workflow']);
     }
+
+    // Handle Set Default
+    if (isset($_POST['set_default_priority'])) {
+        $id = (int)$_POST['id'];
+        admin_crud_clear_default('priorities');
+        admin_crud_update_record('priorities', $id, ['is_default' => 1]);
+        flash(t('Default priority set.'), 'success');
+        redirect('admin', ['section' => 'settings', 'tab' => 'workflow']);
+    }
 }
 
 $priorities = get_priorities();
@@ -233,7 +242,7 @@ $priority_icons = [
                                     <button type="submit" name="update_priority" class="flex-1 btn btn-primary btn-sm text-xs">
                                         <?php echo e(t('Save')); ?>
                                     </button>
-                                    <button type="submit" name="set_default" class="flex-1 btn btn-sm text-xs" style="background: var(--border-light); color: var(--text-secondary);">
+                                    <button type="submit" name="set_default_priority" class="flex-1 btn btn-sm text-xs" style="background: var(--border-light); color: var(--text-secondary);">
                                         <?php echo e(t('Set Default')); ?>
                                     </button>
                                 </div>
