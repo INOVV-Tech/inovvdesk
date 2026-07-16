@@ -1286,7 +1286,9 @@ function email_ingest_send_requester_notifications($ticket_id, $ticket_created, 
     $ticket_param = !empty($ticket['hash']) ? 't=' . urlencode($ticket['hash']) : 'id=' . (int) $ticket['id'];
     $ticket_url = rtrim(get_app_url(), '/') . '/index.php?page=ticket&' . $ticket_param;
     $recipient_name = trim((string) (($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? '')));
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = function_exists('mailer_brand_name')
+        ? mailer_brand_name($settings)
+        : (trim((string) ($settings['smtp_from_name'] ?? '')) ?: 'Inovv Helpdesk');
 
     $template = function_exists('get_email_template') ? get_email_template('ticket_confirmation', $lang) : null;
     if (!$template) {
@@ -1312,11 +1314,11 @@ function email_ingest_send_requester_notifications($ticket_id, $ticket_created, 
 
     if (function_exists('send_ticket_notification_email')) {
         @send_ticket_notification_email($user['email'], $subject, $body, [
-            'eyebrow' => 'Ticket received',
+            'eyebrow' => 'Ticket recebido',
             'title' => (string) ($ticket['title'] ?? $subject),
-            'cta_label' => 'View ticket',
+            'cta_label' => 'Ver ticket',
             'cta_url' => $ticket_url,
-            'reason' => 'You are receiving this confirmation because your email created a new ticket.',
+            'reason' => 'Você recebeu esta confirmação porque seu e-mail criou um novo ticket.',
         ]);
     } elseif (function_exists('send_email')) {
         @send_email($user['email'], $subject, $body);

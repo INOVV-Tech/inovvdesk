@@ -252,22 +252,22 @@ function send_platform_feedback_notification(array $feedback, array $author): bo
     }
 
     $settings = function_exists('get_settings') ? get_settings() : [];
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = function_exists('mailer_brand_name') ? mailer_brand_name($settings) : 'Inovv Helpdesk';
     $admin_url = get_app_url() . '/index.php?page=admin&section=feedback';
     $author_name = trim((string) (($author['first_name'] ?? '') . ' ' . ($author['last_name'] ?? '')));
     if ($author_name === '') {
         $author_name = (string) ($author['email'] ?? t('Unknown user'));
     }
 
-    $subject = '[' . $app_name . '] ' . t('New platform feedback');
-    $body = t('A user sent new platform feedback.') . "\n\n";
-    $body .= t('From') . ': ' . $author_name . ' <' . (string) ($author['email'] ?? '') . ">\n";
-    $body .= t('Type') . ': ' . platform_feedback_type_label($feedback['type'] ?? '') . "\n";
+    $subject = '[' . $app_name . '] Novo feedback sobre a plataforma';
+    $body = "Um usuário enviou um novo feedback sobre a plataforma.\n\n";
+    $body .= 'Enviado por: ' . $author_name . ' <' . (string) ($author['email'] ?? '') . ">\n";
+    $body .= 'Tipo: ' . platform_feedback_type_label($feedback['type'] ?? '') . "\n";
     if (!empty($feedback['page_context'])) {
-        $body .= t('Area') . ': ' . (string) $feedback['page_context'] . "\n";
+        $body .= 'Área: ' . (string) $feedback['page_context'] . "\n";
     }
-    $body .= "\n" . t('Feedback') . ":\n" . (string) ($feedback['message'] ?? '') . "\n\n";
-    $body .= t('View feedback') . ': ' . $admin_url . "\n";
+    $body .= "\nFeedback:\n" . (string) ($feedback['message'] ?? '') . "\n\n";
+    $body .= 'Ver feedback: ' . $admin_url . "\n";
 
     $ok = true;
     foreach ($admins as $admin) {

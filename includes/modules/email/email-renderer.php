@@ -11,7 +11,7 @@ function foxdesk_email_escape($value): string
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
-function foxdesk_email_normalize_subject($subject, string $fallback = 'FoxDesk update'): string
+function foxdesk_email_normalize_subject($subject, string $fallback = 'Atualização da Inovv Helpdesk'): string
 {
     $subject = preg_replace('/[\r\n\t]+/', ' ', (string) $subject);
     $subject = preg_replace('/\s{2,}/', ' ', (string) $subject);
@@ -31,21 +31,21 @@ function foxdesk_ticket_email_subject(string $event, array $ticket = [], array $
 {
     $event = function_exists('ticket_event_normalize') ? ticket_event_normalize($event) : strtolower(trim($event));
     $labels = [
-        'ticket.created' => 'New ticket',
-        'ticket.created.confirmation' => 'Ticket received',
-        'ticket.customer_replied' => 'Customer replied',
-        'ticket.agent_replied' => 'Reply added',
-        'ticket.assigned' => 'Assigned to you',
-        'ticket.waiting_for_customer' => 'Waiting for customer',
-        'ticket.waiting_for_agent' => 'Waiting for team',
-        'ticket.completed' => 'Completed',
-        'ticket.status_changed' => 'Status updated',
-        'ticket.due_soon' => 'Due soon',
-        'ticket.overdue' => 'Overdue',
-        'ticket.mentioned' => 'Mentioned',
+        'ticket.created' => 'Novo ticket',
+        'ticket.created.confirmation' => 'Ticket recebido',
+        'ticket.customer_replied' => 'Resposta do cliente',
+        'ticket.agent_replied' => 'Nova resposta',
+        'ticket.assigned' => 'Ticket atribuído a você',
+        'ticket.waiting_for_customer' => 'Aguardando o cliente',
+        'ticket.waiting_for_agent' => 'Aguardando a equipe',
+        'ticket.completed' => 'Concluído',
+        'ticket.status_changed' => 'Status atualizado',
+        'ticket.due_soon' => 'Prazo próximo',
+        'ticket.overdue' => 'Atrasado',
+        'ticket.mentioned' => 'Você foi mencionado',
     ];
 
-    $label = $labels[$event] ?? 'Ticket update';
+    $label = $labels[$event] ?? 'Atualização do ticket';
     $code = trim((string) ($context['ticket_code'] ?? $ticket['ticket_code'] ?? ''));
     $title = trim((string) ($ticket['title'] ?? $context['ticket_title'] ?? ''));
 
@@ -110,15 +110,15 @@ function foxdesk_render_ticket_email_html(array $payload): string
 {
     $app_name = foxdesk_email_escape($payload['app_name'] ?? 'Inovv Helpdesk');
     $eyebrow = foxdesk_email_escape($payload['eyebrow'] ?? '');
-    $title = foxdesk_email_escape(foxdesk_email_normalize_subject($payload['title'] ?? '', 'Ticket update'));
+    $title = foxdesk_email_escape(foxdesk_email_normalize_subject($payload['title'] ?? '', 'Atualização do ticket'));
     $preheader = foxdesk_email_escape($payload['preheader'] ?? $payload['eyebrow'] ?? 'Abra o Inovv Helpdesk para rever a atualização.');
     $body = foxdesk_render_email_body_html($payload['body'] ?? '');
-    $cta_label = foxdesk_email_escape($payload['cta_label'] ?? 'Abra o ticket');
+    $cta_label = foxdesk_email_escape($payload['cta_label'] ?? 'Abrir ticket');
     $cta_url = foxdesk_email_escape($payload['cta_url'] ?? '');
-    $reason = foxdesk_email_escape($payload['reason'] ?? 'Você está recebendo isso porque está conectado a este ticket.');
+    $reason = foxdesk_email_escape($payload['reason'] ?? 'Você recebeu este e-mail porque está relacionado a este ticket.');
 
     $cta = $cta_url !== ''
-        ? '<p style="margin:24px 0 0"><a href="' . $cta_url . '" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius: var(--fd-radius-control);padding:11px 16px;font-weight:700">' . $cta_label . '</a></p>'
+        ? '<p style="margin:24px 0 0"><a href="' . $cta_url . '" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;border-radius:8px;padding:11px 16px;font-weight:700">' . $cta_label . '</a></p>'
         : '';
     $reason_html = $reason !== ''
         ? '<p style="margin:22px 0 0;color:#64748b;font-size:12px;line-height:18px">' . $reason . '</p>'
@@ -134,7 +134,7 @@ function foxdesk_render_ticket_email_html(array $payload): string
         . '<div>' . $body . '</div>'
         . $cta
         . $reason_html
-        . '</div><p style="margin:16px 0 0;color:#94a3b8;font-size:12px;line-height:18px">Inovv Helpdesk mantém os e-mails de ticket curtos. Responda no app quando precisar da história completa.</p></div></body></html>';
+        . '</div><p style="margin:16px 0 0;color:#94a3b8;font-size:12px;line-height:18px">A Inovv Helpdesk mantém as notificações objetivas. Acesse o sistema para consultar o histórico completo.</p></div></body></html>';
 }
 
 function foxdesk_render_ticket_email_text(array $payload): string
@@ -148,8 +148,8 @@ function foxdesk_render_ticket_email_text(array $payload): string
     }
     $cta_url = trim((string) ($payload['cta_url'] ?? ''));
     if ($cta_url !== '') {
-        $cta_label = trim((string) ($payload['cta_label'] ?? 'Abra o ticket'));
-        $parts[] = ($cta_label !== '' ? $cta_label : 'Abra o ticket') . ': ' . $cta_url;
+        $cta_label = trim((string) ($payload['cta_label'] ?? 'Abrir ticket'));
+        $parts[] = ($cta_label !== '' ? $cta_label : 'Abrir ticket') . ': ' . $cta_url;
     }
     $reason = trim((string) ($payload['reason'] ?? ''));
     if ($reason !== '') {

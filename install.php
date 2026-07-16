@@ -250,6 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ['smtp_from_email', $admin_email],
                     ['smtp_from_name', $app_name],
                     ['smtp_encryption', 'tls'],
+                    ['email_language', 'pt'],
                     ['email_notifications_enabled', '0'],
                     ['notify_on_status_change', '1'],
                     ['notify_on_new_comment', '1'],

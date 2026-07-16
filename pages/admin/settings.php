@@ -114,8 +114,8 @@ if ($tab === 'email') {
 }
 
 // Get template language
-$template_lang = strtolower(trim((string) ($_GET['lang'] ?? 'en')));
-if (!in_array($template_lang, ['en', 'cs', 'de', 'it', 'es'], true)) {
+$template_lang = strtolower(trim((string) ($_GET['lang'] ?? 'pt')));
+if (!in_array($template_lang, ['pt', 'en', 'cs', 'de', 'it', 'es'], true)) {
     $template_lang = 'en';
 }
 
@@ -448,15 +448,24 @@ include BASE_PATH . '/includes/components/page-header.php';
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium mb-1 text-theme-secondary"><?php echo e(t('Encryption')); ?></label>
-                            <select name="smtp_encryption" class="form-select">
-                                <option value="tls" <?php echo ($settings['smtp_encryption'] ?? 'tls') === 'tls' ? 'selected' : ''; ?>><?php echo e(t('TLS (port 587)')); ?></option>
-                                <option value="ssl" <?php echo ($settings['smtp_encryption'] ?? '') === 'ssl' ? 'selected' : ''; ?>><?php echo e(t('SSL (port 465)')); ?></option>
-                                <option value="" <?php echo empty($settings['smtp_encryption']) ? 'selected' : ''; ?>>
-                                    <?php echo e(t('None (port 25)')); ?>
-                                </option>
-                            </select>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1 text-theme-secondary"><?php echo e(t('Encryption')); ?></label>
+                                <select name="smtp_encryption" class="form-select">
+                                    <option value="tls" <?php echo ($settings['smtp_encryption'] ?? 'tls') === 'tls' ? 'selected' : ''; ?>><?php echo e(t('TLS (port 587)')); ?></option>
+                                    <option value="ssl" <?php echo ($settings['smtp_encryption'] ?? '') === 'ssl' ? 'selected' : ''; ?>><?php echo e(t('SSL (port 465)')); ?></option>
+                                    <option value="" <?php echo empty($settings['smtp_encryption']) ? 'selected' : ''; ?>>
+                                        <?php echo e(t('None (port 25)')); ?>
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1 text-theme-secondary">Idioma dos e-mails</label>
+                                <select name="email_language" class="form-select">
+                                    <option value="pt" <?php echo ($settings['email_language'] ?? 'pt') === 'pt' ? 'selected' : ''; ?>>Português (Brasil)</option>
+                                    <option value="recipient" <?php echo ($settings['email_language'] ?? 'pt') === 'recipient' ? 'selected' : ''; ?>>Idioma do destinatário</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -888,6 +897,8 @@ include BASE_PATH . '/includes/components/page-header.php';
 
                 <label class="text-sm text-theme-secondary"><?php echo e(t('Language:')); ?></label>
                 <select name="lang" onchange="this.form.submit()" class="form-select form-select-sm w-auto">
+                    <option value="pt" <?php echo $template_lang === 'pt' ? 'selected' : ''; ?>>Português (Brasil)
+                    </option>
                     <option value="en" <?php echo $template_lang === 'en' ? 'selected' : ''; ?>><?php echo e(t('English')); ?>
                     </option>
                     <option value="cs" <?php echo $template_lang === 'cs' ? 'selected' : ''; ?>><?php echo e(t('Czech')); ?>

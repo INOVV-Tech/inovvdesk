@@ -63,6 +63,23 @@ function mailer_load_email_renderer(): void
 }
 
 /**
+ * Resolve the public brand shown in outgoing messages.
+ * The SMTP sender name is the most specific e-mail branding setting.
+ */
+function mailer_brand_name(?array $settings = null): string
+{
+    $settings = $settings ?? (function_exists('get_settings') ? get_settings() : []);
+    $brand = trim((string) ($settings['smtp_from_name'] ?? ''));
+    if ($brand === '') {
+        $brand = trim((string) ($settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : '')));
+    }
+
+    return $brand === '' || strcasecmp($brand, 'FoxDesk') === 0
+        ? 'Inovv Helpdesk'
+        : $brand;
+}
+
+/**
  * Send a polished ticket-related email while preserving legacy text templates.
  */
 function send_ticket_notification_email($to, $subject, $body, array $payload = [], $force_delivery = false)
@@ -76,16 +93,16 @@ function send_ticket_notification_email($to, $subject, $body, array $payload = [
 
     if (function_exists('foxdesk_render_ticket_email_html')) {
         $settings = function_exists('get_settings') ? get_settings() : [];
-        $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+        $app_name = mailer_brand_name($settings);
         $html = foxdesk_render_ticket_email_html(array_merge([
             'app_name' => $app_name,
-            'eyebrow' => 'Ticket update',
+            'eyebrow' => 'Atualização do ticket',
             'title' => $subject,
             'body' => $body,
-            'cta_label' => 'Open ticket',
+            'cta_label' => 'Abrir ticket',
             'cta_url' => '',
-            'preheader' => 'Open FoxDesk to review this ticket update.',
-            'reason' => 'You are receiving this because you are connected to this ticket.',
+            'preheader' => 'Acesse a Inovv Helpdesk para consultar esta atualização.',
+            'reason' => 'Você recebeu este e-mail porque está relacionado a este ticket.',
         ], $payload));
 
         return send_email($to, $subject, $html, true, $force_delivery);
@@ -122,7 +139,7 @@ function send_email($to, $subject, $body, $is_html = false, $force_delivery = fa
     }
 
     $from_email = $settings['smtp_from_email'] ?? '';
-    $from_name = $settings['smtp_from_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $from_name = mailer_brand_name($settings);
 
     // If no from email, use admin email
     if (empty($from_email)) {
@@ -352,7 +369,7 @@ function send_password_reset_email($to, $name, $reset_link)
     }
 
     $settings = get_settings();
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = mailer_brand_name($settings);
 
     // Replace placeholders
     $body = str_replace('{reset_link}', $reset_link, $body);
@@ -392,7 +409,7 @@ function send_status_change_notification($ticket, $old_status, $new_status, $com
 
     $lang = $user['language'] ?? 'en';
     $template = get_email_template('status_change', $lang);
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = mailer_brand_name($settings);
     $ticket_url = get_app_url() . '/index.php?page=ticket&id=' . $ticket['id'];
     $recipient_name = $user['first_name'] . ' ' . $user['last_name'];
     $comment_text = email_comment_to_plain_text($comment_text);
@@ -452,11 +469,11 @@ function send_status_change_notification($ticket, $old_status, $new_status, $com
     }
 
     return send_ticket_notification_email($user['email'], $subject, $body, [
-        'eyebrow' => 'Status changed',
+        'eyebrow' => 'Status atualizado',
         'title' => (string) ($ticket['title'] ?? $subject),
-        'cta_label' => 'View ticket',
+        'cta_label' => 'Ver ticket',
         'cta_url' => $ticket_url,
-        'reason' => 'This email is sent only for customer-facing status changes or updates with a comment/time entry.',
+        'reason' => 'Este e-mail foi enviado porque houve uma atualização visível para o cliente.',
     ]);
 }
 
@@ -472,7 +489,7 @@ function send_new_comment_notification($ticket, $comment, $commenter, $comment_i
     }
 
     $template_key = 'new_comment';
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = mailer_brand_name($settings);
     $ticket_code = get_ticket_code($ticket['id']);
 
     $ticket_url = get_app_url() . '/index.php?page=ticket&id=' . $ticket['id'];
@@ -605,11 +622,11 @@ function send_new_comment_notification($ticket, $comment, $commenter, $comment_i
         $body = str_replace(array_keys($replacements), array_values($replacements), $body);
 
         if (send_ticket_notification_email($recipient['email'], $subject, $body, [
-            'eyebrow' => 'New comment',
+            'eyebrow' => 'Novo comentário',
             'title' => (string) ($ticket['title'] ?? $subject),
-            'cta_label' => 'View comment',
+            'cta_label' => 'Ver comentário',
             'cta_url' => $comment_url,
-            'reason' => 'You are receiving this because you created, are assigned to, commented on, or were copied on this ticket.',
+            'reason' => 'Você recebeu este e-mail porque criou, recebeu, comentou ou foi incluído neste ticket.',
         ])) {
             $any_sent = true;
         } else {
@@ -638,7 +655,7 @@ function send_new_ticket_notification($ticket)
     // Admins might have different languages. We need to send individually or group by language.
     // For simplicity, we'll iterate admins.
 
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = mailer_brand_name($settings);
     $ticket_url = get_app_url() . '/index.php?page=ticket&id=' . $ticket['id'];
 
     // Get ticket type label
@@ -708,11 +725,11 @@ function send_new_ticket_notification($ticket)
         }
 
         if (!send_ticket_notification_email($admin['email'], $subject, $body, [
-            'eyebrow' => 'New ticket',
+            'eyebrow' => 'Novo ticket',
             'title' => (string) ($ticket['title'] ?? $subject),
-            'cta_label' => 'Open ticket',
+            'cta_label' => 'Abrir ticket',
             'cta_url' => $ticket_url,
-            'reason' => 'You are receiving this because you are a staff member for this FoxDesk.',
+            'reason' => 'Você recebeu este e-mail porque faz parte da equipe da Inovv Helpdesk.',
         ])) {
             $result = false;
         }
@@ -789,9 +806,26 @@ function ensure_email_templates_language_schema()
  */
 function normalize_email_template_language($lang)
 {
-    $allowed = ['en', 'cs', 'de', 'it', 'es'];
+    $allowed = ['pt', 'en', 'cs', 'de', 'it', 'es'];
     $lang = strtolower(trim((string) $lang));
     return in_array($lang, $allowed, true) ? $lang : 'en';
+}
+
+/**
+ * Resolve the language used for outgoing e-mails. "recipient" preserves the
+ * original per-user behavior; this Inovv distribution defaults to Portuguese.
+ */
+function mailer_notification_language($recipient_language = 'en'): string
+{
+    $configured = function_exists('get_setting')
+        ? strtolower(trim((string) get_setting('email_language', 'pt')))
+        : 'pt';
+
+    if ($configured === 'recipient') {
+        return normalize_email_template_language($recipient_language);
+    }
+
+    return normalize_email_template_language($configured === '' ? 'pt' : $configured);
 }
 
 /**
@@ -799,9 +833,10 @@ function normalize_email_template_language($lang)
  */
 function get_email_template_phrase($key, $lang = 'en')
 {
-    $lang = normalize_email_template_language($lang);
+    $lang = mailer_notification_language($lang);
     $phrases = [
         'not_provided' => [
+            'pt' => 'não informado',
             'en' => 'not provided',
             'cs' => 'neuvedeno',
             'de' => 'nicht angegeben',
@@ -809,6 +844,7 @@ function get_email_template_phrase($key, $lang = 'en')
             'es' => 'no especificado'
         ],
         'none' => [
+            'pt' => 'nenhum',
             'en' => 'none',
             'cs' => 'žádné',
             'de' => 'keine',
@@ -833,6 +869,10 @@ function get_builtin_email_template($key, $lang = 'en')
 
     $templates = [
         'status_change' => [
+            'pt' => [
+                'subject' => 'Status atualizado no ticket #{ticket_id}: {ticket_title}',
+                'body' => "Olá,\n\nO status do seu ticket \"{ticket_title}\" foi alterado.\n\nStatus anterior: {old_status}\nNovo status: {new_status}\n\nComentário:\n{comment_text}\n\nTempo registrado: {time_spent}\n\nVer ticket: {ticket_url}\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'Status updated for ticket #{ticket_id}: {ticket_title}',
                 'body' => "Hello,\n\nThe status of your ticket \"{ticket_title}\" has changed.\n\nPrevious status: {old_status}\nNew status: {new_status}\n\nComment:\n{comment_text}\n\nTime spent: {time_spent}\n\nView ticket: {ticket_url}\n\nRegards,\n{app_name}"
@@ -843,6 +883,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'new_comment' => [
+            'pt' => [
+                'subject' => 'Nova resposta no ticket #{ticket_id}: {ticket_title}',
+                'body' => "Olá,\n\nUm novo comentário foi adicionado ao ticket \"{ticket_title}\".\n\nEnviado por: {commenter_name}\nTempo registrado: {time_spent}\nAnexos: {attachments}\n\n---\n{comment_text}\n---\n\nVer comentário: {comment_url}\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'Reply on ticket #{ticket_id}: {ticket_title}',
                 'body' => "Hello,\n\nA new comment was added to your ticket \"{ticket_title}\".\n\nFrom: {commenter_name}\nTime spent: {time_spent}\nAttachments: {attachments}\n\n---\n{comment_text}\n---\n\nView comment: {comment_url}\n\nRegards,\n{app_name}"
@@ -853,6 +897,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'new_ticket' => [
+            'pt' => [
+                'subject' => 'Novo ticket #{ticket_id}: {ticket_title}',
+                'body' => "Olá,\n\nUm novo ticket foi criado.\n\nAssunto: {ticket_title}\nTipo: {ticket_type}\nPrioridade: {priority}\nSolicitante: {user_name} ({user_email})\n\nVer ticket: {ticket_url}\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'New ticket #{ticket_id}: {ticket_title}',
                 'body' => "Hello,\n\nA new ticket has been created.\n\nSubject: {ticket_title}\nType: {ticket_type}\nPriority: {priority}\nFrom: {user_name} ({user_email})\n\nView ticket: {ticket_url}\n\nRegards,\n{app_name}"
@@ -863,6 +911,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'password_reset' => [
+            'pt' => [
+                'subject' => 'Redefinição de senha',
+                'body' => "Olá,\n\nRecebemos uma solicitação para redefinir sua senha. Acesse o link abaixo:\n{reset_link}\n\nEste link é válido por 1 hora.\n\nSe você não solicitou a redefinição, ignore este e-mail.\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'Password reset',
                 'body' => "Hello,\n\nYou requested a password reset. Click the link below:\n{reset_link}\n\nThis link is valid for 1 hour.\n\nIf you did not request a password reset, please ignore this email.\n\nRegards,\n{app_name}"
@@ -873,6 +925,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'ticket_confirmation' => [
+            'pt' => [
+                'subject' => 'Ticket recebido #{ticket_code}: {ticket_title}',
+                'body' => "Olá,\n\nSeu ticket #{ticket_code} \"{ticket_title}\" foi recebido com sucesso.\nManteremos você informado sobre o andamento.\n\nVer ticket: {ticket_url}\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'Ticket received #{ticket_code}: {ticket_title}',
                 'body' => "Hello,\n\nYour ticket #{ticket_code} \"{ticket_title}\" was received successfully.\nWe will keep you updated on its progress.\n\nView ticket: {ticket_url}\n\nRegards,\n{app_name}"
@@ -883,6 +939,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'ticket_assignment' => [
+            'pt' => [
+                'subject' => 'Ticket atribuído a você #{ticket_code}: {ticket_title}',
+                'body' => "Olá, {agent_name}.\n\nUm ticket foi atribuído a você:\n\nTicket: #{ticket_code}\nAssunto: {ticket_title}\nAtribuído por: {assigner_name}\n\nVer ticket: {ticket_url}\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'Assigned to you #{ticket_code}: {ticket_title}',
                 'body' => "Hello {agent_name},\n\nYou have been assigned a ticket to handle:\n\nTicket: #{ticket_code}\nSubject: {ticket_title}\nAssigned by: {assigner_name}\n\nView ticket: {ticket_url}\n\nRegards,\n{app_name}"
@@ -893,6 +953,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'recurring_task_assignment' => [
+            'pt' => [
+                'subject' => 'Nova tarefa recorrente atribuída: {ticket_title}',
+                'body' => "Olá, {recipient_name}.\n\nUma tarefa recorrente gerou um novo ticket para você.\n\nTicket: #{ticket_code}\nTítulo: {ticket_title}\nDescrição: {ticket_description}\nPrazo: {due_date}\n\nVer ticket: {ticket_url}\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'New recurring task assigned: {ticket_title}',
                 'body' => "Hello {recipient_name},\n\nA recurring task generated a new ticket for you.\n\nTicket: #{ticket_code}\nTitle: {ticket_title}\nDescription: {ticket_description}\nDue date: {due_date}\n\nView ticket: {ticket_url}\n\nRegards,\n{app_name}"
@@ -903,6 +967,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'long_timer_alert' => [
+            'pt' => [
+                'subject' => 'Cronômetro ativo há muito tempo — Ticket #{ticket_code}',
+                'body' => "Olá, {user_name}.\n\nSeu cronômetro está ativo há {elapsed_time} no ticket \"{ticket_title}\".\n\nIniciado em: {started_at}\nTicket: #{ticket_code} - {ticket_title}\n\nVerifique se você se esqueceu de parar o cronômetro.\n\nVer ticket: {ticket_url}\n\nAtenciosamente,\nEquipe {app_name}"
+            ],
             'en' => [
                 'subject' => 'Timer Running Too Long - Ticket #{ticket_code}',
                 'body' => "Dear {user_name},\n\nYour time tracker has been running for {elapsed_time} on ticket \"{ticket_title}\".\n\nStarted at: {started_at}\nTicket: #{ticket_code} - {ticket_title}\n\nPlease check if you forgot to stop the timer.\n\nView ticket: {ticket_url}\n\nSincerely,\n\nThe {app_name} Team"
@@ -925,6 +993,10 @@ function get_builtin_email_template($key, $lang = 'en')
             ]
         ],
         'welcome_email' => [
+            'pt' => [
+                'subject' => 'Boas-vindas à {app_name}',
+                'body' => "Olá, {name}.\n\nSua conta foi criada.\n\nE-mail: {email}\nSenha: {password}\n\nAcessar: {login_url}\n\nApós entrar, você poderá alterar sua senha nas configurações do perfil.\n\nAtenciosamente,\n{app_name}"
+            ],
             'en' => [
                 'subject' => 'Welcome to {app_name}',
                 'body' => "Hello {name},\n\nYour account has been created.\n\nEmail: {email}\nPassword: {password}\n\nLogin: {login_url}\n\nAfter signing in, you can change your password in your profile settings.\n\nRegards,\n{app_name}"
@@ -982,7 +1054,7 @@ function get_email_template($key, $lang = 'en')
 {
     try {
         ensure_email_templates_language_schema();
-        $lang = normalize_email_template_language($lang);
+        $lang = mailer_notification_language($lang);
 
         $template = db_fetch_one("SELECT * FROM email_templates WHERE template_key = ? AND language = ? AND is_active = 1", [$key, $lang]);
         if ($template) {
@@ -1142,7 +1214,7 @@ function send_ticket_confirmation_to_user($ticket)
     }
 
     $lang = $user['language'] ?? 'en';
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = mailer_brand_name($settings);
     $ticket_code = get_ticket_code($ticket['id']);
     $ticket_url = get_app_url() . '/index.php?page=ticket&id=' . $ticket['id'];
     $recipient_name = $user['first_name'] . ' ' . $user['last_name'];
@@ -1176,11 +1248,11 @@ function send_ticket_confirmation_to_user($ticket)
     }
 
     return send_ticket_notification_email($user['email'], $subject, $body, [
-        'eyebrow' => 'Ticket received',
+        'eyebrow' => 'Ticket recebido',
         'title' => (string) ($ticket['title'] ?? $subject),
-        'cta_label' => 'Open ticket',
+        'cta_label' => 'Abrir ticket',
         'cta_url' => $ticket_url,
-        'reason' => 'You are receiving this because this ticket was submitted for you.',
+        'reason' => 'Você recebeu este e-mail porque este ticket foi aberto em seu nome.',
     ]);
 }
 
@@ -1205,7 +1277,7 @@ function send_ticket_assignment_notification($ticket, $assigned_agent, $assigner
         return false; // Template not found or not active
     }
 
-    $app_name = !empty($settings['app_name']) ? $settings['app_name'] : 'FoxDesk';
+    $app_name = mailer_brand_name($settings);
     $ticket_code = get_ticket_code($ticket['id']);
     $ticket_url = get_app_url() . '/index.php?page=ticket&id=' . $ticket['id'];
 
@@ -1225,11 +1297,11 @@ function send_ticket_assignment_notification($ticket, $assigned_agent, $assigner
     $body = str_replace(array_keys($placeholders), array_values($placeholders), $template['body']);
 
     return send_ticket_notification_email($assigned_agent['email'], $subject, $body, [
-        'eyebrow' => 'Assigned to you',
+        'eyebrow' => 'Atribuído a você',
         'title' => (string) ($ticket['title'] ?? $subject),
-        'cta_label' => 'Open ticket',
+        'cta_label' => 'Abrir ticket',
         'cta_url' => $ticket_url,
-        'reason' => 'You are receiving this because this ticket was assigned to you.',
+        'reason' => 'Você recebeu este e-mail porque este ticket foi atribuído a você.',
     ]);
 }
 
@@ -1254,11 +1326,21 @@ function send_due_date_reminder($ticket, $is_overdue = false)
         return;
     }
 
-    $lang = normalize_email_template_language($assigned_user['language'] ?? 'en');
+    $lang = mailer_notification_language($assigned_user['language'] ?? 'en');
     $ticket_code = get_ticket_code($ticket['id']);
     $ticket_url = get_app_url() . '/index.php?page=ticket&id=' . $ticket['id'];
 
     $copy = [
+        'pt' => [
+            'subject_overdue' => 'Atrasado: {ticket_code} - {title}',
+            'subject_due_soon' => 'Prazo próximo: {ticket_code} - {title}',
+            'body_overdue' => 'Este ticket está atrasado.',
+            'body_due_soon' => 'O prazo deste ticket está próximo.',
+            'label_ticket' => 'Ticket',
+            'label_due_date' => 'Prazo',
+            'label_status' => 'Status',
+            'label_view_ticket' => 'Ver ticket'
+        ],
         'en' => [
             'subject_overdue' => 'Overdue: {ticket_code} - {title}',
             'subject_due_soon' => 'Due soon: {ticket_code} - {title}',
@@ -1334,11 +1416,11 @@ function send_due_date_reminder($ticket, $is_overdue = false)
     $body .= $i18n['label_view_ticket'] . ': ' . $ticket_url . "\n";
 
     send_ticket_notification_email($assigned_user['email'], $subject, $body, [
-        'eyebrow' => $is_overdue ? 'Overdue ticket' : 'Due soon',
+        'eyebrow' => $is_overdue ? 'Ticket atrasado' : 'Prazo próximo',
         'title' => (string) ($ticket['title'] ?? $subject),
-        'cta_label' => 'Open ticket',
+        'cta_label' => 'Abrir ticket',
         'cta_url' => $ticket_url,
-        'reason' => 'You are receiving this because you are assigned to this ticket.',
+        'reason' => 'Você recebeu este e-mail porque este ticket está atribuído a você.',
     ]);
 }
 
@@ -1355,7 +1437,7 @@ function send_long_timer_alert($user, $time_entry, $ticket)
 
     $lang = $user['language'] ?? 'en';
     $template = get_email_template('long_timer_alert', $lang);
-    $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+    $app_name = mailer_brand_name($settings);
     $ticket_code = get_ticket_code($ticket['id']);
     $ticket_url = get_app_url() . '/index.php?page=ticket&id=' . $ticket['id'];
     $user_name = $user['first_name'] . ' ' . $user['last_name'];
@@ -1403,10 +1485,10 @@ function send_long_timer_alert($user, $time_entry, $ticket)
     }
 
     return send_ticket_notification_email($user['email'], $subject, $body, [
-        'eyebrow' => 'Timer reminder',
+        'eyebrow' => 'Lembrete do cronômetro',
         'title' => (string) ($ticket['title'] ?? $subject),
-        'cta_label' => 'Open ticket',
+        'cta_label' => 'Abrir ticket',
         'cta_url' => $ticket_url,
-        'reason' => 'You are receiving this because your timer has been running for a long time.',
+        'reason' => 'Você recebeu este e-mail porque seu cronômetro está ativo há muito tempo.',
     ]);
 }

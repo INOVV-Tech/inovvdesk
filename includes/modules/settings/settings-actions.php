@@ -545,6 +545,11 @@ function settings_handle_post_request(callable $settings_audit): void
         save_setting('smtp_from_email', trim($_POST['smtp_from_email'] ?? ''));
         save_setting('smtp_from_name', trim($_POST['smtp_from_name'] ?? ''));
         save_setting('smtp_encryption', $_POST['smtp_encryption'] ?? 'tls');
+        $email_language = strtolower(trim((string) ($_POST['email_language'] ?? 'pt')));
+        if (!in_array($email_language, ['pt', 'recipient'], true)) {
+            $email_language = 'pt';
+        }
+        save_setting('email_language', $email_language);
         save_setting('email_notifications_enabled', isset($_POST['email_notifications_enabled']) ? '1' : '0');
         save_setting('notify_on_status_change', isset($_POST['notify_on_status_change']) ? '1' : '0');
         save_setting('notify_on_new_comment', isset($_POST['notify_on_new_comment']) ? '1' : '0');
@@ -664,7 +669,7 @@ function settings_handle_post_request(callable $settings_audit): void
         $subject = trim($_POST['template_subject'] ?? '');
         $body = trim($_POST['template_body'] ?? '');
         $lang = strtolower(trim((string) ($_POST['template_lang'] ?? 'en')));
-        if (!in_array($lang, ['en', 'cs', 'de', 'it', 'es'], true)) {
+        if (!in_array($lang, ['pt', 'en', 'cs', 'de', 'it', 'es'], true)) {
             $lang = 'en';
         }
 

@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!empty($_POST['send_welcome_email'])) {
                         require_once BASE_PATH . '/includes/mailer.php';
                         $settings = get_settings();
-                        $app_name = !empty($settings['app_name']) ? $settings['app_name'] : 'FoxDesk';
+                        $app_name = mailer_brand_name($settings);
                         $login_url = get_app_url();
                         $lang = $_POST['language'] ?? 'en';
 

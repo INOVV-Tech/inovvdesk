@@ -1971,29 +1971,29 @@ function notify_admins_about_update(string $new_version, string $old_version, st
         return;
     }
 
-    $app_name = get_setting('app_name', 'FoxDesk');
+    $app_name = function_exists('mailer_brand_name') ? mailer_brand_name() : 'Inovv Helpdesk';
     $app_url = defined('APP_URL') ? APP_URL : '';
 
     $changelog_text = '';
     if (!empty($changelog)) {
-        $changelog_text = "\n\nChangelog:\n";
+        $changelog_text = "\n\nAlterações:\n";
         foreach ($changelog as $entry) {
             $changelog_text .= "  - " . $entry . "\n";
         }
     }
 
-    $subject = "$app_name updated to v$new_version";
-    $body = "Hello,\n\n"
-        . "$app_name has been updated successfully.\n\n"
-        . "Previous version: $old_version\n"
-        . "New version: $new_version\n"
-        . "Backup ID: $backup_id\n"
-        . "Date: " . date('Y-m-d H:i:s') . "\n"
-        . "Updated by: " . (function_exists('current_user') ? (current_user()['email'] ?? 'unknown') : 'unknown')
+    $subject = "$app_name atualizado para a versão $new_version";
+    $body = "Olá,\n\n"
+        . "$app_name foi atualizado com sucesso.\n\n"
+        . "Versão anterior: $old_version\n"
+        . "Nova versão: $new_version\n"
+        . "ID do backup: $backup_id\n"
+        . "Data: " . date('d/m/Y H:i:s') . "\n"
+        . "Atualizado por: " . (function_exists('current_user') ? (current_user()['email'] ?? 'desconhecido') : 'desconhecido')
         . $changelog_text
         . "\n\n"
-        . ($app_url !== '' ? "Open application: $app_url\n\n" : '')
-        . "Regards,\n$app_name";
+        . ($app_url !== '' ? "Abrir sistema: $app_url\n\n" : '')
+        . "Atenciosamente,\n$app_name";
 
     foreach ($admins as $admin) {
         try {

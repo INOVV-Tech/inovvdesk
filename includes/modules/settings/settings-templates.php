@@ -134,7 +134,7 @@ function settings_email_template_defaults(): array
 
     $defaults = [];
     foreach (array_keys(settings_email_template_catalog()) as $key) {
-        foreach (['en', 'cs', 'de', 'it', 'es'] as $lang) {
+        foreach (['pt', 'en', 'cs', 'de', 'it', 'es'] as $lang) {
             if (!function_exists('get_builtin_email_template')) {
                 continue;
             }

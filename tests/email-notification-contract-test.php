@@ -22,7 +22,7 @@ assert_contract(strpos($mailer, 'foxdesk_render_ticket_email_html') !== false, '
 assert_contract(strpos($mailer, 'should_send_new_ticket_admin_email') !== false, 'New-ticket admin emails must use notification policy suppression.');
 assert_contract(strpos($mailer, 'should_send_ticket_confirmation_email') !== false, 'Ticket confirmations must use notification policy suppression.');
 assert_contract(strpos($mailer, 'should_send_ticket_assignment_email') !== false, 'Assignment emails must use notification policy suppression.');
-assert_contract(strpos($mailer, "'eyebrow' => 'Ticket received'") !== false, 'Ticket confirmation should use the shared ticket email renderer payload.');
+assert_contract(strpos($mailer, "'eyebrow' => 'Ticket recebido'") !== false, 'Ticket confirmation should use the shared ticket email renderer payload.');
 assert_contract(strpos($mailer, 'send_email($user[\'email\'], $subject, $body)') === false, 'Ticket confirmation must not use the legacy plain-text send_email path.');
 assert_contract(strpos($ticket_events, 'function ticket_event_dispatch_in_app') !== false, 'Ticket events must expose a shared in-app dispatch helper.');
 assert_contract(strpos($ticket_events, 'function ticket_event_comment_name') !== false, 'Ticket events must classify public replies versus internal notes.');

@@ -106,10 +106,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Try to send email
             require_once BASE_PATH . '/includes/mailer.php';
             $settings = get_settings();
-            $app_name = $settings['app_name'] ?? (defined('APP_NAME') ? APP_NAME : 'FoxDesk');
+            $app_name = mailer_brand_name($settings);
 
-            $subject = t('New password') . " - $app_name";
-            $body = t('Hello') . ",\n\n" . t('Your new password for {app} is:', ['app' => $app_name]) . "\n\n$new_password\n\n" . t('After signing in, you can change your password in your profile settings.') . "\n\n" . t('Regards') . ",\n$app_name";
+            $subject = "Nova senha — $app_name";
+            $body = "Olá,\n\nSua nova senha para acessar a {$app_name} é:\n\n{$new_password}\n\nApós entrar, você poderá alterar a senha nas configurações do perfil.\n\nAtenciosamente,\n{$app_name}";
 
             // Account emails are forced regardless of notification preferences.
             $sent = send_email($client['email'], $subject, $body, false, true);

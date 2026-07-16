@@ -550,7 +550,7 @@ function send_recurring_task_notification($ticket_id, $recurring_task)
         '{ticket_description}' => $ticket['description'] ?: t('None'),
         '{due_date}' => format_date($ticket['due_date']),
         '{ticket_url}' => APP_URL . '/index.php?page=ticket&id=' . $ticket_id,
-        '{app_name}' => defined('APP_NAME') ? APP_NAME : t('Ticket System')
+        '{app_name}' => function_exists('mailer_brand_name') ? mailer_brand_name() : 'Inovv Helpdesk'
     ];
 
     $subject = str_replace(array_keys($placeholders), array_values($placeholders), $template['subject']);

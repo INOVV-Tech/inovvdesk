@@ -889,10 +889,10 @@ function send_scheduled_report_email(array $report, string $date_from, string $d
     $emails = array_filter(array_map('trim', explode(',', $recipients_str)));
     if (empty($emails)) return;
 
-    $app_name = defined('APP_NAME') ? APP_NAME : 'FoxDesk';
+    $app_name = function_exists('mailer_brand_name') ? mailer_brand_name() : 'Inovv Helpdesk';
     $app_url = function_exists('get_app_url') ? get_app_url() : '';
-    $org_name = $report['organization_name'] ?? 'Client';
-    $report_title = $report['title'] ?? 'Report';
+    $org_name = $report['organization_name'] ?? 'Cliente';
+    $report_title = $report['title'] ?? 'Relatório';
     $share = function_exists('get_active_report_template_share') ? get_active_report_template_share((int) ($report['id'] ?? 0)) : null;
     if (!$share && function_exists('create_report_template_share')) {
         $token = create_report_template_share((int) ($report['id'] ?? 0), (int) ($report['organization_id'] ?? 0));
@@ -919,15 +919,15 @@ function send_scheduled_report_email(array $report, string $date_from, string $d
                         <tr>
                             <td style='padding:12px;text-align:center;background:#f3f4f6;border-radius:8px 0 0 8px;'>
                                 <div style='font-size:24px;font-weight:bold;color:#1f2937;'>{$total_hours}h</div>
-                                <div style='font-size:12px;color:#6b7280;'>Total Hours</div>
+                                <div style='font-size:12px;color:#6b7280;'>Total de horas</div>
                             </td>
                             <td style='padding:12px;text-align:center;background:#f3f4f6;'>
                                 <div style='font-size:24px;font-weight:bold;color:#1f2937;'>{$total_tasks}</div>
-                                <div style='font-size:12px;color:#6b7280;'>Tasks</div>
+                                <div style='font-size:12px;color:#6b7280;'>Tarefas</div>
                             </td>
                             <td style='padding:12px;text-align:center;background:#f3f4f6;border-radius:0 8px 8px 0;'>
                                 <div style='font-size:24px;font-weight:bold;color:#1f2937;'>{$team_size}</div>
-                                <div style='font-size:12px;color:#6b7280;'>Team Members</div>
+                                <div style='font-size:12px;color:#6b7280;'>Membros da equipe</div>
                             </td>
                         </tr>
                     </table>";
@@ -935,34 +935,34 @@ function send_scheduled_report_email(array $report, string $date_from, string $d
         }
     } catch (Throwable $e) { /* ignore */ }
 
-    $from_formatted = date('M j, Y', strtotime($date_from));
-    $to_formatted = date('M j, Y', strtotime($date_to));
+    $from_formatted = date('d/m/Y', strtotime($date_from));
+    $to_formatted = date('d/m/Y', strtotime($date_to));
 
-    $subject = "{$report_title} — {$from_formatted} to {$to_formatted}";
+    $subject = "{$report_title} — {$from_formatted} a {$to_formatted}";
     $body = "
     <div style='font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;max-width:600px;margin:0 auto;'>
         <div style='padding:24px 0;border-bottom:2px solid #e5e7eb;margin-bottom:24px;'>
             <h1 style='margin:0;font-size:22px;color:#111827;'>{$report_title}</h1>
             <p style='margin:8px 0 0;color:#6b7280;font-size:14px;'>
-                {$org_name} &mdash; {$from_formatted} to {$to_formatted}
+                {$org_name} &mdash; {$from_formatted} a {$to_formatted}
             </p>
         </div>
 
         {$kpi_html}
 
         <p style='color:#374151;font-size:14px;line-height:1.6;'>
-            Your scheduled report has been generated and is ready for review.
-            Click the button below to view the full report with detailed breakdowns.
+            Seu relatório agendado foi gerado e está pronto para consulta.
+            Clique no botão abaixo para acessar o relatório completo e seus detalhes.
         </p>
 
         <div style='text-align:center;margin:24px 0;'>
-            <a href='{$report_link}' style='display:inline-block;padding:12px 32px;background:#3b82f6;color:#ffffff;text-decoration:none;border-radius: var(--fd-radius-control);font-weight:600;font-size:14px;'>
-                View Full Report
+            <a href='{$report_link}' style='display:inline-block;padding:12px 32px;background:#3b82f6;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px;'>
+                Ver relatório completo
             </a>
         </div>
 
         <p style='color:#9ca3af;font-size:12px;text-align:center;margin-top:32px;border-top:1px solid #e5e7eb;padding-top:16px;'>
-            Sent automatically by {$app_name}. To stop receiving these emails, ask your administrator to update the report schedule.
+            Enviado automaticamente pela {$app_name}. Para deixar de receber estes e-mails, solicite ao administrador que altere o agendamento do relatório.
         </p>
     </div>";
 
