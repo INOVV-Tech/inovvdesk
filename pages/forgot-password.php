@@ -21,7 +21,8 @@ $lang_options = [
     'cs' => t('Czech'),
     'de' => t('German'),
     'it' => t('Italian'),
-    'es' => t('Spanish')
+    'es' => t('Spanish'),
+    'pt' => t('Portuguese (Brazil)')
 ];
 $lang_params = ['page' => 'forgot-password'];
 

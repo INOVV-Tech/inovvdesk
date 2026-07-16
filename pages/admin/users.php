@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($existing) {
                 flash(t('A user with this email already exists.'), 'error');
             } else {
-                $language = $_POST['language'] ?? 'en';
+                $language = $_POST['language'] ?? 'pt';
                 try {
                     $user_id = create_user($email, $password, $first_name, $last_name, $role, $language);
                 } catch (Throwable $e) {
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $updates['organization_id'] = $organization_id;
                     }
                     $updates['cost_rate'] = $cost_rate;
-                    $updates['language'] = $_POST['language'] ?? 'en';
+                    $updates['language'] = $_POST['language'] ?? 'pt';
                     if ($contact_phone_column_exists) {
                         $updates['contact_phone'] = $contact_phone !== '' ? $contact_phone : null;
                     }
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $settings = get_settings();
                         $app_name = mailer_brand_name($settings);
                         $login_url = get_app_url();
-                        $lang = $_POST['language'] ?? 'en';
+                        $lang = $_POST['language'] ?? 'pt';
 
                         $template = get_email_template('welcome_email', $lang);
                         if ($template) {
@@ -248,7 +248,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         $permissions = $permission_payload !== null ? json_encode($permission_payload) : null;
 
-        $language = $_POST['language'] ?? 'en';
+        $language = $_POST['language'] ?? 'pt';
 
         $user_updates = [
             'email' => $email,
@@ -1678,6 +1678,7 @@ include BASE_PATH . '/includes/components/page-header.php';
                                 <option value="de"><?php echo e(t('German')); ?></option>
                                 <option value="it"><?php echo e(t('Italian')); ?></option>
                                 <option value="es"><?php echo e(t('Spanish')); ?></option>
+                                <option value="pt"><?php echo e(t('Portuguese (Brazil)')); ?></option>
                             </select>
                         </div>
 
@@ -2143,6 +2144,7 @@ include BASE_PATH . '/includes/components/page-header.php';
                                 <option value="de"><?php echo e(t('German')); ?></option>
                                 <option value="it"><?php echo e(t('Italian')); ?></option>
                                 <option value="es"><?php echo e(t('Spanish')); ?></option>
+                                <option value="pt"><?php echo e(t('Portuguese (Brazil)')); ?></option>
                             </select>
                         </div>
 

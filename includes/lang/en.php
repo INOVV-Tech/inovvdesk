@@ -598,6 +598,7 @@ return [
     'German' => 'German',
     'Italian' => 'Italian',
     'Spanish' => 'Spanish',
+    'Portuguese (Brazil)' => 'Portuguese (Brazil)',
     'Time report' => 'Time report',
     'Time Reports' => 'Time Reports',
     'My time' => 'My time',

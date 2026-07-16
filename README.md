@@ -88,7 +88,7 @@ updates, IMAP/self-hosted operations, and the one-way self-hosted to SaaS migrat
 - Dynamic app manifest with custom icons
 
 **Multi-language**
-- English, Czech, German, Spanish, Italian
+- English, Czech, German, Spanish, Italian, Portuguese (Brazil)
 - Per-user language preference
 
 **Auto-Updates**

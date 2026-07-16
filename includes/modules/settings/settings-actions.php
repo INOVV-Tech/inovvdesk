@@ -427,9 +427,9 @@ function settings_handle_post_request(callable $settings_audit): void
     if (isset($_POST['save_general'])) {
         $app_name = trim($_POST['app_name'] ?? 'FoxDesk');
         $ticket_prefix = trim($_POST['ticket_prefix'] ?? 'TK');
-        $app_language = strtolower(trim($_POST['app_language'] ?? 'en'));
-        if (!in_array($app_language, ['en', 'cs', 'de', 'it', 'es'], true)) {
-            $app_language = 'en';
+        $app_language = strtolower(trim($_POST['app_language'] ?? 'pt'));
+        if (!in_array($app_language, ['en', 'cs', 'de', 'it', 'es', 'pt'], true)) {
+            $app_language = 'pt';
         }
         $time_format = trim($_POST['time_format'] ?? '24');
         if (!in_array($time_format, ['12', '24'], true)) {

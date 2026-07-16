@@ -587,8 +587,8 @@ function ensure_backup_dir(): bool
     // Nginx / fallback — prevents directory listing and shows 403 page
     $index = BACKUP_DIR . '/index.html';
     if (!file_exists($index)) {
-        $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>403 Forbidden</title></head>'
-            . '<body><h1>Forbidden</h1><p>You don\'t have permission to access this resource.</p></body></html>';
+        $html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>403 — Acesso negado</title></head>'
+            . '<body><h1>Acesso negado</h1><p>Você não tem permissão para acessar este recurso.</p></body></html>';
         file_put_contents($index, $html);
     }
 

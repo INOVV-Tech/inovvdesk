@@ -42,7 +42,7 @@ FoxDesk is a self-hosted helpdesk and ticketing system designed for small to mid
 
 ### Languages
 
-FoxDesk supports English, Czech, German, Spanish, and Italian. Each user can set their preferred language in their profile. The admin sets the default language in Settings.
+FoxDesk supports English, Czech, German, Spanish, Italian, and Portuguese (Brazil). Each user can set their preferred language in their profile. The admin sets the default language in Settings.
 
 ---
 

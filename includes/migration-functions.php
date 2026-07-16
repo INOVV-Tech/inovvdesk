@@ -408,10 +408,10 @@ function migration_cloud_cutover_response(): void
     }
 
     http_response_code(410);
-    echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>FoxDesk moved</title></head>';
+    echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>FoxDesk transferido</title></head>';
     echo '<body style="font-family:system-ui,sans-serif;max-width:680px;margin:64px auto;padding:0 20px;color:#1f2937">';
-    echo '<h1>This FoxDesk has moved to FoxDesk Cloud</h1>';
-    echo '<p>The self-hosted instance has completed cutover and is no longer the active helpdesk.</p>';
+    echo '<h1>Este FoxDesk foi transferido para o FoxDesk Cloud</h1>';
+    echo '<p>A instância auto-hospedada concluiu a migração e não é mais o helpdesk ativo.</p>';
     echo '</body></html>';
     exit;
 }

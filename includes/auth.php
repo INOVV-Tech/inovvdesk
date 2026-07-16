@@ -111,10 +111,10 @@ function refresh_user_session()
         $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_avatar'] = $user['avatar'] ?? '';
-        $allowed_langs = ['en', 'cs', 'de', 'it', 'es'];
+        $allowed_langs = ['en', 'cs', 'de', 'it', 'es', 'pt'];
         $lang = strtolower(trim((string) ($user['language'] ?? '')));
         if (!in_array($lang, $allowed_langs, true)) {
-            $lang = strtolower(trim((string) get_setting('app_language', 'en')));
+            $lang = strtolower(trim((string) get_setting('app_language', 'pt')));
             if (!in_array($lang, $allowed_langs, true)) {
                 $lang = 'en';
             }
@@ -163,10 +163,10 @@ function login($email, $password)
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_name'] = $user['first_name'] . ' ' . $user['last_name'];
         $_SESSION['user_role'] = $user['role'];
-        $allowed_langs = ['en', 'cs', 'de', 'it', 'es'];
+        $allowed_langs = ['en', 'cs', 'de', 'it', 'es', 'pt'];
         $lang = strtolower(trim((string) ($user['language'] ?? '')));
         if (!in_array($lang, $allowed_langs, true)) {
-            $lang = strtolower(trim((string) get_setting('app_language', 'en')));
+            $lang = strtolower(trim((string) get_setting('app_language', 'pt')));
             if (!in_array($lang, $allowed_langs, true)) {
                 $lang = 'en';
             }
@@ -330,10 +330,10 @@ function validate_remember_token()
     $_SESSION['user_name']  = $user['first_name'] . ' ' . $user['last_name'];
     $_SESSION['user_role']  = $user['role'];
 
-    $allowed_langs = ['en', 'cs', 'de', 'it', 'es'];
+    $allowed_langs = ['en', 'cs', 'de', 'it', 'es', 'pt'];
     $lang = strtolower(trim((string) ($user['language'] ?? '')));
     if (!in_array($lang, $allowed_langs, true)) {
-        $lang = strtolower(trim((string) get_setting('app_language', 'en')));
+        $lang = strtolower(trim((string) get_setting('app_language', 'pt')));
         if (!in_array($lang, $allowed_langs, true)) {
             $lang = 'en';
         }

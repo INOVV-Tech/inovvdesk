@@ -1277,7 +1277,7 @@ function email_ingest_send_requester_notifications($ticket_id, $ticket_created, 
     }
 
     $settings = get_settings();
-    $lang = strtolower(trim((string) ($user['language'] ?? 'en')));
+    $lang = strtolower(trim((string) ($user['language'] ?? 'pt')));
     if ($lang === '') {
         $lang = 'en';
     }

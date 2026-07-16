@@ -32,7 +32,7 @@ function create_report_template($data) {
         'organization_id' => $data['organization_id'],
         'created_by_user_id' => $data['created_by_user_id'],
         'title' => $data['title'],
-        'report_language' => $data['report_language'] ?? 'en',
+        'report_language' => $data['report_language'] ?? 'pt',
         'date_from' => $data['date_from'],
         'date_to' => $data['date_to'],
         'executive_summary' => $data['executive_summary'] ?? '',

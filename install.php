@@ -78,10 +78,10 @@ $reason = isset($_GET['reason']) ? (string) $_GET['reason'] : '';
 
 if ($force_install_requested && !$force_install && $config_exists) {
     http_response_code(403);
-    echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>FoxDesk Installer</title></head><body style="font-family:system-ui,sans-serif;max-width:680px;margin:48px auto;padding:0 20px">';
-    echo '<h1>Installer locked</h1>';
-    echo '<p>FoxDesk is already installed. Forced reinstall requires a valid recovery token.</p>';
-    echo '<p>Use <code>install.php?force=1&amp;token=FIRST_16_CHARS_OF_SECRET_KEY</code> or set <code>FOXDESK_INSTALL_TOKEN</code> on the server.</p>';
+    echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Instalador do FoxDesk</title></head><body style="font-family:system-ui,sans-serif;max-width:680px;margin:48px auto;padding:0 20px">';
+    echo '<h1>Instalador bloqueado</h1>';
+    echo '<p>O FoxDesk já está instalado. A reinstalação forçada exige um token de recuperação válido.</p>';
+    echo '<p>Use <code>install.php?force=1&amp;token=FIRST_16_CHARS_OF_SECRET_KEY</code> ou defina <code>FOXDESK_INSTALL_TOKEN</code> no servidor.</p>';
     echo '</body></html>';
     exit;
 }
@@ -93,13 +93,13 @@ if ($config_exists && !$force_install) {
 }
 
 if ($force_install && $reason === 'db_host') {
-    $error = 'Detected invalid database host "db" from previous deployment. Enter your hosting DB host (usually localhost).';
+    $error = 'O host de banco "db" da instalação anterior é inválido. Informe o host do banco da sua hospedagem (geralmente localhost).';
 }
 
 // Process form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_is_valid_install()) {
-        $error = 'Security check failed. Please try again.';
+        $error = 'A verificação de segurança falhou. Tente novamente.';
     } else {
     
     // Step 1: Database configuration
@@ -112,12 +112,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Validate inputs
         if (empty($db_host) || empty($db_name) || empty($db_user)) {
-            $error = 'Please fill in all required fields.';
+            $error = 'Preencha todos os campos obrigatórios.';
         } else {
             // Test database connection
             try {
                 if (!preg_match('/^[0-9]{1,5}$/', $db_port)) {
-                    throw new InvalidArgumentException('Database port must be numeric.');
+                    throw new InvalidArgumentException('A porta do banco de dados deve ser numérica.');
                 }
 
                 $dsn = "mysql:host={$db_host};port={$db_port};charset=utf8mb4";
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Create tables
                 $sql = file_get_contents('includes/schema.sql');
                 if ($sql === false) {
-                    throw new Exception('Cannot read includes/schema.sql — file missing or unreadable.');
+                    throw new Exception('Não foi possível ler includes/schema.sql — o arquivo está ausente ou ilegível.');
                 }
                 $pdo->exec($sql);
                 
@@ -150,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
                 
             } catch (PDOException $e) {
-                $error = 'Could not connect to the database: ' . $e->getMessage();
+                $error = 'Não foi possível conectar ao banco de dados: ' . $e->getMessage();
             }
         }
     }
@@ -166,22 +166,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         // Validate
         if (empty($admin_email) || empty($admin_name) || empty($admin_pass)) {
-            $error = 'Please fill in all required fields.';
+            $error = 'Preencha todos os campos obrigatórios.';
         } elseif (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
-            $error = 'Enter a valid email address.';
+            $error = 'Informe um endereço de e-mail válido.';
         } elseif (strlen($admin_pass) < 12) {
-            $error = 'Password must be at least 12 characters.';
+            $error = 'A senha deve ter pelo menos 12 caracteres.';
         } elseif ($admin_pass !== $admin_pass2) {
-            $error = 'Passwords do not match.';
+            $error = 'As senhas não coincidem.';
         } elseif (!isset($_SESSION['install'])) {
-            $error = 'Installation error. Please start again.';
+            $error = 'Erro de instalação. Comece novamente.';
             header('Location: install.php?step=1' . $force_query);
             exit;
         } else {
             try {
                 $db = $_SESSION['install'];
                 if (!preg_match('/^[0-9]{1,5}$/', (string) $db['db_port'])) {
-                    throw new InvalidArgumentException('Database port must be numeric.');
+                    throw new InvalidArgumentException('A porta do banco de dados deve ser numérica.');
                 }
 
                 $dsn = "mysql:host={$db['db_host']};port={$db['db_port']};dbname={$db['db_name']};charset=utf8mb4";
@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Save app name to settings
                 $stmt = $pdo->prepare("INSERT INTO settings (setting_key, setting_value) VALUES (?, ?)");
                 $stmt->execute(['app_name', $app_name]);
-                $stmt->execute(['app_language', 'en']);
+                $stmt->execute(['app_language', 'pt']);
                 $stmt->execute(['time_format', '24']);
                 
                 // Insert default email settings
@@ -343,7 +343,7 @@ date_default_timezone_set('Europe/Prague');
                 exit;
                 
             } catch (Exception $e) {
-                $error = 'Failed to create the account: ' . $e->getMessage();
+                $error = 'Falha ao criar a conta: ' . $e->getMessage();
             }
         }
     }
@@ -351,11 +351,11 @@ date_default_timezone_set('Europe/Prague');
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Installation - FoxDesk</title>
+    <title>Instalação - FoxDesk</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="theme.css" rel="stylesheet">
 </head>
@@ -369,7 +369,7 @@ date_default_timezone_set('Europe/Prague');
                 </svg>
             </div>
             <h1 class="text-2xl font-bold text-gray-800">FoxDesk</h1>
-            <p class="text-gray-500">Installation wizard</p>
+            <p class="text-gray-500">Assistente de instalação</p>
         </div>
         
         <!-- Progress -->
@@ -391,56 +391,56 @@ date_default_timezone_set('Europe/Prague');
         
         <?php if ($step === 1): ?>
         <!-- Step 1: Database -->
-        <h2 class="text-xl font-semibold mb-6">Step 1: Database</h2>
+        <h2 class="text-xl font-semibold mb-6">Etapa 1: Banco de dados</h2>
         <form method="post">
             <?php echo csrf_field_install(); ?>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Database host *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Host do banco de dados *</label>
                     <input type="text" name="db_host" value="<?php echo htmlspecialchars($_POST['db_host'] ?? 'localhost'); ?>" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Port</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Porta</label>
                     <input type="text" name="db_port" value="<?php echo htmlspecialchars($_POST['db_port'] ?? '3306'); ?>" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Database name *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome do banco de dados *</label>
                     <input type="text" name="db_name" value="<?php echo htmlspecialchars($_POST['db_name'] ?? 'helpdesk'); ?>" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Database user *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Usuário do banco de dados *</label>
                     <input type="text" name="db_user" value="<?php echo htmlspecialchars($_POST['db_user'] ?? ''); ?>" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
                     <input type="password" name="db_pass" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
             <button type="submit" class="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition">
-                Connect and continue ->
+                Conectar e continuar →
             </button>
         </form>
         
         <?php elseif ($step === 2): ?>
         <!-- Step 2: Admin Account -->
-        <h2 class="text-xl font-semibold mb-6">Step 2: App setup</h2>
+        <h2 class="text-xl font-semibold mb-6">Etapa 2: Configuração do aplicativo</h2>
         <form method="post">
             <?php echo csrf_field_install(); ?>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Application name *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome do aplicativo *</label>
                     <input type="text" name="app_name" value="<?php echo htmlspecialchars($_POST['app_name'] ?? 'FoxDesk'); ?>" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                    <p class="text-xs text-gray-500 mt-1">This name appears throughout the app.</p>
+                    <p class="text-xs text-gray-500 mt-1">Este nome aparece em todo o aplicativo.</p>
                 </div>
                 
                 <hr class="my-4">
-                <h3 class="font-medium text-gray-800">Administrator account</h3>
+                <h3 class="font-medium text-gray-800">Conta do administrador</h3>
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
@@ -449,30 +449,30 @@ date_default_timezone_set('Europe/Prague');
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">First name *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nome *</label>
                         <input type="text" name="admin_name" value="<?php echo htmlspecialchars($_POST['admin_name'] ?? ''); ?>" 
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Last name</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Sobrenome</label>
                         <input type="text" name="admin_surname" value="<?php echo htmlspecialchars($_POST['admin_surname'] ?? ''); ?>" 
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
                     <input type="password" name="admin_pass" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                    <p class="text-xs text-gray-500 mt-1">Minimum 12 characters</p>
+                    <p class="text-xs text-gray-500 mt-1">Mínimo de 12 caracteres</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirm password *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar senha *</label>
                     <input type="password" name="admin_pass2" 
                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                 </div>
             </div>
             <button type="submit" class="w-full mt-6 bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition">
-                Finish installation ->
+                Concluir instalação →
             </button>
         </form>
         
@@ -484,13 +484,13 @@ date_default_timezone_set('Europe/Prague');
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
             </div>
-            <h2 class="text-2xl font-semibold text-gray-800 mb-2">Installation complete!</h2>
-            <p class="text-gray-600 mb-8">Your helpdesk is ready to use.</p>
+            <h2 class="text-2xl font-semibold text-gray-800 mb-2">Instalação concluída!</h2>
+            <p class="text-gray-600 mb-8">Seu helpdesk está pronto para uso.</p>
             <a href="index.php" class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-8 rounded-lg transition">
-                Go to app ->
+                Acessar o aplicativo →
             </a>
             <p class="text-sm text-gray-500 mt-6">
-                <strong>Tip:</strong> For better security, delete <code>install.php</code>
+                <strong>Dica:</strong> para maior segurança, exclua <code>install.php</code>
             </p>
         </div>
         <?php endif; ?>

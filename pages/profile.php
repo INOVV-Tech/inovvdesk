@@ -504,11 +504,12 @@ include BASE_PATH . '/includes/components/page-header.php';
                 <div>
                     <label for="profile-language" class="block text-sm font-medium mb-1 text-theme-secondary"><?php echo e(t('Language')); ?></label>
                     <select name="language" id="profile-language" class="form-select w-full sm:w-1/2">
-                        <option value="en" <?php echo ($user['language'] ?? 'en') === 'en' ? 'selected' : ''; ?>><?php echo e(t('English')); ?></option>
+                        <option value="en" <?php echo ($user['language'] ?? 'pt') === 'en' ? 'selected' : ''; ?>><?php echo e(t('English')); ?></option>
                         <option value="cs" <?php echo ($user['language'] ?? '') === 'cs' ? 'selected' : ''; ?>><?php echo e(t('Czech')); ?></option>
                         <option value="de" <?php echo ($user['language'] ?? '') === 'de' ? 'selected' : ''; ?>><?php echo e(t('German')); ?></option>
                         <option value="it" <?php echo ($user['language'] ?? '') === 'it' ? 'selected' : ''; ?>><?php echo e(t('Italian')); ?></option>
                         <option value="es" <?php echo ($user['language'] ?? '') === 'es' ? 'selected' : ''; ?>><?php echo e(t('Spanish')); ?></option>
+                        <option value="pt" <?php echo ($user['language'] ?? '') === 'pt' ? 'selected' : ''; ?>><?php echo e(t('Portuguese (Brazil)')); ?></option>
                     </select>
                     <p class="text-xs mt-1 text-theme-muted"><?php echo e(t('Changes the language of the entire application interface.')); ?></p>
                 </div>

@@ -126,36 +126,42 @@ function api_push_notifications(): void
 
             switch ($row['type']) {
                 case 'new_ticket':
-                    $title = 'New Ticket';
+                    $title = t('New Ticket');
                     $body = $actor_name ? "{$actor_name}: {$ticket_subject}" : $ticket_subject;
                     break;
                 case 'new_comment':
-                    $title = 'New Comment';
-                    $body = $actor_name ? "{$actor_name} commented on: {$ticket_subject}" : "Comment on: {$ticket_subject}";
+                    $title = t('New Comment');
+                    $body = $actor_name
+                        ? strtr(t('{actor} commented on: {ticket}'), ['{actor}' => $actor_name, '{ticket}' => $ticket_subject])
+                        : strtr(t('Comment on: {ticket}'), ['{ticket}' => $ticket_subject]);
                     break;
                 case 'status_changed':
-                    $title = 'Status Changed';
+                    $title = t('Status Changed');
                     $new_status = $data['new_status'] ?? '';
                     $body = "{$ticket_subject} → {$new_status}";
                     break;
                 case 'assigned_to_you':
-                    $title = 'Ticket Assigned';
-                    $body = $actor_name ? "{$actor_name} assigned you: {$ticket_subject}" : "Assigned: {$ticket_subject}";
+                    $title = t('Ticket Assigned');
+                    $body = $actor_name
+                        ? strtr(t('{actor} assigned you: {ticket}'), ['{actor}' => $actor_name, '{ticket}' => $ticket_subject])
+                        : strtr(t('Assigned: {ticket}'), ['{ticket}' => $ticket_subject]);
                     break;
                 case 'priority_changed':
-                    $title = 'Priority Changed';
+                    $title = t('Priority Changed');
                     $body = $ticket_subject;
                     break;
                 case 'mentioned':
-                    $title = 'You were mentioned';
-                    $body = $actor_name ? "{$actor_name} mentioned you in: {$ticket_subject}" : "Mentioned in: {$ticket_subject}";
+                    $title = t('You were mentioned');
+                    $body = $actor_name
+                        ? strtr(t('{actor} mentioned you in: {ticket}'), ['{actor}' => $actor_name, '{ticket}' => $ticket_subject])
+                        : strtr(t('Mentioned in: {ticket}'), ['{ticket}' => $ticket_subject]);
                     break;
                 case 'due_date_reminder':
-                    $title = 'Due Date Reminder';
+                    $title = t('Due Date Reminder');
                     $body = $ticket_subject;
                     break;
                 default:
-                    $body = $ticket_subject ?: 'New notification';
+                    $body = $ticket_subject ?: t('New notification');
             }
 
             if ($row['ticket_id']) {

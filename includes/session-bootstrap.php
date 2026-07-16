@@ -168,7 +168,7 @@ if (!function_exists('foxdesk_prepare_private_runtime_dir')) {
         if (!file_exists($index)) {
             @file_put_contents(
                 $index,
-                '<!DOCTYPE html><html><head><meta charset="utf-8"><title>403 Forbidden</title></head><body><h1>Forbidden</h1></body></html>'
+                '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>403 — Acesso negado</title></head><body><h1>Acesso negado</h1></body></html>'
             );
         }
 

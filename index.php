@@ -63,14 +63,14 @@ if (file_exists($maintenance_file)) {
         } else {
             http_response_code(503);
             header('Retry-After: 120');
-            echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Maintenance</title>';
+            echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Manutenção</title>';
             echo '<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui,sans-serif;background:#f8fafc;color:#334155}';
             echo '.box{text-align:center;padding:2rem}.spinner{width:24px;height:24px;border:3px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin .6s linear infinite;margin:0 auto 1rem}';
             echo '@keyframes spin{to{transform:rotate(360deg)}}</style>';
             echo '<meta http-equiv="refresh" content="15"></head>';
             echo '<body><div class="box"><div class="spinner"></div>';
-            echo '<div style="font-weight:600;font-size:1.1rem">System is updating</div>';
-            echo '<div style="color:#64748b;margin-top:.5rem;font-size:.875rem">Please try again in a few minutes. This page refreshes automatically.</div>';
+            echo '<div style="font-weight:600;font-size:1.1rem">O sistema está sendo atualizado</div>';
+            echo '<div style="color:#64748b;margin-top:.5rem;font-size:.875rem">Tente novamente em alguns minutos. Esta página será atualizada automaticamente.</div>';
             echo '</div></body></html>';
             exit;
         }
@@ -87,11 +87,11 @@ if (defined('DB_HOST')) {
         $resolved = gethostbyname('db');
         if ($resolved === 'db') {
             http_response_code(503);
-            echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Configuration required</title></head><body style="font-family:system-ui,sans-serif;max-width:720px;margin:48px auto;padding:0 20px;color:#334155">';
-            echo '<h1>Database configuration required</h1>';
-            echo '<p>The configured database host is <code>db</code>, but that host is not resolvable on this server.</p>';
-            echo '<p>Edit <code>config.php</code> and set <code>DB_HOST</code> to your real database host, usually <code>localhost</code> on shared hosting.</p>';
-            echo '<p>If you intentionally need to rerun the installer, open <code>install.php?force=1&amp;token=FIRST_16_CHARS_OF_SECRET_KEY</code>.</p>';
+            echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Configuração necessária</title></head><body style="font-family:system-ui,sans-serif;max-width:720px;margin:48px auto;padding:0 20px;color:#334155">';
+            echo '<h1>É necessário configurar o banco de dados</h1>';
+            echo '<p>O host configurado para o banco de dados é <code>db</code>, mas ele não pode ser resolvido neste servidor.</p>';
+            echo '<p>Edite <code>config.php</code> e defina <code>DB_HOST</code> como o host real do banco, geralmente <code>localhost</code> em hospedagem compartilhada.</p>';
+            echo '<p>Se você realmente precisa executar o instalador novamente, abra <code>install.php?force=1&amp;token=FIRST_16_CHARS_OF_SECRET_KEY</code>.</p>';
             echo '</body></html>';
             exit;
         }

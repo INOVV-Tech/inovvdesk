@@ -511,7 +511,7 @@ function ticket_url($ticket, $params = [])
  */
 function get_app_language()
 {
-    $allowed = ['en', 'cs', 'de', 'it', 'es'];
+    $allowed = ['en', 'cs', 'de', 'it', 'es', 'pt'];
     $normalize = static function ($value) use ($allowed) {
         $value = strtolower(trim((string) $value));
         return in_array($value, $allowed, true) ? $value : null;
@@ -555,8 +555,8 @@ function get_app_language()
         return $session_lang;
     }
 
-    $setting_lang = $normalize(get_setting('app_language', 'en'));
-    return $setting_lang ?? 'en';
+    $setting_lang = $normalize(get_setting('app_language', 'pt'));
+    return $setting_lang ?? 'pt';
 }
 
 /**

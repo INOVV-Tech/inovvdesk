@@ -23,7 +23,7 @@ $template = get_report_template_by_public_token($token);
 
 if (!$template) {
     http_response_code(404);
-    die('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Error</title></head><body style="font-family:sans-serif;max-width:600px;margin:100px auto;text-align:center;"><h1 style="color:#dc2626;">' . e(t('Report not found or access denied')) . '</h1></body></html>');
+    die('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' . e(t('Error')) . '</title></head><body style="font-family:sans-serif;max-width:600px;margin:100px auto;text-align:center;"><h1 style="color:#dc2626;">' . e(t('Report not found or access denied')) . '</h1></body></html>');
 }
 
 // Set language for this report (save original and override temporarily)
@@ -105,7 +105,7 @@ $extract_report_tags = static function ($value) {
 };
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo $template['report_language'] ?? 'en'; ?>">
+<html lang="<?php echo $template['report_language'] ?? 'pt'; ?>">
 
 <head>
     <meta charset="UTF-8">
@@ -251,7 +251,7 @@ $extract_report_tags = static function ($value) {
                 <!-- Left: Report Company Logo -->
                 <div class="flex-shrink-0">
                     <?php if ($report_company_logo): ?>
-                        <img src="<?php echo e(upload_url($report_company_logo)); ?>" alt="Company Logo" class="h-16 object-contain">
+                        <img src="<?php echo e(upload_url($report_company_logo)); ?>" alt="<?php echo e(t('Company logo')); ?>" class="h-16 object-contain">
                     <?php else: ?>
                         <div class="text-2xl font-bold" style="color: <?php echo $theme_color; ?>;">
                             <?php echo e($report_company_name); ?>

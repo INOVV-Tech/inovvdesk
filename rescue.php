@@ -28,11 +28,11 @@ $authenticated = false;
 
 if ($token === '' || strlen($token) < 12) {
     http_response_code(403);
-    echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>FoxDesk Rescue</title></head><body>';
-    echo '<h2>FoxDesk Rescue Script</h2>';
-    echo '<p>This script requires a security token to proceed.</p>';
-    echo '<p>Usage: <code>rescue.php?token=FIRST_16_CHARS_OF_SECRET_KEY</code></p>';
-    echo '<p style="color:gray;font-size:12px">You can find your SECRET_KEY in your backup config.php or hosting panel.</p>';
+    echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resgate do FoxDesk</title></head><body>';
+    echo '<h2>Script de resgate do FoxDesk</h2>';
+    echo '<p>Este script exige um token de segurança para continuar.</p>';
+    echo '<p>Uso: <code>rescue.php?token=FIRST_16_CHARS_OF_SECRET_KEY</code></p>';
+    echo '<p style="color:gray;font-size:12px">Você encontra a SECRET_KEY no config.php do backup ou no painel da hospedagem.</p>';
     echo '</body></html>';
     exit;
 }
@@ -91,27 +91,27 @@ if (!$authenticated) {
 
 if (!$authenticated) {
     http_response_code(403);
-    echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>FoxDesk Rescue</title></head><body>';
-    echo '<h2>Access Denied</h2>';
-    echo '<p style="color:red">Invalid security token. Please use the first 16 characters of your SECRET_KEY.</p>';
+    echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resgate do FoxDesk</title></head><body>';
+    echo '<h2>Acesso negado</h2>';
+    echo '<p style="color:red">Token de segurança inválido. Use os primeiros 16 caracteres da sua SECRET_KEY.</p>';
     echo '</body></html>';
     exit;
 }
 
 // ── Authenticated — proceed with rescue ─────────────────────────────────────
 
-echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>FoxDesk Rescue</title>';
+echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Resgate do FoxDesk</title>';
 echo '<style>body{font-family:system-ui,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#334155}';
 echo 'pre{background:#f1f5f9;padding:12px;border-radius:8px;overflow-x:auto;font-size:13px}';
 echo '.btn{background:#3b82f6;color:white;padding:10px 20px;border:none;border-radius:6px;font-size:15px;cursor:pointer}';
 echo '.btn:hover{background:#2563eb}</style></head><body>';
 
-echo "<h2>FoxDesk Rescue Script</h2>\n";
+echo "<h2>Script de resgate do FoxDesk</h2>\n";
 
 // Find backup directory
 $backup_dir = __DIR__ . '/backups';
 if (!is_dir($backup_dir)) {
-    echo "<p style='color:red'>ERROR: Backup directory not found.</p></body></html>";
+    echo "<p style='color:red'>ERRO: diretório de backup não encontrado.</p></body></html>";
     exit;
 }
 
@@ -126,7 +126,7 @@ foreach (scandir($backup_dir) as $entry) {
 }
 
 if (empty($backups)) {
-    echo "<p style='color:red'>ERROR: No backups found with files.zip</p></body></html>";
+    echo "<p style='color:red'>ERRO: nenhum backup com files.zip foi encontrado.</p></body></html>";
     exit;
 }
 
@@ -134,12 +134,12 @@ krsort($backups);
 $latest_id = key($backups);
 $latest_path = $backups[$latest_id];
 
-echo "<p>Found " . count($backups) . " backup(s). Latest: <b>" . htmlspecialchars($latest_id) . "</b></p>\n";
+echo "<p>Backups encontrados: " . count($backups) . ". Mais recente: <b>" . htmlspecialchars($latest_id) . "</b></p>\n";
 
 // Extract config.php from the backup ZIP
 $zip = new ZipArchive();
 if ($zip->open($latest_path . '/files.zip') !== true) {
-    echo "<p style='color:red'>ERROR: Cannot open backup ZIP</p></body></html>";
+    echo "<p style='color:red'>ERRO: não foi possível abrir o ZIP do backup.</p></body></html>";
     exit;
 }
 
@@ -154,38 +154,38 @@ for ($i = 0; $i < $zip->numFiles; $i++) {
 $zip->close();
 
 if ($config_content === null) {
-    echo "<p style='color:red'>ERROR: config.php not found in backup ZIP</p></body></html>";
+    echo "<p style='color:red'>ERRO: config.php não encontrado no ZIP do backup.</p></body></html>";
     exit;
 }
 
 // Show what we found (hide sensitive values)
 $display = preg_replace("/define\('DB_PASS',\s*'[^']*'\)/", "define('DB_PASS', '***HIDDEN***')", $config_content);
 $display = preg_replace("/define\('SECRET_KEY',\s*'[^']*'\)/", "define('SECRET_KEY', '***HIDDEN***')", $display);
-echo "<h3>Config from backup:</h3>\n";
+echo "<h3>Configuração encontrada no backup:</h3>\n";
 echo "<pre>" . htmlspecialchars($display) . "</pre>\n";
 
 // Handle restore
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_restore'])) {
     // Simple CSRF: verify the token is still in the POST
     if (($_POST['rescue_token'] ?? '') !== $token) {
-        echo "<p style='color:red'>ERROR: Token mismatch. Please reload and try again.</p></body></html>";
+        echo "<p style='color:red'>ERRO: o token não confere. Recarregue a página e tente novamente.</p></body></html>";
         exit;
     }
 
     $target = __DIR__ . '/config.php';
     if (file_put_contents($target, $config_content) !== false) {
-        echo "<p style='color:green;font-size:18px'><b>SUCCESS!</b> config.php has been restored from backup.</p>\n";
-        echo "<p><a href='index.php'>Go to FoxDesk &rarr;</a></p>\n";
-        echo "<p style='color:#d97706'><b>IMPORTANT:</b> Delete this rescue.php file from your server now!</p>\n";
+        echo "<p style='color:green;font-size:18px'><b>SUCESSO!</b> O config.php foi restaurado do backup.</p>\n";
+        echo "<p><a href='index.php'>Ir para o FoxDesk &rarr;</a></p>\n";
+        echo "<p style='color:#d97706'><b>IMPORTANTE:</b> exclua agora este arquivo rescue.php do servidor!</p>\n";
     } else {
-        echo "<p style='color:red'>ERROR: Failed to write config.php. Check file permissions.</p>\n";
+        echo "<p style='color:red'>ERRO: falha ao gravar config.php. Verifique as permissões do arquivo.</p>\n";
     }
 } else {
     echo "<form method='post'>\n";
     echo "<input type='hidden' name='rescue_token' value='" . htmlspecialchars($token) . "'>\n";
-    echo "<button type='submit' name='confirm_restore' value='1' class='btn'>Restore config.php from backup</button>\n";
+    echo "<button type='submit' name='confirm_restore' value='1' class='btn'>Restaurar config.php do backup</button>\n";
     echo "</form>\n";
-    echo "<p style='color:gray;font-size:12px'>This will overwrite the current config.php with the one from backup " . htmlspecialchars($latest_id) . ".</p>\n";
+    echo "<p style='color:gray;font-size:12px'>Isto substituirá o config.php atual pelo arquivo do backup " . htmlspecialchars($latest_id) . ".</p>\n";
 }
 
 echo "</body></html>";

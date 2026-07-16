@@ -302,7 +302,7 @@ function company_signup_register_client(string $token, string $name, string $ema
             'role' => 'user',
             'permissions' => json_encode($permissions),
             'organization_id' => $organization_id,
-            'language' => get_setting('app_language', 'en'),
+            'language' => get_setting('app_language', 'pt'),
             'email_notifications_enabled' => 1,
             'in_app_notifications_enabled' => 1,
             'in_app_sound_enabled' => 0,

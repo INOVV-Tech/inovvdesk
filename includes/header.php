@@ -462,7 +462,7 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                 <a href="<?php echo url('admin', ['section' => 'migration-export']); ?>" role="menuitem"
                     class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
                     <?php echo get_icon('cloud-upload-alt', 'w-4 h-4'); ?>
-                    <span>Cloud migration</span>
+                    <span><?php echo e(t('Cloud migration')); ?></span>
                 </a>
                 <?php endif; ?>
 

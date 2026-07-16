@@ -51,10 +51,10 @@ if (!$is_cli && !$is_admin_session) {
     $secret = defined('SECRET_KEY') ? SECRET_KEY : '';
     if ($secret === '' || $token === '' || ($token !== substr($secret, 0, 16) && $token !== $secret)) {
         http_response_code(403);
-        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Upgrade</title></head><body>';
-        echo '<h2>Access Denied</h2>';
-        echo '<p>Database upgrade requires authentication.</p>';
-        echo '<p>Either log in as admin first, or use: <code>upgrade.php?token=FIRST_16_CHARS_OF_SECRET_KEY</code></p>';
+        echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>Atualização</title></head><body>';
+        echo '<h2>Acesso negado</h2>';
+        echo '<p>A atualização do banco de dados exige autenticação.</p>';
+        echo '<p>Faça login como administrador ou use: <code>upgrade.php?token=FIRST_16_CHARS_OF_SECRET_KEY</code></p>';
         echo '</body></html>';
         exit;
     }
@@ -1359,19 +1359,19 @@ if (empty($messages)) {
 
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upgrade - FoxDesk</title>
+    <title>Atualização - FoxDesk</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="theme.css" rel="stylesheet">
 </head>
 
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div class="bg-white rounded-xl shadow-lg max-w-lg w-full p-8">
-        <h1 class="text-2xl font-bold text-gray-800 mb-6">Upgrade complete</h1>
+        <h1 class="text-2xl font-bold text-gray-800 mb-6">Atualização concluída</h1>
 
         <div class="space-y-2 max-h-96 overflow-y-auto">
             <?php foreach ($messages as $msg): ?>
@@ -1385,12 +1385,12 @@ if (empty($messages)) {
         <div class="mt-6 pt-6 border-t">
             <a href="index.php"
                 class="inline-block bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition">
-                Go to app ->
+                Acessar o aplicativo →
             </a>
         </div>
 
         <p class="text-sm text-gray-500 mt-6">
-            <strong>Tip:</strong> For better security, delete <code class="bg-gray-100 px-1 rounded">upgrade.php</code>
+            <strong>Dica:</strong> para maior segurança, exclua <code class="bg-gray-100 px-1 rounded">upgrade.php</code>
         </p>
     </div>
 </body>

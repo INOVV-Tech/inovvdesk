@@ -10,7 +10,7 @@ if (!is_admin()) {
 }
 
 $current_user = current_user();
-$allowed_report_languages = ['en', 'cs', 'de', 'it', 'es'];
+$allowed_report_languages = ['en', 'cs', 'de', 'it', 'es', 'pt'];
 $allowed_group_by = ['none', 'day', 'task'];
 $allowed_rounding = [0, 15, 30, 60];
 
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $organization_id = (int) ($_POST['organization_id'] ?? 0);
     $title = trim((string) ($_POST['title'] ?? ''));
-    $report_language = trim((string) ($_POST['report_language'] ?? 'en'));
+    $report_language = trim((string) ($_POST['report_language'] ?? 'pt'));
     if (!in_array($report_language, $allowed_report_languages, true)) {
         $report_language = 'en';
     }
@@ -166,7 +166,8 @@ $languages = [
     'cs' => t('Czech'),
     'de' => t('German'),
     'it' => t('Italian'),
-    'es' => t('Spanish')
+    'es' => t('Spanish'),
+    'pt' => t('Portuguese (Brazil)')
 ];
 
 // Date presets
@@ -181,7 +182,7 @@ if ($editing && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $form_values = [
         'organization_id' => (int) ($edit_report['organization_id'] ?? 0),
         'title' => trim((string) ($edit_report['title'] ?? '')),
-        'report_language' => trim((string) ($edit_report['report_language'] ?? 'en')),
+        'report_language' => trim((string) ($edit_report['report_language'] ?? 'pt')),
         'date_from' => trim((string) ($edit_report['date_from'] ?? $first_of_last_month)),
         'date_to' => trim((string) ($edit_report['date_to'] ?? $last_of_last_month)),
         'executive_summary' => (string) ($edit_report['executive_summary'] ?? ''),
@@ -204,7 +205,7 @@ if ($editing && $_SERVER['REQUEST_METHOD'] !== 'POST') {
     $form_values = [
         'organization_id' => (int) ($_POST['organization_id'] ?? 0),
         'title' => trim((string) ($_POST['title'] ?? '')),
-        'report_language' => trim((string) ($_POST['report_language'] ?? 'en')),
+        'report_language' => trim((string) ($_POST['report_language'] ?? 'pt')),
         'date_from' => trim((string) ($_POST['date_from'] ?? $first_of_last_month)),
         'date_to' => trim((string) ($_POST['date_to'] ?? $last_of_last_month)),
         'executive_summary' => (string) ($_POST['executive_summary'] ?? ''),
@@ -290,7 +291,7 @@ try {
 
         $latest_report_settings_by_org[$org_id] = [
             'title' => (string)($row['title'] ?? ''),
-            'report_language' => (string)($row['report_language'] ?? 'en'),
+            'report_language' => (string)($row['report_language'] ?? 'pt'),
             'date_from' => (string)($row['date_from'] ?? ''),
             'date_to' => (string)($row['date_to'] ?? ''),
             'executive_summary' => (string)($row['executive_summary'] ?? ''),

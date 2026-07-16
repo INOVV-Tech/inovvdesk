@@ -189,20 +189,23 @@ include BASE_PATH . '/includes/components/page-header.php';
                 <div class="max-w-sm">
                     <label class="block text-sm font-medium mb-1 text-theme-secondary"><?php echo e(t('Language')); ?></label>
                     <select name="app_language" class="form-select">
-                        <option value="en" <?php echo ($settings['app_language'] ?? 'en') === 'en' ? 'selected' : ''; ?>>
+                        <option value="en" <?php echo ($settings['app_language'] ?? 'pt') === 'en' ? 'selected' : ''; ?>>
                             <?php echo e(t('English')); ?>
                         </option>
-                        <option value="cs" <?php echo ($settings['app_language'] ?? 'en') === 'cs' ? 'selected' : ''; ?>>
+                        <option value="cs" <?php echo ($settings['app_language'] ?? 'pt') === 'cs' ? 'selected' : ''; ?>>
                             <?php echo e(t('Czech')); ?>
                         </option>
-                        <option value="de" <?php echo ($settings['app_language'] ?? 'en') === 'de' ? 'selected' : ''; ?>>
+                        <option value="de" <?php echo ($settings['app_language'] ?? 'pt') === 'de' ? 'selected' : ''; ?>>
                             <?php echo e(t('German')); ?>
                         </option>
-                        <option value="it" <?php echo ($settings['app_language'] ?? 'en') === 'it' ? 'selected' : ''; ?>>
+                        <option value="it" <?php echo ($settings['app_language'] ?? 'pt') === 'it' ? 'selected' : ''; ?>>
                             <?php echo e(t('Italian')); ?>
                         </option>
-                        <option value="es" <?php echo ($settings['app_language'] ?? 'en') === 'es' ? 'selected' : ''; ?>>
+                        <option value="es" <?php echo ($settings['app_language'] ?? 'pt') === 'es' ? 'selected' : ''; ?>>
                             <?php echo e(t('Spanish')); ?>
+                        </option>
+                        <option value="pt" <?php echo ($settings['app_language'] ?? 'pt') === 'pt' ? 'selected' : ''; ?>>
+                            <?php echo e(t('Portuguese (Brazil)')); ?>
                         </option>
                     </select>
                     <p class="text-xs mt-1 text-theme-muted">
@@ -305,7 +308,7 @@ include BASE_PATH . '/includes/components/page-header.php';
             <?php $current_favicon = $settings['favicon'] ?? ''; ?>
             <?php if ($current_favicon): ?>
                 <div class="flex items-center gap-3 p-3 rounded-lg mb-4 w-fit bg-theme-secondary">
-                    <img src="<?php echo e($current_favicon); ?>" alt="Current favicon" class="w-8 h-8">
+                    <img src="<?php echo e($current_favicon); ?>" alt="<?php echo e(t('Current favicon')); ?>" class="w-8 h-8">
                     <span class="text-sm text-theme-secondary"><?php echo e(t('Current favicon')); ?></span>
                     <form method="post" class="inline ml-2">
                         <?php echo csrf_field(); ?>
@@ -351,7 +354,7 @@ include BASE_PATH . '/includes/components/page-header.php';
             <?php $current_app_logo = get_setting('app_logo', ''); ?>
             <?php if ($current_app_logo): ?>
                 <div class="flex items-center gap-3 p-3 rounded-lg mb-4 w-fit bg-theme-secondary">
-                    <img src="<?php echo e(upload_url($current_app_logo)); ?>" alt="Current logo"
+                    <img src="<?php echo e(upload_url($current_app_logo)); ?>" alt="<?php echo e(t('Current logo')); ?>"
                         class="w-10 h-10 rounded-full object-cover">
                     <span class="text-sm text-theme-secondary"><?php echo e(t('Current logo')); ?></span>
                     <form method="post" class="inline ml-2">

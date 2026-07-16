@@ -525,7 +525,7 @@ function send_recurring_task_notification($ticket_id, $recurring_task)
     require_once BASE_PATH . '/includes/mailer.php';
 
     // Get language
-    $language = $assigned_user['language'] ?? 'en';
+    $language = $assigned_user['language'] ?? 'pt';
 
     // Get template
     $template = get_email_template('recurring_task_assignment', $language);

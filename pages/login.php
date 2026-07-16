@@ -30,7 +30,8 @@ $lang_options = [
     'cs' => t('Czech'),
     'de' => t('German'),
     'it' => t('Italian'),
-    'es' => t('Spanish')
+    'es' => t('Spanish'),
+    'pt' => t('Portuguese (Brazil)')
 ];
 $lang_params = ['page' => 'login'];
 if (isset($_GET['reset'])) {
@@ -139,7 +140,7 @@ elseif ($_SERVER['REQUEST_METHOD'] === 'POST' && !isset($_POST['verify_2fa'])) {
                     'user_email'   => $_SESSION['user_email'],
                     'user_name'    => $_SESSION['user_name'],
                     'user_role'    => $_SESSION['user_role'],
-                    'lang'         => $_SESSION['lang'] ?? 'en',
+                    'lang'         => $_SESSION['lang'] ?? 'pt',
                     'remember_me'  => !empty($_POST['remember_me']),
                     'totp_enabled' => $user_has_2fa,
                     'timestamp'    => time(),
