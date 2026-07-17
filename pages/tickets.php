@@ -276,9 +276,9 @@ if (!empty($organization_id) && !empty($org['name'])) {
     $page_header_breadcrumbs[] = ['label' => $org['name']];
 }
 
-$bulk_actions_enabled = is_agent() && !empty($tickets);
+$bulk_actions_enabled = is_agent() && !empty($tickets) && (!$is_archive || is_admin());
 $bulk_archive_mode = $bulk_actions_enabled && !$is_archive;
-$bulk_delete_mode = $bulk_actions_enabled && $is_archive;
+$bulk_delete_mode = $bulk_actions_enabled && $is_archive && is_admin();
 
 $page_header_actions = '';
 // User View Mode Toggle

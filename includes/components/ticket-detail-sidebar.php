@@ -443,6 +443,15 @@ if (is_agent()) {
                                     <?php echo get_icon('undo', 'w-4 h-4 mr-1.5'); ?><?php echo e(t('Restore')); ?>
                                 </button>
                             </form>
+                            <?php if (is_admin()): ?>
+                                <form method="post" class="mt-2"
+                                    onsubmit="return confirm(<?php echo e(json_encode(t('Are you sure you want to permanently delete this ticket? All comments, attachments, and recorded hours will be removed. This action cannot be undone.'), JSON_UNESCAPED_UNICODE)); ?>)">
+                                    <?php echo csrf_field(); ?>
+                                    <button type="submit" name="delete_ticket_permanently" class="btn btn-danger btn-sm w-full justify-center">
+                                        <?php echo get_icon('trash', 'w-4 h-4 mr-1.5'); ?><?php echo e(t('Delete permanently')); ?>
+                                    </button>
+                                </form>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>

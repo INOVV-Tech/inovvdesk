@@ -44,14 +44,7 @@ function ticket_bulk_delete_archived(array $editable_tickets): int
 {
     $deleted_count = 0;
     foreach ($editable_tickets as $ticket_id => $ticket_item) {
-        $attachments = get_ticket_attachments($ticket_id);
-        foreach ($attachments as $attachment) {
-            $path = attachment_absolute_path($attachment);
-            if ($path !== '' && is_file($path)) {
-                @unlink($path);
-            }
-        }
-        if (delete_ticket($ticket_id)) {
+        if (delete_ticket_permanently($ticket_id)) {
             $deleted_count++;
         }
     }
@@ -172,6 +165,10 @@ function ticket_handle_bulk_actions(string $method, array $post, array $user, bo
     $editable_tickets = ticket_bulk_editable_tickets($post['ticket_ids'] ?? [], $user);
 
     if (isset($post['bulk_delete']) && $is_archive) {
+        if (!is_admin()) {
+            flash(t('Access denied.'), 'error');
+            redirect('tickets', $redirect_params + ['archived' => '1']);
+        }
         $deleted_count = ticket_bulk_delete_archived($editable_tickets);
         flash($deleted_count > 0 ? t('Selected tickets were deleted.') : t('No tickets selected.'), $deleted_count > 0 ? 'success' : 'error');
         redirect('tickets', $redirect_params + ['archived' => '1']);

@@ -740,6 +740,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('ticket', ['id' => $ticket_id]);
     }
 
+    // Permanently delete an archived ticket (administrators only)
+    if (isset($_POST['delete_ticket_permanently'])) {
+        if (!is_admin() || empty($ticket['is_archived'])) {
+            flash(t('Access denied.'), 'error');
+            redirect('ticket', ['id' => $ticket_id]);
+        }
+
+        $deleted_ticket_context = [
+            'ticket_id' => $ticket_id,
+            'ticket_hash' => $ticket['hash'] ?? null,
+            'ticket_title' => $ticket['title'] ?? null,
+            'recorded_minutes' => (int) $total_time_minutes,
+        ];
+
+        if (delete_ticket_permanently($ticket_id)) {
+            if (function_exists('log_security_event')) {
+                log_security_event(
+                    'ticket_deleted_permanently',
+                    (int) $user['id'],
+                    json_encode($deleted_ticket_context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                );
+            }
+            flash(t('Ticket permanently deleted.'), 'success');
+            redirect('tickets', ['archived' => '1']);
+        }
+
+        flash(t('Failed to permanently delete ticket.'), 'error');
+        redirect('ticket', ['id' => $ticket_id]);
+    }
+
     // Delete time entry (admin can delete any, agent can delete own only)
     if (isset($_POST['delete_time_entry']) && (is_agent() || is_admin())) {
         $entry_id = (int) $_POST['entry_id'];

@@ -514,7 +514,7 @@ function api_cancel_ticket() {
 
     // Delete the ticket entirely
     require_once BASE_PATH . '/includes/ticket-crud-functions.php';
-    delete_ticket($ticket_id);
+    delete_ticket_permanently($ticket_id);
 
     api_success(['message' => t('Ticket cancelled.')]);
 }

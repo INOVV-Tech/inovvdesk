@@ -531,6 +531,34 @@ function delete_ticket($id) {
 }
 
 /**
+ * Permanently delete a ticket and remove its attachment files from disk.
+ * Related database records, including time entries, are removed by delete_ticket().
+ */
+function delete_ticket_permanently($id) {
+    $attachment_paths = [];
+    if (function_exists('get_ticket_attachments') && function_exists('attachment_absolute_path')) {
+        foreach (get_ticket_attachments($id) as $attachment) {
+            $path = attachment_absolute_path($attachment);
+            if ($path !== '') {
+                $attachment_paths[] = $path;
+            }
+        }
+    }
+
+    if (!delete_ticket($id)) {
+        return false;
+    }
+
+    foreach (array_unique($attachment_paths) as $path) {
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    return true;
+}
+
+/**
  * Count tickets by status
  */
 // =============================================================================
