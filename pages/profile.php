@@ -31,6 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $last_name = trim($_POST['last_name'] ?? '');
         $contact_phone = trim($_POST['contact_phone'] ?? '');
         $notes = trim($_POST['notes'] ?? '');
+        $selected_language = null;
+
+        if (isset($_POST['language'])) {
+            $candidate_language = strtolower(trim((string) $_POST['language']));
+            if (in_array($candidate_language, ['en', 'cs', 'de', 'it', 'es', 'pt'], true)) {
+                $selected_language = $candidate_language;
+            }
+        }
 
         if (!empty($first_name)) {
             $updates = [
@@ -38,8 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'last_name' => $last_name
             ];
 
-            if (isset($_POST['language'])) {
-                $updates['language'] = $_POST['language'];
+            if ($selected_language !== null) {
+                $updates['language'] = $selected_language;
             }
 
             if ($contact_phone_column_exists) {
@@ -50,6 +58,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             db_update('users', $updates, 'id = ?', [$user['id']]);
+
+            if ($selected_language !== null) {
+                current_user(true);
+                $_SESSION['lang'] = $selected_language;
+                unset($_SESSION['lang_override']);
+            }
 
             $_SESSION['user_name'] = $first_name . ' ' . $last_name;
             flash(t('Profile updated.'), 'success');

@@ -448,6 +448,16 @@ function settings_handle_post_request(callable $settings_audit): void
         save_setting('ticket_prefix', strtoupper(preg_replace('/[^A-Za-z]/', '', $ticket_prefix)) ?: 'TK');
         save_setting('login_welcome_text', trim($_POST['login_welcome_text'] ?? ''));
         save_setting('app_language', $app_language);
+
+        // The logged-in user's preference has priority over the global setting.
+        // Keep the administrator who changed the setting in sync so the new
+        // language is visible immediately after the redirect.
+        $active_user = current_user();
+        if (!empty($active_user['id'])) {
+            db_update('users', ['language' => $app_language], 'id = ?', [(int) $active_user['id']]);
+            current_user(true);
+        }
+
         $_SESSION['lang'] = $app_language;
         unset($_SESSION['lang_override']);
         save_setting('time_format', $time_format);
