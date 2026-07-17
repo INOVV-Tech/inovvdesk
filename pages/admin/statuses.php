@@ -5,6 +5,8 @@
 
 $page_title = t('Statuses');
 $page = 'admin';
+$status_group_supported = function_exists('ensure_ticket_status_group_column')
+    && ensure_ticket_status_group_column();
 $statuses = get_statuses();
 
 // Handle form submissions
@@ -40,14 +42,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $new_order = $max_order + 1;
             }
 
-            db_insert('statuses', [
+            $is_closed = isset($_POST['is_closed']) ? 1 : 0;
+            $status_data = [
                 'name' => $name,
                 'slug' => $slug,
                 'color' => $color,
                 'sort_order' => $new_order,
                 'is_default' => 0,
-                'is_closed' => isset($_POST['is_closed']) ? 1 : 0
-            ]);
+                'is_closed' => $is_closed,
+            ];
+            if ($status_group_supported) {
+                $status_data['status_group'] = ticket_status_group_from_form($_POST);
+            }
+            db_insert('statuses', $status_data);
 
             flash(t('Status added.'), 'success');
             redirect('admin', ['section' => 'statuses']);
@@ -61,11 +68,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $color = $_POST['color'] ?? '#3b82f6';
 
         if (!empty($name) && $id > 0) {
-            db_update('statuses', [
+            $is_closed = isset($_POST['is_closed']) ? 1 : 0;
+            $status_data = [
                 'name' => $name,
                 'color' => $color,
-                'is_closed' => isset($_POST['is_closed']) ? 1 : 0
-            ], 'id = ?', [$id]);
+                'is_closed' => $is_closed,
+            ];
+            if ($status_group_supported) {
+                $status_data['status_group'] = ticket_status_group_from_form($_POST);
+            }
+            db_update('statuses', $status_data, 'id = ?', [$id]);
 
             flash(t('Status updated.'), 'success');
             redirect('admin', ['section' => 'statuses']);
@@ -123,6 +135,7 @@ include BASE_PATH . '/includes/components/page-header.php';
             <div id="statuses-list" class="divide-y">
                 <?php foreach ($statuses as $index => $status):
                     $tickets_count = db_fetch_one("SELECT COUNT(*) as c FROM tickets WHERE status_id = ?", [$status['id']]);
+                    $status_group = ticket_status_group_from_status($status);
                 ?>
                     <div class="px-6 py-3 hover:bg-gray-50 status-item flex items-center justify-between" data-id="<?php echo $status['id']; ?>">
                         <div class="flex items-center space-x-4">
@@ -142,6 +155,8 @@ include BASE_PATH . '/includes/components/page-header.php';
                                 <?php endif; ?>
                                 <?php if ($status['is_closed']): ?>
                                     <span class="ml-2 text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-md"><?php echo e(t('Closed')); ?></span>
+                                <?php elseif ($status_group === 'waiting'): ?>
+                                    <span class="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md"><?php echo e(t('Waiting')); ?></span>
                                 <?php endif; ?>
                                 <div class="text-xs text-gray-500"><?php echo e(t('{count} tickets', ['count' => $tickets_count['c']])); ?></div>
                             </div>
@@ -163,7 +178,8 @@ include BASE_PATH . '/includes/components/page-header.php';
                                 'id' => $status['id'],
                                 'name' => $status['name'],
                                 'color' => $status['color'],
-                                'is_closed' => (bool)$status['is_closed']
+                                'is_closed' => (bool)$status['is_closed'],
+                                'is_waiting' => $status_group === 'waiting',
                             ]), ENT_QUOTES, 'UTF-8'); ?>)"
                                 class="text-blue-500 hover:text-blue-700 p-2" title="<?php echo e(t('Edit')); ?>">
                                 <?php echo get_icon('edit'); ?>
@@ -219,11 +235,17 @@ include BASE_PATH . '/includes/components/page-header.php';
                     </select>
                 </div>
 
-                <div>
+                <div class="space-y-2" data-status-group-controls>
                     <label class="flex items-center text-sm text-gray-600">
-                        <input type="checkbox" name="is_closed" class="mr-2 rounded">
+                        <input type="checkbox" name="is_closed" class="status-closed-checkbox mr-2 rounded">
                         <?php echo e(t('Mark as closed status')); ?>
                     </label>
+                    <?php if ($status_group_supported): ?>
+                        <label class="flex items-center text-sm text-gray-600">
+                            <input type="checkbox" name="is_waiting" class="status-waiting-checkbox mr-2 rounded">
+                            <?php echo e(t('Mark as waiting status')); ?>
+                        </label>
+                    <?php endif; ?>
                 </div>
 
                 <button type="submit" name="add_status" class="btn btn-primary w-full">
@@ -254,11 +276,17 @@ include BASE_PATH . '/includes/components/page-header.php';
                        class="w-full h-10 rounded-lg cursor-pointer border border-gray-200">
             </div>
 
-            <div>
+            <div class="space-y-2" data-status-group-controls>
                 <label class="flex items-center text-sm text-gray-600">
-                    <input type="checkbox" name="is_closed" id="edit_status_is_closed" class="mr-2 rounded">
+                    <input type="checkbox" name="is_closed" id="edit_status_is_closed" class="status-closed-checkbox mr-2 rounded">
                     <?php echo e(t('Mark as closed status')); ?>
                 </label>
+                <?php if ($status_group_supported): ?>
+                    <label class="flex items-center text-sm text-gray-600">
+                        <input type="checkbox" name="is_waiting" id="edit_status_is_waiting" class="status-waiting-checkbox mr-2 rounded">
+                        <?php echo e(t('Mark as waiting status')); ?>
+                    </label>
+                <?php endif; ?>
             </div>
 
             <div class="flex justify-end gap-3 pt-4 border-t">
@@ -282,6 +310,8 @@ include BASE_PATH . '/includes/components/page-header.php';
         document.getElementById('edit_status_name').value = status.name;
         document.getElementById('edit_status_color').value = status.color;
         document.getElementById('edit_status_is_closed').checked = status.is_closed;
+        const waiting = document.getElementById('edit_status_is_waiting');
+        if (waiting) waiting.checked = status.is_waiting;
 
         const modal = document.getElementById('editStatusModal');
         modal.classList.remove('hidden');
@@ -311,6 +341,19 @@ include BASE_PATH . '/includes/components/page-header.php';
     document.addEventListener('DOMContentLoaded', function () {
         const list = document.getElementById('statuses-list');
         const csrfToken = window.csrfToken || (document.querySelector('meta[name="csrf-token"]') || {}).content;
+
+        document.querySelectorAll('[data-status-group-controls]').forEach(container => {
+            const closed = container.querySelector('.status-closed-checkbox');
+            const waiting = container.querySelector('.status-waiting-checkbox');
+            if (!closed || !waiting) return;
+
+            closed.addEventListener('change', () => {
+                if (closed.checked) waiting.checked = false;
+            });
+            waiting.addEventListener('change', () => {
+                if (waiting.checked) closed.checked = false;
+            });
+        });
 
         if (list) {
             new Sortable(list, {

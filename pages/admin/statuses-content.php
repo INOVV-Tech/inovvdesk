@@ -3,6 +3,8 @@
  * Statuses Content (for inclusion in Settings page)
  */
 
+$status_group_supported = function_exists('ensure_ticket_status_group_column')
+    && ensure_ticket_status_group_column();
 $statuses = get_statuses();
 
 // Handle form submissions for statuses
@@ -39,14 +41,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tab === 'workflow') {
                 $new_order = admin_crud_next_sort_order('statuses');
             }
 
-            db_insert('statuses', [
+            $is_closed = isset($_POST['is_closed']) ? 1 : 0;
+            $status_data = [
                 'name' => $name,
                 'slug' => $slug,
                 'color' => $color,
                 'sort_order' => $new_order,
                 'is_default' => 0,
-                'is_closed' => isset($_POST['is_closed']) ? 1 : 0
-            ]);
+                'is_closed' => $is_closed,
+            ];
+            if ($status_group_supported) {
+                $status_data['status_group'] = ticket_status_group_from_form($_POST);
+            }
+            db_insert('statuses', $status_data);
 
             flash(t('Status added.'), 'success');
             redirect('admin', ['section' => 'settings', 'tab' => 'workflow']);
@@ -60,11 +67,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $tab === 'workflow') {
         $color = $_POST['color'] ?? '#3b82f6';
 
         if (!empty($name) && $id > 0) {
-            admin_crud_update_record('statuses', $id, [
+            $is_closed = isset($_POST['is_closed']) ? 1 : 0;
+            $status_data = [
                 'name' => $name,
                 'color' => $color,
-                'is_closed' => isset($_POST['is_closed']) ? 1 : 0
-            ]);
+                'is_closed' => $is_closed,
+            ];
+            if ($status_group_supported) {
+                $status_data['status_group'] = ticket_status_group_from_form($_POST);
+            }
+            admin_crud_update_record('statuses', $id, $status_data);
 
             flash(t('Status updated.'), 'success');
             redirect('admin', ['section' => 'settings', 'tab' => 'workflow']);
@@ -144,10 +156,18 @@ $edit_status = $edit_status_id ? get_status($edit_status_id) : null;
                     <?php endforeach; ?>
                 </select>
             </div>
-            <label class="flex items-center gap-2 text-xs cursor-pointer text-theme-secondary">
-                <input type="checkbox" name="is_closed" class="rounded w-3.5 h-3.5">
-                <?php echo e(t('Mark as closed')); ?>
-            </label>
+            <div class="space-y-1" data-status-group-controls>
+                <label class="flex items-center gap-2 text-xs cursor-pointer text-theme-secondary">
+                    <input type="checkbox" name="is_closed" class="status-closed-checkbox rounded w-3.5 h-3.5">
+                    <?php echo e(t('Mark as closed')); ?>
+                </label>
+                <?php if ($status_group_supported): ?>
+                    <label class="flex items-center gap-2 text-xs cursor-pointer text-theme-secondary">
+                        <input type="checkbox" name="is_waiting" class="status-waiting-checkbox rounded w-3.5 h-3.5">
+                        <?php echo e(t('Mark as waiting status')); ?>
+                    </label>
+                <?php endif; ?>
+            </div>
             <div class="flex gap-2 pt-1">
                 <button type="submit" name="add_status" class="flex-1 btn btn-primary btn-sm text-xs">
                     <?php echo e(t('Create')); ?>
@@ -169,10 +189,12 @@ $edit_status = $edit_status_id ? get_status($edit_status_id) : null;
             </div>
         <?php else: ?>
             <?php foreach ($statuses as $status): ?>
+            <?php $status_group = ticket_status_group_from_status($status); ?>
             <div class="status-item accordion-item" data-id="<?php echo $status['id']; ?>"
                 data-name="<?php echo e($status['name']); ?>"
                 data-color="<?php echo e($status['color']); ?>"
                 data-closed="<?php echo $status['is_closed'] ? '1' : '0'; ?>"
+                data-status-group="<?php echo e($status_group); ?>"
                 data-default="<?php echo $status['is_default'] ? '1' : '0'; ?>">
 
                 <!-- Item Header (always visible) -->
@@ -193,6 +215,10 @@ $edit_status = $edit_status_id ? get_status($edit_status_id) : null;
                         <?php if ($status['is_closed']): ?>
                             <span class="text-xs px-1.5 py-0.5 rounded mt-0.5 inline-block" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
                                 <?php echo e(t('Closed')); ?>
+                            </span>
+                        <?php elseif ($status_group === 'waiting'): ?>
+                            <span class="text-xs px-1.5 py-0.5 rounded mt-0.5 inline-block" style="background: rgba(245, 158, 11, 0.12); color: #d97706;">
+                                <?php echo e(t('Waiting')); ?>
                             </span>
                         <?php endif; ?>
                     </div>
@@ -235,10 +261,18 @@ $edit_status = $edit_status_id ? get_status($edit_status_id) : null;
                                     style="border: 1px solid var(--border-light);">
                             </div>
 
-                            <label class="flex items-center gap-2 text-xs cursor-pointer text-theme-secondary">
-                                <input type="checkbox" name="is_closed" class="rounded w-3.5 h-3.5" <?php echo $status['is_closed'] ? 'checked' : ''; ?>>
-                                <?php echo e(t('Mark as closed')); ?>
-                            </label>
+                            <div class="space-y-1" data-status-group-controls>
+                                <label class="flex items-center gap-2 text-xs cursor-pointer text-theme-secondary">
+                                    <input type="checkbox" name="is_closed" class="status-closed-checkbox rounded w-3.5 h-3.5" <?php echo $status['is_closed'] ? 'checked' : ''; ?>>
+                                    <?php echo e(t('Mark as closed')); ?>
+                                </label>
+                                <?php if ($status_group_supported): ?>
+                                    <label class="flex items-center gap-2 text-xs cursor-pointer text-theme-secondary">
+                                        <input type="checkbox" name="is_waiting" class="status-waiting-checkbox rounded w-3.5 h-3.5" <?php echo $status_group === 'waiting' ? 'checked' : ''; ?>>
+                                        <?php echo e(t('Mark as waiting status')); ?>
+                                    </label>
+                                <?php endif; ?>
+                            </div>
 
                             <div class="pt-2 border-t border-theme-light">
                                 <div class="flex gap-2 mb-2">
@@ -288,6 +322,19 @@ function toggleAccordion(button) {
 document.addEventListener('DOMContentLoaded', function() {
     const list = document.getElementById('statuses-list');
     const csrfToken = window.csrfToken || '';
+
+    document.querySelectorAll('[data-status-group-controls]').forEach(container => {
+        const closed = container.querySelector('.status-closed-checkbox');
+        const waiting = container.querySelector('.status-waiting-checkbox');
+        if (!closed || !waiting) return;
+
+        closed.addEventListener('change', () => {
+            if (closed.checked) waiting.checked = false;
+        });
+        waiting.addEventListener('change', () => {
+            if (waiting.checked) closed.checked = false;
+        });
+    });
 
     if (list) {
         new Sortable(list, {

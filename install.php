@@ -196,15 +196,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Insert default statuses
                 $statuses = [
-                    ['New', 'new', '#0a84ff', 1, 1, 0],
-                    ['Testing', 'testing', '#5e5ce6', 2, 0, 0],
-                    ['Waiting for customer', 'waiting', '#ff9f0a', 3, 0, 0],
-                    ['In progress', 'processing', '#30b0c7', 4, 0, 0],
-                    ['Done', 'done', '#34c759', 5, 0, 1],
-                    ['Cancelled', 'cancelled', '#ff3b30', 6, 0, 1]
+                    ['New', 'new', '#0a84ff', 1, 1, 0, 'new'],
+                    ['Testing', 'testing', '#5e5ce6', 2, 0, 0, 'active'],
+                    ['Waiting for customer', 'waiting', '#ff9f0a', 3, 0, 0, 'waiting'],
+                    ['In progress', 'processing', '#30b0c7', 4, 0, 0, 'active'],
+                    ['Done', 'done', '#34c759', 5, 0, 1, 'done'],
+                    ['Cancelled', 'cancelled', '#ff3b30', 6, 0, 1, 'done']
                 ];
                 
-                $stmt = $pdo->prepare("INSERT INTO statuses (name, slug, color, sort_order, is_default, is_closed) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt = $pdo->prepare("INSERT INTO statuses (name, slug, color, sort_order, is_default, is_closed, status_group) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 foreach ($statuses as $status) {
                     $stmt->execute($status);
                 }

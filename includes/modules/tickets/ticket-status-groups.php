@@ -29,6 +29,48 @@ function ticket_status_group_normalize(?string $group): string
     return in_array($group, ticket_status_group_keys(), true) ? $group : 'active';
 }
 
+function ticket_status_group_column_exists(bool $refresh = false): bool
+{
+    static $available = null;
+    if (!$refresh && $available !== null) {
+        return $available;
+    }
+
+    try {
+        $available = (bool) db_fetch_one("SHOW COLUMNS FROM statuses LIKE 'status_group'");
+    } catch (Throwable $e) {
+        $available = false;
+    }
+
+    return $available;
+}
+
+function ensure_ticket_status_group_column(): bool
+{
+    if (ticket_status_group_column_exists()) {
+        return true;
+    }
+
+    try {
+        db_query("ALTER TABLE statuses ADD COLUMN status_group VARCHAR(20) NULL DEFAULT NULL AFTER is_closed");
+    } catch (Throwable $e) {
+        // Another request may have added the column, or this database user may not allow schema changes.
+    }
+
+    return ticket_status_group_column_exists(true);
+}
+
+function ticket_status_group_from_form(array $input): string
+{
+    if (!empty($input['is_closed'])) {
+        return 'done';
+    }
+    if (!empty($input['is_waiting'])) {
+        return 'waiting';
+    }
+    return 'active';
+}
+
 function ticket_status_group_search_text(?string $text): string
 {
     $text = trim((string) $text);
@@ -69,12 +111,12 @@ function ticket_status_group_search_text(?string $text): string
 
 function ticket_status_group_from_status(array $status): string
 {
-    if (isset($status['status_group']) && trim((string) $status['status_group']) !== '') {
-        return ticket_status_group_normalize((string) $status['status_group']);
-    }
-
     if (!empty($status['is_closed'])) {
         return 'done';
+    }
+
+    if (isset($status['status_group']) && trim((string) $status['status_group']) !== '') {
+        return ticket_status_group_normalize((string) $status['status_group']);
     }
 
     $name = ticket_status_group_search_text($status['name'] ?? '');
@@ -85,7 +127,7 @@ function ticket_status_group_from_status(array $status): string
     if (preg_match('/\b(new|open|todo|to do|received|created)\b/u', $name)) {
         return 'new';
     }
-    if (preg_match('/\b(wait|waiting|pending|hold|blocked|client|customer|vendor|third party)\b/u', $name)) {
+    if (preg_match('/\b(wait|waiting|pending|hold|blocked|client|customer|vendor|third party|aguardando|esperando|pendente|pausado|bloqueado|cliente|fornecedor|terceiro)\b/u', $name)) {
         return 'waiting';
     }
     if (preg_match('/\b(done|closed|resolved|complete|completed|finished|hotovo|dokonceno|vyreseno|uzavreno)\b/u', $name)) {

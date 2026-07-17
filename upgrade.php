@@ -1076,6 +1076,17 @@ try {
     // Ignore if already exists
 }
 
+// Add explicit workflow group to statuses
+$check = db_fetch_one("SHOW COLUMNS FROM statuses LIKE 'status_group'");
+if (!$check) {
+    try {
+        db_query("ALTER TABLE statuses ADD COLUMN status_group VARCHAR(20) NULL DEFAULT NULL AFTER is_closed");
+        $messages[] = "OK: Added column `status_group` to `statuses`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to add status_group to statuses: " . $e->getMessage();
+    }
+}
+
 // Add updated_at to statuses
 $check = db_fetch_one("SHOW COLUMNS FROM statuses LIKE 'updated_at'");
 if (!$check) {

@@ -242,6 +242,7 @@ return [
     'Manual entry' => 'Entrada manual',
     'Manual time added.' => 'Tempo manual adicionado.',
     'Mark as closed status' => 'Marcar como status fechado',
+    'Mark as waiting status' => 'Marcar como Aguardando',
     'Master switch for all email notifications.' => 'Chave mestre para todas as notificações por e-mail.',
     'Max size: 10MB. Allowed types: images, PDF, Word, Excel, ZIP' => 'Tamanho máximo: 10 MB. Tipos permitidos: imagens, PDF, Word, Excel, ZIP',
     'Max upload size' => 'Tamanho máximo de upload',
