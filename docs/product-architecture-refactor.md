@@ -111,5 +111,4 @@ scope, and role limits of the user who created it. Agents can read work state,
 search tickets, create tickets, add comments, add or stop time entries, attach
 files, and prepare reports only when that user could perform the same action in
 the UI. Every write must be audited as an API-token action and tokens must be
-revocable, expirable, rate-limited, and safe to export for SaaS migration only as
-inactive credentials.
+revocable, expirable, rate-limited, and excluded from reusable credential exports.

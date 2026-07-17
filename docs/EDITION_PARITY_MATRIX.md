@@ -10,8 +10,7 @@ FoxDesk SaaS, but it is not the hosted platform repository.
   and Email rendering.
 - `saas`: hosted-only platform, billing, tenants, Stripe, Cloudflare Email, R2,
   and operator console behavior. These must not ship as self-hosted app screens.
-- `self-hosted`: local install/update, IMAP fallback, migration source, and final
-  cutover behavior.
+- `self-hosted`: local install/update and IMAP fallback behavior.
 - `legacy`: compatibility surfaces that should not receive new product
   functionality.
 
@@ -36,7 +35,6 @@ FoxDesk SaaS, but it is not the hosted platform repository.
 | Inbound email | self-hosted overlay | IMAP plus pseudo-cron/CLI fallback. |
 | Installer | self-hosted | Local/shared-hosting installation and config bootstrap. |
 | Public updater | self-hosted | ZIP update channel for the free PHP app. |
-| Migration source | self-hosted | API sync client, attachment sync, ZIP fallback, and final cutover controls. |
 | Billing | saas | Not part of the self-hosted app flow. |
 | Platform console | saas | Not part of the self-hosted app flow. |
 | Public SaaS web | saas | Not part of the self-hosted app flow. |
@@ -54,7 +52,6 @@ FoxDesk SaaS, but it is not the hosted platform repository.
 | `pages/admin/reports.php` | shared | Must keep item-level billing review parity. |
 | `pages/admin/settings.php` | shared + self-hosted overlays | Local updater, backups, and IMAP diagnostics live here. |
 | API token management | shared + self-hosted overlays | Users can create scoped assistant/API keys for the local instance; exported keys must migrate inactive. |
-| `pages/admin/migration-export.php` | self-hosted | Migration source and ZIP fallback only. |
 | `install.php` and `upgrade.php` | self-hosted | Local install/update tools. |
 
 ## Self-Hosted Exclusions

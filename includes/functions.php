@@ -16,7 +16,6 @@ require_once BASE_PATH . '/includes/recurring-task-functions.php';
 require_once BASE_PATH . '/includes/notification-functions.php';
 require_once BASE_PATH . '/includes/feedback-functions.php';
 require_once BASE_PATH . '/includes/company-signup-functions.php';
-require_once BASE_PATH . '/includes/migration-functions.php';
 require_once BASE_PATH . '/includes/icons.php';
 require_once BASE_PATH . '/includes/components/date-input.php';
 require_once BASE_PATH . '/includes/components/workspace-surface.php';

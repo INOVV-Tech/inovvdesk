@@ -13,7 +13,7 @@ platform console, billing internals, managed Cloudflare/R2 deployment, and
 future native mobile API work.
 
 Self-hosted changes should focus on security, local installation, public
-updates, IMAP/self-hosted operations, and the one-way self-hosted to SaaS migration bridge.
+updates, and IMAP/self-hosted operations.
 
 ---
 

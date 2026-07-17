@@ -27,7 +27,6 @@ $allowed = $read('includes/api/allowed-senders-handler.php');
 $uploads = $read('includes/upload-functions.php');
 $image = $read('image.php');
 $billing_review = $read('includes/modules/reports/billing-review.php');
-$migration = $read('includes/migration-functions.php');
 
 foreach ([
     'pages/platform.php',
@@ -41,7 +40,6 @@ foreach ([
 
 $assert(!is_file($root . '/includes/tenant-functions.php'), 'Self-hosted must not grow the SaaS tenant helper layer.');
 $assert(!str_contains($database, 'tenant_scope_mutation_where'), 'Self-hosted database helper must stay single-tenant/simple.');
-$assert(str_contains($migration, 'tenant lifecycle stay in the separate foxdesk_saas repository'), 'Migration bridge must keep SaaS tenant lifecycle out of self-hosted.');
 
 $combined_ticket_writes = $ticket_api . "\n" . $ticket_crud . "\n" . $ticket_forms . "\n" . $email_ingest;
 $assert(!str_contains($combined_ticket_writes, 'UPDATE tickets SET updated_at = NOW() WHERE id = ?'), 'Ticket touch writes should use db_update helper.');

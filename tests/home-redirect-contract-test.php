@@ -20,7 +20,6 @@ $files = [
     'pages/new-ticket.php',
     'pages/admin/agent-connect.php',
     'pages/admin/reports.php',
-    'pages/admin/migration-export.php',
 ];
 
 foreach ($files as $file) {

@@ -55,7 +55,6 @@ top_level_files=(
   "pwa-icon.php"
   "README.md"
   "rescue.php"
-  "SELF_HOSTED_TO_SAAS_MIGRATION.md"
   "sw.js"
   "tailwind.min.css"
   "theme.css"

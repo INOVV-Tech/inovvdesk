@@ -12,15 +12,15 @@ platform, billing, tenant, R2, or Cloudflare managed-service controls.
 - Business rules move to `includes/modules/<area>/*`.
 - Reusable rendering moves to `includes/components/*`.
 - Browser behavior moves to `assets/js/*`.
-- Self-hosted-only install, update, IMAP, backup, and migration code must stay
+- Self-hosted-only install, update, IMAP, and backup code must stay
   outside SaaS platform concepts.
 
 ## Status Labels
 
 - `already modular`: route is small or already delegates the important behavior.
 - `needs module extraction`: route owns business/UI logic that should move out.
-- `self-hosted migration/update page`: route exists for install, update,
-  scheduler, IMAP, backup, or migration compatibility.
+- `self-hosted maintenance page`: route exists for install, update, scheduler,
+  IMAP, or backup compatibility.
 
 ## Page Ownership Inventory
 
@@ -44,7 +44,6 @@ platform, billing, tenant, R2, or Cloudflare managed-service controls.
 | `pages/login.php` | 490 | already modular | shared customer workflow | Keep route thin; preserve login hardening tests. |
 | `pages/admin/reports-list.php` | 442 | needs module extraction | shared customer workflow | Share report template list rendering with report builder. |
 | `pages/admin/ticket-types.php` | 440 | already modular | shared customer workflow | Keep CRUD helper coverage. |
-| `pages/admin/migration-export.php` | 426 | self-hosted migration/update page | self-hosted maintenance | Keep export package generation out of normal workspace navigation. |
 | `pages/admin/priorities.php` | 412 | already modular | shared customer workflow | Keep CRUD helper coverage. |
 | `pages/admin/clients.php` | 363 | already modular | shared customer workflow | Prefer client overview module for new behavior. |
 | `pages/admin/statuses.php` | 354 | already modular | shared customer workflow | Keep workflow mapping coverage. |
@@ -52,11 +51,13 @@ platform, billing, tenant, R2, or Cloudflare managed-service controls.
 | `pages/admin/statuses-content.php` | 323 | needs module extraction | shared customer workflow | Workflow CRUD now delegates to `includes/admin-crud-helper.php`; keep extracting repeated rendering only if the card markup grows. |
 | `pages/admin/priorities-content.php` | 311 | needs module extraction | shared customer workflow | Workflow CRUD now delegates to `includes/admin-crud-helper.php`; keep extracting repeated rendering only if the card markup grows. |
 | `pages/report-share.php` | 279 | already modular | shared customer workflow | Keep token generation rules near report access helpers. |
+| `pages/company-register.php` | 274 | already modular | shared customer workflow | Keep public company registration token validation isolated. |
 | `pages/user-profile.php` | 263 | already modular | shared customer workflow | Keep profile display components shared. |
+| `pages/admin/company-signup-links.php` | 263 | already modular | shared customer workflow | Keep signup-link administration scoped to authorized administrators. |
 | `pages/ticket-share.php` | 219 | already modular | shared customer workflow | Keep public ticket-share access isolated. |
 | `pages/client.php` | 202 | already modular | shared customer workflow | Extend client overview module rather than route logic. |
 | `pages/reset-password.php` | 180 | already modular | shared customer workflow | Keep reset hardening tests green. |
-| `pages/cron.php` | 177 | self-hosted migration/update page | self-hosted maintenance | Keep scheduler entrypoint thin; reuse CLI helpers. |
+| `pages/cron.php` | 177 | self-hosted maintenance page | self-hosted maintenance | Keep scheduler entrypoint thin; reuse CLI helpers. |
 | `pages/forgot-password.php` | 168 | already modular | shared customer workflow | Keep rate-limit guard isolated. |
 | `pages/feedback.php` | 148 | already modular | shared customer workflow | Keep feedback storage and notification rules in `includes/feedback-functions.php`. |
 | `pages/admin/feedback.php` | 128 | already modular | shared customer workflow | Keep admin feedback list/status logic in `includes/feedback-functions.php`. |

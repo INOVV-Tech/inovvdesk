@@ -456,16 +456,6 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     <span class="theme-text-dark hidden"><?php echo e(t('Light mode')); ?></span>
                 </button>
 
-                <?php if (is_admin()): ?>
-                <div class="border-t my-2 border-theme-light" role="separator"></div>
-
-                <a href="<?php echo url('admin', ['section' => 'migration-export']); ?>" role="menuitem"
-                    class="sidebar-user-menu__item flex items-center gap-3 px-4 py-2.5 text-sm transition-colors sidebar-hover">
-                    <?php echo get_icon('cloud-upload-alt', 'w-4 h-4'); ?>
-                    <span><?php echo e(t('Cloud migration')); ?></span>
-                </a>
-                <?php endif; ?>
-
                 <div class="border-t my-2 border-theme-light" role="separator"></div>
 
                 <!-- Logout -->

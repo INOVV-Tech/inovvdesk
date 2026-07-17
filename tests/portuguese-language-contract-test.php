@@ -32,7 +32,6 @@ foreach ([
     'New Ticket' => 'Novo ticket',
     'Email notifications' => 'Notificações de e-mail',
     'Portuguese (Brazil)' => 'Português (Brasil)',
-    'Cloud migration' => 'Migração para a nuvem',
     'Ticket Assigned' => 'Ticket atribuído',
 ] as $key => $expected) {
     assert_portuguese_language(

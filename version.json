@@ -11,5 +11,10 @@
         "Time overview now shows concrete work log rows with agent, ticket, client, note, and exact tracked time",
         "Self-hosted report summary styling is restored so report metrics render as cards instead of plain text"
     ],
-    "delete_files": []
+    "delete_files": [
+        "SELF_HOSTED_TO_SAAS_MIGRATION.md",
+        "bin/sync-to-cloud.php",
+        "includes/migration-functions.php",
+        "pages/admin/migration-export.php"
+    ]
 }

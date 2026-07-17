@@ -27,7 +27,6 @@ foreach ([
     '| Email rendering | shared |',
     '| Installer | self-hosted |',
     '| Public updater | self-hosted |',
-    '| Migration source | self-hosted |',
     '| Billing | saas |',
     '| Platform console | saas |',
 ] as $needle) {
@@ -35,7 +34,6 @@ foreach ([
 }
 
 foreach ([
-    'pages/admin/migration-export.php',
     'install.php',
     'upgrade.php',
 ] as $route) {

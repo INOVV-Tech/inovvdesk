@@ -126,15 +126,10 @@ if (!isset($_GET['page'])) {
 $page = isset($_GET['page']) ? $_GET['page'] : foxdesk_authenticated_home_page();
 $action = isset($_GET['action']) ? $_GET['action'] : '';
 
-if (function_exists('migration_cloud_should_redirect_after_cutover') && migration_cloud_should_redirect_after_cutover($page)) {
-    migration_cloud_cutover_response();
-}
-
 // Shared-hosting fallback scheduler: check early so public/login page loads can
 // also trigger IMAP ingest when no real cron is available.
 if (
-    !(function_exists('migration_cloud_cutover_active') && migration_cloud_cutover_active())
-    && !in_array($page, ['cron', 'api', 'health'], true)
+    !in_array($page, ['cron', 'api', 'health'], true)
     && file_exists(BASE_PATH . '/includes/pseudo-cron.php')
 ) {
     require_once BASE_PATH . '/includes/pseudo-cron.php';
@@ -414,9 +409,6 @@ switch ($page) {
                 break;
             case 'company-signup-links':
                 require_once BASE_PATH . '/pages/admin/company-signup-links.php';
-                break;
-            case 'migration-export':
-                require_once BASE_PATH . '/pages/admin/migration-export.php';
                 break;
             default:
                 require_once BASE_PATH . '/pages/admin/statuses.php';

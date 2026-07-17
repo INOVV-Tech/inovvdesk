@@ -19,7 +19,7 @@ $assert = static function (bool $condition, string $message): void {
 foreach ([
     'already modular',
     'needs module extraction',
-    'self-hosted migration/update page',
+    'self-hosted maintenance page',
 ] as $status) {
     $assert(str_contains($inventory, $status), "Inventory must define status label: {$status}.");
 }
