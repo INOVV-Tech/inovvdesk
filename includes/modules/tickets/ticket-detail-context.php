@@ -47,6 +47,19 @@ function ticket_detail_context(int $ticket_id, array $ticket, array $user, array
     $tags_supported = function_exists('ticket_tags_column_exists') && ticket_tags_column_exists();
     $ticket_tags = $tags_supported ? get_ticket_tags_array($ticket['tags'] ?? '') : [];
     $share_state = ticket_detail_share_state($ticket_id, is_agent(), $session);
+    $participants_supported = is_agent()
+        && function_exists('ensure_ticket_participants_table')
+        && ensure_ticket_participants_table();
+    $participant_users = $participants_supported
+        ? get_ticket_participant_users($ticket_id)
+        : [];
+    $participant_users = function_exists('ticket_participant_display_users')
+        ? ticket_participant_display_users($participant_users, (int) ($ticket['assignee_id'] ?? 0))
+        : $participant_users;
+    $participant_user_ids = array_map('intval', array_column($participant_users, 'id'));
+    $participant_time_minutes = ($participants_supported && function_exists('get_ticket_participant_time_minutes'))
+        ? get_ticket_participant_time_minutes($ticket_id, $participant_user_ids)
+        : [];
 
     return [
         'all_comments' => $all_comments,
@@ -56,6 +69,10 @@ function ticket_detail_context(int $ticket_id, array $ticket, array $user, array
         'organizations' => ticket_detail_available_organizations($ticket, $user),
         'ticket_tags' => $ticket_tags,
         'all_users' => is_agent() ? get_all_users() : [],
+        'participants_supported' => $participants_supported,
+        'participant_users' => $participant_users,
+        'participant_user_ids' => $participant_user_ids,
+        'participant_time_minutes' => $participant_time_minutes,
         'share_state' => $share_state,
     ];
 }

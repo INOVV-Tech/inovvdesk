@@ -129,12 +129,47 @@
                 <div class="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
                     <div class="flex items-center gap-2 flex-wrap min-w-0">
                         <?php if (is_agent() && $time_tracking_available): ?>
+                                <?php
+                                $manual_time_credit_users = [];
+                                $manual_time_candidate_rows = array_merge([$user], $participant_users ?? []);
+                                if (!empty($ticket['assignee_id'])) {
+                                    $manual_time_assignee = get_user((int) $ticket['assignee_id']);
+                                    if ($manual_time_assignee) {
+                                        $manual_time_candidate_rows[] = $manual_time_assignee;
+                                    }
+                                }
+                                foreach ($manual_time_candidate_rows as $manual_time_candidate) {
+                                    $manual_time_candidate_id = (int) ($manual_time_candidate['id'] ?? 0);
+                                    if ($manual_time_candidate_id > 0
+                                        && in_array((string) ($manual_time_candidate['role'] ?? ''), ['agent', 'admin'], true)
+                                        && !empty($manual_time_candidate['is_active'])) {
+                                        $manual_time_credit_users[$manual_time_candidate_id] = $manual_time_candidate;
+                                    }
+                                }
+                                ?>
                                 <?php $work_time_mode = $timer_state === 'stopped' ? 'manual' : 'timer'; ?>
                                 <div class="work-time-inline" data-work-time-entry data-mode="<?php echo e($work_time_mode); ?>">
                                     <span class="work-time-inline__label"><?php echo e(t('Hours worked')); ?></span>
                                     <div id="manual-entry-row" class="work-time-inline__manual <?php echo $work_time_mode === 'manual' ? '' : 'hidden'; ?>" data-work-time-panel="manual">
                                         <input type="hidden" name="manual_duration_minutes" id="manual-duration-minutes">
                                         <input type="number" name="manual_duration_hours" id="manual-duration-hours" min="0.02" max="24" step="0.01" placeholder="1.00" class="form-input text-sm h-9" aria-label="<?php echo e(t('Hours worked')); ?>" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
+                                        <select name="manual_time_user_id" id="manual-time-user-id" class="form-select text-sm h-9"
+                                            aria-label="<?php echo e(t('Credit hours to')); ?>"
+                                            title="<?php echo e(t('Credit hours to')); ?>">
+                                            <?php foreach ($manual_time_credit_users as $manual_time_credit_user): ?>
+                                                <?php $manual_credit_id = (int) $manual_time_credit_user['id']; ?>
+                                                <option value="<?php echo $manual_credit_id; ?>" <?php echo $manual_credit_id === (int) $user['id'] ? 'selected' : ''; ?>>
+                                                    <?php echo e(trim($manual_time_credit_user['first_name'] . ' ' . $manual_time_credit_user['last_name'])); ?>
+                                                    <?php if ($manual_credit_id === (int) ($ticket['assignee_id'] ?? 0)): ?>
+                                                        (<?php echo e(t('Responsible')); ?>)
+                                                    <?php elseif (in_array($manual_credit_id, $participant_user_ids ?? [], true)): ?>
+                                                        (<?php echo e(t('Participant')); ?>)
+                                                    <?php elseif ($manual_credit_id === (int) $user['id']): ?>
+                                                        (<?php echo e(t('me')); ?>)
+                                                    <?php endif; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
                                     </div>
                                     <div id="work-time-timer-panel" class="<?php echo $work_time_mode === 'timer' ? '' : 'hidden'; ?>" data-work-time-panel="timer">
                                         <div id="timer-controls" data-ticket-id="<?php echo $ticket_id; ?>"

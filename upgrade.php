@@ -285,6 +285,31 @@ if (!$check) {
     }
 }
 
+// Create ticket_participants table
+$check = db_fetch_one("SHOW TABLES LIKE 'ticket_participants'");
+if (!$check) {
+    try {
+        db_query("
+            CREATE TABLE ticket_participants (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ticket_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_by INT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_ticket_participant (ticket_id, user_id),
+                FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+                INDEX idx_ticket (ticket_id),
+                INDEX idx_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $messages[] = "OK: Created table `ticket_participants`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to create ticket_participants: " . $e->getMessage();
+    }
+}
+
 // Create ticket_time_entries table
 $check = db_fetch_one("SHOW TABLES LIKE 'ticket_time_entries'");
 if (!$check) {

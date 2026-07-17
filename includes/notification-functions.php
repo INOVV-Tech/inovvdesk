@@ -372,6 +372,14 @@ function get_notification_ticket_relevant_user_ids(int $ticket_id): array
         }
     }
 
+    if (function_exists('get_ticket_participant_user_ids')) {
+        foreach (get_ticket_participant_user_ids($ticket_id) as $participant_id) {
+            if ($participant_id > 0) {
+                $ids[] = $participant_id;
+            }
+        }
+    }
+
     $cache[$ticket_id] = array_values(array_unique($ids));
     return $cache[$ticket_id];
 }
@@ -719,7 +727,7 @@ function get_notification_snippet(array $notif): string
 // ── Recipients ───────────────────────────────────────────────────────────────
 
 /**
- * Get all users who participated in a ticket (creator, assignee, commenters).
+ * Get all users who participated in a ticket (creator, assignee, explicit participants, commenters).
  *
  * @param int      $ticket_id
  * @param int|null $exclude_user_id  Usually the actor
@@ -739,6 +747,12 @@ function get_ticket_participants(int $ticket_id, ?int $exclude_user_id = null): 
     // Commenters
     foreach (get_ticket_comment_user_ids($ticket_id) as $commenter_id) {
         $ids[] = (int) $commenter_id;
+    }
+
+    if (function_exists('get_ticket_participant_user_ids')) {
+        foreach (get_ticket_participant_user_ids($ticket_id) as $participant_id) {
+            $ids[] = (int) $participant_id;
+        }
     }
 
     $ids = array_unique($ids);

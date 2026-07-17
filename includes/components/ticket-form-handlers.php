@@ -10,7 +10,8 @@
  *
  * Required variables (set by ticket-detail.php before include):
  *   $ticket, $ticket_id, $user,
- *   $organizations, $org_billable_rate, $ticket_effective_billable_rate, $user_cost_rate
+ *   $organizations, $participant_user_ids,
+ *   $org_billable_rate, $ticket_effective_billable_rate, $user_cost_rate
  */
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -92,6 +93,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 flash(t('User access could not be removed.'), 'error');
             }
         }
+        redirect('ticket', ['id' => $ticket_id]);
+    }
+
+    // Add a staff participant. The assignee remains the single responsible agent.
+    if (isset($_POST['add_participant']) && is_agent() && can_edit_ticket($ticket, $user)) {
+        $participant_user_id = (int) ($_POST['participant_user_id'] ?? 0);
+        $participant = $participant_user_id > 0 ? get_user($participant_user_id) : null;
+
+        if (!$participant_user_id || !$participant
+            || !in_array((string) ($participant['role'] ?? ''), ['agent', 'admin'], true)
+            || empty($participant['is_active'])) {
+            flash(t('Select a participant to add.'), 'error');
+            redirect('ticket', ['id' => $ticket_id]);
+        }
+
+        if ($participant_user_id === (int) ($ticket['assignee_id'] ?? 0)) {
+            flash(t('The responsible agent is already represented by the Assigned field.'), 'error');
+            redirect('ticket', ['id' => $ticket_id]);
+        }
+
+        if (add_ticket_participant($ticket_id, $participant_user_id, (int) $user['id'])) {
+            $label = trim((string) (($participant['first_name'] ?? '') . ' ' . ($participant['last_name'] ?? '')));
+            log_activity($ticket_id, $user['id'], 'participant_added', "Participant added: {$label}");
+            flash(t('Participant added.'), 'success');
+        } else {
+            flash(t('Participant already exists or could not be added.'), 'error');
+        }
+
+        redirect('ticket', ['id' => $ticket_id]);
+    }
+
+    // Remove the participant role without silently revoking a separate access grant.
+    if (isset($_POST['remove_participant']) && is_agent() && can_edit_ticket($ticket, $user)) {
+        $participant_user_id = (int) ($_POST['participant_user_id'] ?? 0);
+        $participant = $participant_user_id > 0 ? get_user($participant_user_id) : null;
+
+        if ($participant_user_id > 0 && remove_ticket_participant($ticket_id, $participant_user_id)) {
+            $label = $participant
+                ? trim((string) (($participant['first_name'] ?? '') . ' ' . ($participant['last_name'] ?? '')))
+                : ('User ID ' . $participant_user_id);
+            log_activity($ticket_id, $user['id'], 'participant_removed', "Participant removed: {$label}");
+            flash(t('Participant removed.'), 'success');
+        } else {
+            flash(t('Participant could not be removed.'), 'error');
+        }
+
         redirect('ticket', ['id' => $ticket_id]);
     }
 
@@ -296,6 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $manual_date_input = trim($_POST['manual_date'] ?? date('Y-m-d'));
         $manual_duration_input = trim((string) ($_POST['manual_duration_minutes'] ?? ''));
         $manual_hours_input = trim((string) ($_POST['manual_duration_hours'] ?? ''));
+        $manual_time_user_id = (int) ($_POST['manual_time_user_id'] ?? $user['id']);
         $manual_start_time_input = trim($_POST['manual_start_time'] ?? '');
         $manual_end_time_input = trim($_POST['manual_end_time'] ?? '');
         $manual_start_at_input = trim((string) ($_POST['manual_start_at'] ?? ''));
@@ -332,6 +380,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $manual_start_dt = null;
         $manual_end_dt = null;
         $manual_duration = 0;
+        $manual_time_user = $user;
         $active_timer = null;
         $timer_duration = 0;
 
@@ -341,6 +390,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($manual_requested) {
+            $allowed_time_user_ids = array_values(array_unique(array_filter(array_merge(
+                [(int) $user['id'], (int) ($ticket['assignee_id'] ?? 0)],
+                array_map('intval', $participant_user_ids ?? [])
+            ))));
+            $manual_time_user = in_array($manual_time_user_id, $allowed_time_user_ids, true)
+                ? get_user($manual_time_user_id)
+                : null;
+            if (!$manual_time_user
+                || !in_array((string) ($manual_time_user['role'] ?? ''), ['agent', 'admin'], true)
+                || empty($manual_time_user['is_active'])) {
+                flash(t('Time can only be credited to the responsible agent or a participant.'), 'error');
+                redirect('ticket', ['id' => $ticket_id]);
+            }
+
             if ($manual_quick_requested && ($manual_duration_minutes < 1 || $manual_duration_minutes > 1440)) {
                 flash(t('Duration must be between 1 and 1440 minutes.'), 'error');
                 redirect('ticket', ['id' => $ticket_id]);
@@ -485,14 +548,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($manual_requested && !($stop_timer && $active_timer) && $manual_start_dt && $manual_end_dt) {
                 $manual_insert = [
                     'ticket_id' => $ticket_id,
-                    'user_id' => $user['id'],
+                    'user_id' => $manual_time_user_id,
                     'comment_id' => $comment_id,
                     'started_at' => $manual_start_dt->format('Y-m-d H:i:s'),
                     'ended_at' => $manual_end_dt->format('Y-m-d H:i:s'),
                     'duration_minutes' => $manual_duration,
                     'is_billable' => 1,
-                    'billable_rate' => $ticket_effective_billable_rate ?? $org_billable_rate,
-                    'cost_rate' => $user_cost_rate,
+                    'billable_rate' => function_exists('get_ticket_effective_billable_rate')
+                        ? get_ticket_effective_billable_rate($ticket_id, $manual_time_user_id)
+                        : ($ticket_effective_billable_rate ?? $org_billable_rate),
+                    'cost_rate' => (float) ($manual_time_user['cost_rate'] ?? 0),
                     'is_manual' => 1,
                     'created_at' => date('Y-m-d H:i:s')
                 ];
@@ -500,7 +565,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $manual_insert['source'] = 'manual';
                 }
                 db_insert('ticket_time_entries', $manual_insert);
-                log_activity($ticket_id, $user['id'], 'time_manual', "Manual time added ({$manual_duration} min)");
+                $credited_name = trim((string) (($manual_time_user['first_name'] ?? '') . ' ' . ($manual_time_user['last_name'] ?? '')));
+                log_activity($ticket_id, $user['id'], 'time_manual', "Manual time added for {$credited_name} ({$manual_duration} min)");
             }
         }
 

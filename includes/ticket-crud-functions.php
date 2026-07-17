@@ -523,6 +523,9 @@ function delete_ticket($id) {
         if (ticket_access_table_exists()) {
             db_delete('ticket_access', 'ticket_id = ?', [$id]);
         }
+        if (function_exists('ticket_participants_table_exists') && ticket_participants_table_exists()) {
+            db_delete('ticket_participants', 'ticket_id = ?', [$id]);
+        }
     } catch (Exception $e) {
         // Ignore if tables don't exist
     }

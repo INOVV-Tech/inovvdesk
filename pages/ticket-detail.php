@@ -55,6 +55,10 @@ $ticket_tag_filter_url = static function ($tag_value) use ($ticket) {
     return ticket_detail_tag_filter_url($ticket, (string) $tag_value);
 };
 $all_users = $ticket_detail_context['all_users']; // For CC selection
+$participants_supported = $ticket_detail_context['participants_supported'];
+$participant_users = $ticket_detail_context['participant_users'];
+$participant_user_ids = $ticket_detail_context['participant_user_ids'];
+$participant_time_minutes = $ticket_detail_context['participant_time_minutes'];
 $ticket_share_state = $ticket_detail_context['share_state'];
 $shared_users = $ticket_share_state['shared_users'];
 $shared_user_ids = $ticket_share_state['shared_user_ids'];

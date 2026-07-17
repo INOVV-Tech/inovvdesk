@@ -554,6 +554,16 @@ function send_new_comment_notification($ticket, $comment, $commenter, $comment_i
         // ignore — participants are optional
     }
 
+    // Explicit staff participants receive the same public ticket updates.
+    if (function_exists('get_ticket_participant_user_ids')) {
+        foreach (get_ticket_participant_user_ids((int) $ticket['id'], (int) $commenter['id']) as $pid) {
+            $pid = (int) $pid;
+            if ($pid > 0 && !isset($recipients[$pid])) {
+                $recipients[$pid] = ['type' => 'participant'];
+            }
+        }
+    }
+
     // CC users
     foreach ($cc_user_ids as $cc_id) {
         $cc_id = (int) $cc_id;

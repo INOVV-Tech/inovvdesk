@@ -72,6 +72,67 @@ if (is_agent()) {
                 </div>
             <?php endif; ?>
 
+            <?php if (is_agent() && !empty($participants_supported)): ?>
+                <div class="ticket-side-row ticket-side-row--stack" data-ticket-participants>
+                    <dt class="ticket-side-label ticket-side-label--wide"
+                        title="<?php echo e(t('Other team members who contributed to this ticket.')); ?>">
+                        <?php echo e(t('Participants')); ?>
+                        <span class="ticket-side-section__meta"><?php echo count($participant_users); ?></span>
+                    </dt>
+                    <dd class="ticket-side-value">
+                        <?php if (!empty($participant_users)): ?>
+                            <div class="ticket-side-chip-list mb-2">
+                                <?php foreach ($participant_users as $_participant): ?>
+                                    <span class="ticket-side-user-chip" title="<?php echo e(trim($_participant['first_name'] . ' ' . $_participant['last_name'])); ?>">
+                                        <?php echo e($_participant['first_name'] . ' ' . mb_substr((string) $_participant['last_name'], 0, 1) . '.'); ?>
+                                        <span class="text-[10px] opacity-70">
+                                            <?php echo e(format_duration_minutes((int) ($participant_time_minutes[(int) $_participant['id']] ?? 0))); ?>
+                                        </span>
+                                        <?php if (!empty($_participant['is_explicit_participant'])
+                                            && (int) ($participant_time_minutes[(int) $_participant['id']] ?? 0) <= 0): ?>
+                                            <form method="post" class="inline">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="participant_user_id" value="<?php echo (int) $_participant['id']; ?>">
+                                                <button type="submit" name="remove_participant" class="ticket-side-chip-remove"
+                                                    aria-label="<?php echo e(t('Remove participant')); ?>">
+                                                    <?php echo get_icon('times', 'w-3 h-3'); ?>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <span class="ticket-side-empty block mb-2"><?php echo e(t('No participants.')); ?></span>
+                        <?php endif; ?>
+
+                        <form method="post" class="ticket-side-inline-form">
+                            <?php echo csrf_field(); ?>
+                            <select name="participant_user_id" class="ticket-side-control ticket-side-select" required>
+                                <option value=""><?php echo e(t('Add participant...')); ?></option>
+                                <?php
+                                $_participant_lookup = array_flip($participant_user_ids);
+                                foreach ($_sidebar_agents as $_candidate):
+                                    $_candidate_id = (int) $_candidate['id'];
+                                    if ($_candidate_id === (int) ($ticket['assignee_id'] ?? 0)
+                                        || isset($_participant_lookup[$_candidate_id])) {
+                                        continue;
+                                    }
+                                ?>
+                                    <option value="<?php echo $_candidate_id; ?>">
+                                        <?php echo e($_candidate['first_name'] . ' ' . $_candidate['last_name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="submit" name="add_participant" class="btn btn-secondary btn-xs"
+                                title="<?php echo e(t('Add participant')); ?>">
+                                <?php echo get_icon('plus', 'w-3 h-3'); ?>
+                            </button>
+                        </form>
+                    </dd>
+                </div>
+            <?php endif; ?>
+
             <div class="ticket-side-row">
                 <dt class="ticket-side-label"><?php echo e(t('Priority')); ?></dt>
                 <dd class="ticket-side-value <?php echo is_agent() ? 'ticket-side-value--control' : ''; ?>">

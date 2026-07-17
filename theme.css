@@ -8071,7 +8071,7 @@ width: 100%;
 }
 .work-time-inline {
     display: grid;
-    grid-template-columns: max-content 8.5rem 11.25rem;
+    grid-template-columns: max-content minmax(18rem, 24rem) 11.25rem;
     align-items: center;
     gap: 0.5rem 0.625rem;
     flex: 0 0 100%;
@@ -8101,6 +8101,9 @@ width: 100%;
 }
 
 .work-time-inline__manual {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 8.5rem) minmax(10rem, 1fr);
+    gap: 0.5rem;
     min-width: 0;
 }
 
@@ -8128,5 +8131,9 @@ width: 100%;
     .work-time-inline__manual,
     .work-time-inline__mode {
         width: 100%;
+    }
+
+    .work-time-inline__manual {
+        grid-template-columns: 1fr;
     }
 }
