@@ -14,6 +14,42 @@
  *   $org_billable_rate, $ticket_effective_billable_rate, $user_cost_rate
  */
 
+if (!function_exists('ticket_parse_manual_duration_minutes')) {
+    function ticket_parse_manual_duration_minutes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return 0;
+        }
+
+        $normalized = preg_replace('/\s+/', '', $value);
+        if ($normalized === null || $normalized === '') {
+            return 0;
+        }
+
+        if (preg_match('/^(\d{1,2}):(\d{1,2})$/', $normalized, $matches)) {
+            $hours = (int) $matches[1];
+            $minutes = (int) $matches[2];
+
+            return ($hours * 60) + $minutes;
+        }
+
+        if (preg_match('/^(\d{1,2})h(?:(\d{1,2})m?)?$/i', $normalized, $matches)) {
+            $hours = (int) $matches[1];
+            $minutes = isset($matches[2]) && $matches[2] !== '' ? (int) $matches[2] : 0;
+
+            return ($hours * 60) + $minutes;
+        }
+
+        $decimal_hours = str_replace(',', '.', $normalized);
+        if (is_numeric($decimal_hours)) {
+            return (int) round(((float) $decimal_hours) * 60);
+        }
+
+        return 0;
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_csrf_token();
 
@@ -352,10 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $manual_end_input = '';
         $manual_duration_minutes = 0;
         if ($manual_hours_input !== '') {
-            $manual_hours_value = str_replace(',', '.', $manual_hours_input);
-            $manual_duration_minutes = is_numeric($manual_hours_value)
-                ? (int) round(((float) $manual_hours_value) * 60)
-                : 0;
+            $manual_duration_minutes = ticket_parse_manual_duration_minutes($manual_hours_input);
         } elseif ($manual_duration_input !== '') {
             $manual_duration_minutes = (int) $manual_duration_input;
         }
@@ -405,7 +438,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($manual_quick_requested && ($manual_duration_minutes < 1 || $manual_duration_minutes > 1440)) {
-                flash(t('Duration must be between 1 and 1440 minutes.'), 'error');
+                flash(t('Duration must use H:MM format between 0:01 and 24:00.'), 'error');
                 redirect('ticket', ['id' => $ticket_id]);
             }
 

@@ -295,6 +295,35 @@
         return formatDateInput(date) + 'T' + formatTimeInput(date);
     }
 
+    function formatManualDuration(minutes) {
+        var parsed = parseInt(minutes, 10) || 0;
+        var hours = Math.floor(parsed / 60);
+        var remainder = parsed % 60;
+        return String(hours) + ':' + pad2(remainder);
+    }
+
+    function parseManualDuration(value) {
+        var normalized = String(value || '').replace(/\s+/g, '');
+        if (!normalized) return 0;
+
+        var clock = normalized.match(/^(\d{1,2}):(\d{1,2})$/);
+        if (clock) {
+            var hours = parseInt(clock[1], 10);
+            var minutes = parseInt(clock[2], 10);
+            return (hours * 60) + minutes;
+        }
+
+        var textHours = normalized.match(/^(\d{1,2})h(?:(\d{1,2})m?)?$/i);
+        if (textHours) {
+            var textHourValue = parseInt(textHours[1], 10);
+            var textMinuteValue = textHours[2] ? parseInt(textHours[2], 10) : 0;
+            return (textHourValue * 60) + textMinuteValue;
+        }
+
+        var decimal = parseFloat(normalized.replace(',', '.'));
+        return decimal > 0 ? Math.round(decimal * 60) : 0;
+    }
+
     function initManualTime() {
         var modeSelect = document.getElementById('work-time-mode');
         var row = document.getElementById('manual-entry-row');
@@ -350,9 +379,9 @@
 
         function syncDurationFromHours() {
             if (!durationHours) return false;
-            var hours = parseFloat(String(durationHours.value || '').replace(',', '.'));
-            if (hours > 0) {
-                if (duration) duration.value = Math.round(hours * 60);
+            var minutes = parseManualDuration(durationHours.value);
+            if (minutes > 0) {
+                if (duration) duration.value = minutes;
                 return true;
             }
             if (duration) duration.value = '';
@@ -371,7 +400,7 @@
             var start = new Date(end.getTime() - (parsed * 60 * 1000));
             applying = true;
             if (duration) duration.value = parsed;
-            if (durationHours) durationHours.value = (parsed / 60).toFixed(parsed % 60 === 0 ? 0 : 2);
+            if (durationHours) durationHours.value = formatManualDuration(parsed);
             if (dateInput) dateInput.value = formatDateInput(start);
             if (startInput) startInput.value = formatTimeInput(start);
             if (endInput) endInput.value = formatTimeInput(end);

@@ -1678,6 +1678,7 @@ return [
     'Duplicate with next period dates' => 'Duplicar com as datas do próximo período',
     'Duration (min)' => 'Duração (min)',
     'Duration must be between 1 and 1440 minutes.' => 'A duração deve ser entre 1 e 1440 minutos.',
+    'Duration must use H:MM format between 0:01 and 24:00.' => 'Use a duração no formato H:MM, entre 0:01 e 24:00.',
     'e.g. Claude Sonnet' => 'por exemplo, Claude Sonnet',
     'e.g. claude-sonnet-4-5, gpt-4o' => 'por exemplo, claude-sonnet-4-5, gpt-4o',
     'e.g., maintenance, monthly, server' => 'por exemplo, manutenção, mensal, servidor',

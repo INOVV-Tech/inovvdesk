@@ -151,6 +151,7 @@ return [
     'Discard this timer? The tracked time will be lost.' => 'Discard this timer? The tracked time will be lost.',
     'Discard timer' => 'Discard timer',
     'Do not send email notification' => 'Do not send email notification',
+    'Duration must use H:MM format between 0:01 and 24:00.' => 'Duration must use H:MM format between 0:01 and 24:00.',
     'Drag to reorder' => 'Drag to reorder',
     'Edit' => 'Edit',
     'Edit client' => 'Edit client',
