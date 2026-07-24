@@ -152,7 +152,7 @@
                                     <span class="work-time-inline__label"><?php echo e(t('Hours worked')); ?></span>
                                     <div id="manual-entry-row" class="work-time-inline__manual <?php echo $work_time_mode === 'manual' ? '' : 'hidden'; ?>" data-work-time-panel="manual">
                                         <input type="hidden" name="manual_duration_minutes" id="manual-duration-minutes">
-                                        <input type="text" name="manual_duration_hours" id="manual-duration-hours" pattern="[0-9]{1,2}:[0-9]{1,2}" placeholder="1:30" autocomplete="off" class="form-input text-sm h-9" aria-label="<?php echo e(t('Hours worked')); ?>" title="<?php echo e(t('Duration must use H:MM format between 0:01 and 24:00.')); ?>" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
+                                        <input type="text" name="manual_duration_hours" id="manual-duration-hours" pattern="[0-9]{1,2}([:,][0-9]+)?" placeholder="1:30" autocomplete="off" class="form-input text-sm h-9" aria-label="<?php echo e(t('Hours worked')); ?>" title="<?php echo e(t('Use a duration like 1:30, 1,5, or 1, up to 24:00.')); ?>" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
                                         <select name="manual_time_user_id" id="manual-time-user-id" class="form-select text-sm h-9"
                                             aria-label="<?php echo e(t('Credit hours to')); ?>"
                                             title="<?php echo e(t('Credit hours to')); ?>">
@@ -243,10 +243,16 @@
                                                 return String(hours) + ':' + String(remainder).padStart(2, '0');
                                             };
                                             var sanitizeManualDuration = function (value) {
-                                                var cleaned = String(value || '').replace(/[^0-9:]/g, '');
+                                                var cleaned = String(value || '').replace(/\./g, ',').replace(/[^0-9:,]/g, '');
                                                 var colon = cleaned.indexOf(':');
-                                                if (colon === -1) return cleaned;
-                                                return cleaned.slice(0, colon + 1) + cleaned.slice(colon + 1).replace(/:/g, '');
+                                                var comma = cleaned.indexOf(',');
+                                                if (colon !== -1 && (comma === -1 || colon < comma)) {
+                                                    return cleaned.slice(0, colon + 1).replace(/[:,]/g, '') + ':' + cleaned.slice(colon + 1).replace(/[:,]/g, '');
+                                                }
+                                                if (comma !== -1) {
+                                                    return cleaned.slice(0, comma + 1).replace(/[:,]/g, '') + ',' + cleaned.slice(comma + 1).replace(/[:,]/g, '');
+                                                }
+                                                return cleaned.replace(/[:,]/g, '');
                                             };
                                             var parseManualDuration = function (value) {
                                                 var normalized = sanitizeManualDuration(value);
@@ -256,6 +262,12 @@
                                                     var hours = parseInt(clock[1], 10);
                                                     var clockMinutes = parseInt(clock[2], 10);
                                                     return (hours * 60) + clockMinutes;
+                                                }
+                                                if (/^\d{1,2}$/.test(normalized)) {
+                                                    return parseInt(normalized, 10) * 60;
+                                                }
+                                                if (/^\d{1,2},\d+$/.test(normalized)) {
+                                                    return Math.round(Number(normalized.replace(',', '.')) * 60);
                                                 }
                                                 return 0;
                                             };

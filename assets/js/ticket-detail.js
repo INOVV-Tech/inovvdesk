@@ -303,10 +303,16 @@
     }
 
     function sanitizeManualDuration(value) {
-        var cleaned = String(value || '').replace(/[^0-9:]/g, '');
+        var cleaned = String(value || '').replace(/\./g, ',').replace(/[^0-9:,]/g, '');
         var colon = cleaned.indexOf(':');
-        if (colon === -1) return cleaned;
-        return cleaned.slice(0, colon + 1) + cleaned.slice(colon + 1).replace(/:/g, '');
+        var comma = cleaned.indexOf(',');
+        if (colon !== -1 && (comma === -1 || colon < comma)) {
+            return cleaned.slice(0, colon + 1).replace(/[:,]/g, '') + ':' + cleaned.slice(colon + 1).replace(/[:,]/g, '');
+        }
+        if (comma !== -1) {
+            return cleaned.slice(0, comma + 1).replace(/[:,]/g, '') + ',' + cleaned.slice(comma + 1).replace(/[:,]/g, '');
+        }
+        return cleaned.replace(/[:,]/g, '');
     }
 
     function parseManualDuration(value) {
@@ -318,6 +324,14 @@
             var hours = parseInt(clock[1], 10);
             var minutes = parseInt(clock[2], 10);
             return (hours * 60) + minutes;
+        }
+
+        if (/^\d{1,2}$/.test(normalized)) {
+            return parseInt(normalized, 10) * 60;
+        }
+
+        if (/^\d{1,2},\d+$/.test(normalized)) {
+            return Math.round(Number(normalized.replace(',', '.')) * 60);
         }
 
         return 0;

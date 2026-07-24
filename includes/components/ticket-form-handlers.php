@@ -22,7 +22,7 @@ if (!function_exists('ticket_parse_manual_duration_minutes')) {
             return 0;
         }
 
-        $normalized = preg_replace('/\s+/', '', $value);
+        $normalized = preg_replace('/\s+/', '', str_replace('.', ',', $value));
         if ($normalized === null || $normalized === '') {
             return 0;
         }
@@ -32,6 +32,14 @@ if (!function_exists('ticket_parse_manual_duration_minutes')) {
             $minutes = (int) $matches[2];
 
             return ($hours * 60) + $minutes;
+        }
+
+        if (preg_match('/^\d{1,2}$/', $normalized)) {
+            return ((int) $normalized) * 60;
+        }
+
+        if (preg_match('/^\d{1,2},\d+$/', $normalized)) {
+            return (int) round(((float) str_replace(',', '.', $normalized)) * 60);
         }
 
         return 0;
@@ -426,7 +434,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($manual_quick_requested && ($manual_duration_minutes < 1 || $manual_duration_minutes > 1440)) {
-                flash(t('Duration must use H:MM format between 0:01 and 24:00.'), 'error');
+                flash(t('Use a duration like 1:30, 1,5, or 1, up to 24:00.'), 'error');
                 redirect('ticket', ['id' => $ticket_id]);
             }
 

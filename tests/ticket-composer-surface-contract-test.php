@@ -30,7 +30,7 @@ foreach ([
     'id="manual-duration-hours"',
     'type="text"',
     'placeholder="1:30"',
-    'pattern="[0-9]{1,2}:[0-9]{1,2}"',
+    'pattern="[0-9]{1,2}([:,][0-9]+)?"',
     'id="work-time-mode"',
     'FoxDeskSyncWorkTimeMode',
     'FoxDeskSyncManualHours',
