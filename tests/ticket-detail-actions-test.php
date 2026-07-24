@@ -43,10 +43,15 @@ $assert(str_contains($handlers, 'manual_duration_hours'), 'Ticket comments must 
 $assert(str_contains($handlers, 'function ticket_parse_manual_duration_minutes'), 'Manual duration parser is missing.');
 $assert(str_contains($handlers, 'ticket_parse_manual_duration_minutes($manual_hours_input)'), 'Visible manual duration must be parsed before logging time.');
 $assert(str_contains($handlers, 'return ($hours * 60) + $minutes;'), 'Manual duration must normalize overflow minutes like 0:70 to 70 minutes.');
+$assert(!str_contains($handlers, 'decimal_hours'), 'Manual duration must not accept decimal hours.');
+$assert(!str_contains($handlers, '\\d{1,2})h'), 'Manual duration must not accept letter-based hour input.');
 $assert(str_contains($handlers, 'Duration must use H:MM format between 0:01 and 24:00.'), 'Manual duration validation must explain the clock format.');
 $assert(str_contains($detail_js, "document.getElementById('manual-duration-hours')"), 'Submit label must recognize the visible manual hours field.');
 $assert(str_contains($detail_js, 'function formatManualDuration'), 'Manual duration JS must normalize visible clock values.');
+$assert(str_contains($detail_js, 'function sanitizeManualDuration'), 'Manual duration JS must strip letters and symbols from visible input.');
 $assert(str_contains($detail_js, 'return (hours * 60) + minutes;'), 'Manual duration JS must allow minute overflow for normalization.');
+$assert(!str_contains($detail_js, 'textHours'), 'Manual duration JS must not accept letter-based hour input.');
+$assert(!str_contains($detail_js, 'parseFloat'), 'Manual duration JS must not accept decimal hours.');
 
 if (!function_exists('ticket_status_group_from_status')) {
     function ticket_status_group_from_status(array $status): string

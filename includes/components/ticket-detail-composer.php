@@ -242,8 +242,14 @@
                                                 var remainder = parsed % 60;
                                                 return String(hours) + ':' + String(remainder).padStart(2, '0');
                                             };
+                                            var sanitizeManualDuration = function (value) {
+                                                var cleaned = String(value || '').replace(/[^0-9:]/g, '');
+                                                var colon = cleaned.indexOf(':');
+                                                if (colon === -1) return cleaned;
+                                                return cleaned.slice(0, colon + 1) + cleaned.slice(colon + 1).replace(/:/g, '');
+                                            };
                                             var parseManualDuration = function (value) {
-                                                var normalized = String(value || '').replace(/\s+/g, '');
+                                                var normalized = sanitizeManualDuration(value);
                                                 if (!normalized) return 0;
                                                 var clock = normalized.match(/^(\d{1,2}):(\d{1,2})$/);
                                                 if (clock) {
@@ -251,14 +257,7 @@
                                                     var clockMinutes = parseInt(clock[2], 10);
                                                     return (hours * 60) + clockMinutes;
                                                 }
-                                                var textHours = normalized.match(/^(\d{1,2})h(?:(\d{1,2})m?)?$/i);
-                                                if (textHours) {
-                                                    var textHourValue = parseInt(textHours[1], 10);
-                                                    var textMinuteValue = textHours[2] ? parseInt(textHours[2], 10) : 0;
-                                                    return (textHourValue * 60) + textMinuteValue;
-                                                }
-                                                var decimal = parseFloat(normalized.replace(',', '.'));
-                                                return decimal > 0 ? Math.round(decimal * 60) : 0;
+                                                return 0;
                                             };
                                             var syncManualHours = function (normalizeVisible) {
                                                 var modeSelect = document.getElementById('work-time-mode');
@@ -270,7 +269,11 @@
                                                     updateSubmitLabel();
                                                     return;
                                                 }
-                                                var parsed = parseManualDuration(hours.value);
+                                                var sanitized = sanitizeManualDuration(hours.value);
+                                                if (hours.value !== sanitized) {
+                                                    hours.value = sanitized;
+                                                }
+                                                var parsed = parseManualDuration(sanitized);
                                                 minutes.value = parsed > 0 ? String(parsed) : '';
                                                 if (normalizeVisible && parsed > 0) {
                                                     hours.value = formatManualDuration(parsed);

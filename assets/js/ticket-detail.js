@@ -302,8 +302,15 @@
         return String(hours) + ':' + pad2(remainder);
     }
 
+    function sanitizeManualDuration(value) {
+        var cleaned = String(value || '').replace(/[^0-9:]/g, '');
+        var colon = cleaned.indexOf(':');
+        if (colon === -1) return cleaned;
+        return cleaned.slice(0, colon + 1) + cleaned.slice(colon + 1).replace(/:/g, '');
+    }
+
     function parseManualDuration(value) {
-        var normalized = String(value || '').replace(/\s+/g, '');
+        var normalized = sanitizeManualDuration(value);
         if (!normalized) return 0;
 
         var clock = normalized.match(/^(\d{1,2}):(\d{1,2})$/);
@@ -313,15 +320,7 @@
             return (hours * 60) + minutes;
         }
 
-        var textHours = normalized.match(/^(\d{1,2})h(?:(\d{1,2})m?)?$/i);
-        if (textHours) {
-            var textHourValue = parseInt(textHours[1], 10);
-            var textMinuteValue = textHours[2] ? parseInt(textHours[2], 10) : 0;
-            return (textHourValue * 60) + textMinuteValue;
-        }
-
-        var decimal = parseFloat(normalized.replace(',', '.'));
-        return decimal > 0 ? Math.round(decimal * 60) : 0;
+        return 0;
     }
 
     function initManualTime() {
@@ -379,7 +378,11 @@
 
         function syncDurationFromHours() {
             if (!durationHours) return false;
-            var minutes = parseManualDuration(durationHours.value);
+            var sanitized = sanitizeManualDuration(durationHours.value);
+            if (durationHours.value !== sanitized) {
+                durationHours.value = sanitized;
+            }
+            var minutes = parseManualDuration(sanitized);
             if (minutes > 0) {
                 if (duration) duration.value = minutes;
                 return true;

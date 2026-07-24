@@ -34,18 +34,6 @@ if (!function_exists('ticket_parse_manual_duration_minutes')) {
             return ($hours * 60) + $minutes;
         }
 
-        if (preg_match('/^(\d{1,2})h(?:(\d{1,2})m?)?$/i', $normalized, $matches)) {
-            $hours = (int) $matches[1];
-            $minutes = isset($matches[2]) && $matches[2] !== '' ? (int) $matches[2] : 0;
-
-            return ($hours * 60) + $minutes;
-        }
-
-        $decimal_hours = str_replace(',', '.', $normalized);
-        if (is_numeric($decimal_hours)) {
-            return (int) round(((float) $decimal_hours) * 60);
-        }
-
         return 0;
     }
 }
