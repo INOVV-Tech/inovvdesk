@@ -152,7 +152,7 @@
                                     <span class="work-time-inline__label"><?php echo e(t('Hours worked')); ?></span>
                                     <div id="manual-entry-row" class="work-time-inline__manual <?php echo $work_time_mode === 'manual' ? '' : 'hidden'; ?>" data-work-time-panel="manual">
                                         <input type="hidden" name="manual_duration_minutes" id="manual-duration-minutes">
-                                        <input type="number" name="manual_duration_hours" id="manual-duration-hours" min="0.02" max="24" step="0.01" placeholder="1.00" class="form-input text-sm h-9" aria-label="<?php echo e(t('Hours worked')); ?>" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
+                                        <input type="text" name="manual_duration_hours" id="manual-duration-hours" pattern="[0-9]{1,2}([:,][0-9]+)?" placeholder="1:30" autocomplete="off" class="form-input text-sm h-9" aria-label="<?php echo e(t('Hours worked')); ?>" title="<?php echo e(t('Use a duration like 1:30, 1,5, or 1, up to 24:00.')); ?>" oninput="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();" onchange="if (window.FoxDeskSyncManualHours) window.FoxDeskSyncManualHours();">
                                         <select name="manual_time_user_id" id="manual-time-user-id" class="form-select text-sm h-9"
                                             aria-label="<?php echo e(t('Credit hours to')); ?>"
                                             title="<?php echo e(t('Credit hours to')); ?>">
@@ -236,7 +236,42 @@
                                                 var text = submit.querySelector('.btn-text');
                                                 if (text) text.textContent = label;
                                             };
-                                            var syncManualHours = function () {
+                                            var formatManualDuration = function (minutes) {
+                                                var parsed = parseInt(minutes, 10) || 0;
+                                                var hours = Math.floor(parsed / 60);
+                                                var remainder = parsed % 60;
+                                                return String(hours) + ':' + String(remainder).padStart(2, '0');
+                                            };
+                                            var sanitizeManualDuration = function (value) {
+                                                var cleaned = String(value || '').replace(/\./g, ',').replace(/[^0-9:,]/g, '');
+                                                var colon = cleaned.indexOf(':');
+                                                var comma = cleaned.indexOf(',');
+                                                if (colon !== -1 && (comma === -1 || colon < comma)) {
+                                                    return cleaned.slice(0, colon + 1).replace(/[:,]/g, '') + ':' + cleaned.slice(colon + 1).replace(/[:,]/g, '');
+                                                }
+                                                if (comma !== -1) {
+                                                    return cleaned.slice(0, comma + 1).replace(/[:,]/g, '') + ',' + cleaned.slice(comma + 1).replace(/[:,]/g, '');
+                                                }
+                                                return cleaned.replace(/[:,]/g, '');
+                                            };
+                                            var parseManualDuration = function (value) {
+                                                var normalized = sanitizeManualDuration(value);
+                                                if (!normalized) return 0;
+                                                var clock = normalized.match(/^(\d{1,2}):(\d{1,2})$/);
+                                                if (clock) {
+                                                    var hours = parseInt(clock[1], 10);
+                                                    var clockMinutes = parseInt(clock[2], 10);
+                                                    return (hours * 60) + clockMinutes;
+                                                }
+                                                if (/^\d{1,2}$/.test(normalized)) {
+                                                    return parseInt(normalized, 10) * 60;
+                                                }
+                                                if (/^\d{1,2},\d+$/.test(normalized)) {
+                                                    return Math.round(Number(normalized.replace(',', '.')) * 60);
+                                                }
+                                                return 0;
+                                            };
+                                            var syncManualHours = function (normalizeVisible) {
                                                 var modeSelect = document.getElementById('work-time-mode');
                                                 var hours = document.getElementById('manual-duration-hours');
                                                 var minutes = document.getElementById('manual-duration-minutes');
@@ -246,9 +281,15 @@
                                                     updateSubmitLabel();
                                                     return;
                                                 }
-                                                var value = String(hours.value || '').replace(',', '.');
-                                                var parsed = parseFloat(value);
-                                                minutes.value = parsed > 0 ? String(Math.round(parsed * 60)) : '';
+                                                var sanitized = sanitizeManualDuration(hours.value);
+                                                if (hours.value !== sanitized) {
+                                                    hours.value = sanitized;
+                                                }
+                                                var parsed = parseManualDuration(sanitized);
+                                                minutes.value = parsed > 0 ? String(parsed) : '';
+                                                if (normalizeVisible && parsed > 0) {
+                                                    hours.value = formatManualDuration(parsed);
+                                                }
                                                 updateSubmitLabel();
                                             };
                                             window.FoxDeskSyncManualHours = syncManualHours;
@@ -285,13 +326,13 @@
                                                 var hours = document.getElementById('manual-duration-hours');
                                                 if (hours && !hours.dataset.workTimeFallbackBound) {
                                                     hours.dataset.workTimeFallbackBound = '1';
-                                                    hours.addEventListener('input', syncManualHours);
-                                                    hours.addEventListener('change', syncManualHours);
+                                                    hours.addEventListener('input', function () { syncManualHours(false); });
+                                                    hours.addEventListener('change', function () { syncManualHours(true); });
                                                 }
                                                 var form = document.getElementById('comment-form');
                                                 if (form && !form.dataset.workTimeFallbackBound) {
                                                     form.dataset.workTimeFallbackBound = '1';
-                                                    form.addEventListener('submit', syncManualHours);
+                                                    form.addEventListener('submit', function () { syncManualHours(true); });
                                                 }
                                             };
                                             var syncCurrentWorkTimeMode = function () {

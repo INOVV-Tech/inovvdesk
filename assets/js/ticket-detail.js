@@ -295,6 +295,48 @@
         return formatDateInput(date) + 'T' + formatTimeInput(date);
     }
 
+    function formatManualDuration(minutes) {
+        var parsed = parseInt(minutes, 10) || 0;
+        var hours = Math.floor(parsed / 60);
+        var remainder = parsed % 60;
+        return String(hours) + ':' + pad2(remainder);
+    }
+
+    function sanitizeManualDuration(value) {
+        var cleaned = String(value || '').replace(/\./g, ',').replace(/[^0-9:,]/g, '');
+        var colon = cleaned.indexOf(':');
+        var comma = cleaned.indexOf(',');
+        if (colon !== -1 && (comma === -1 || colon < comma)) {
+            return cleaned.slice(0, colon + 1).replace(/[:,]/g, '') + ':' + cleaned.slice(colon + 1).replace(/[:,]/g, '');
+        }
+        if (comma !== -1) {
+            return cleaned.slice(0, comma + 1).replace(/[:,]/g, '') + ',' + cleaned.slice(comma + 1).replace(/[:,]/g, '');
+        }
+        return cleaned.replace(/[:,]/g, '');
+    }
+
+    function parseManualDuration(value) {
+        var normalized = sanitizeManualDuration(value);
+        if (!normalized) return 0;
+
+        var clock = normalized.match(/^(\d{1,2}):(\d{1,2})$/);
+        if (clock) {
+            var hours = parseInt(clock[1], 10);
+            var minutes = parseInt(clock[2], 10);
+            return (hours * 60) + minutes;
+        }
+
+        if (/^\d{1,2}$/.test(normalized)) {
+            return parseInt(normalized, 10) * 60;
+        }
+
+        if (/^\d{1,2},\d+$/.test(normalized)) {
+            return Math.round(Number(normalized.replace(',', '.')) * 60);
+        }
+
+        return 0;
+    }
+
     function initManualTime() {
         var modeSelect = document.getElementById('work-time-mode');
         var row = document.getElementById('manual-entry-row');
@@ -350,9 +392,13 @@
 
         function syncDurationFromHours() {
             if (!durationHours) return false;
-            var hours = parseFloat(String(durationHours.value || '').replace(',', '.'));
-            if (hours > 0) {
-                if (duration) duration.value = Math.round(hours * 60);
+            var sanitized = sanitizeManualDuration(durationHours.value);
+            if (durationHours.value !== sanitized) {
+                durationHours.value = sanitized;
+            }
+            var minutes = parseManualDuration(sanitized);
+            if (minutes > 0) {
+                if (duration) duration.value = minutes;
                 return true;
             }
             if (duration) duration.value = '';
@@ -371,7 +417,7 @@
             var start = new Date(end.getTime() - (parsed * 60 * 1000));
             applying = true;
             if (duration) duration.value = parsed;
-            if (durationHours) durationHours.value = (parsed / 60).toFixed(parsed % 60 === 0 ? 0 : 2);
+            if (durationHours) durationHours.value = formatManualDuration(parsed);
             if (dateInput) dateInput.value = formatDateInput(start);
             if (startInput) startInput.value = formatTimeInput(start);
             if (endInput) endInput.value = formatTimeInput(end);
