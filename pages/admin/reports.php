@@ -35,6 +35,14 @@ $selected_tags_csv = $report_filter_state['selected_tags_csv'];
 $show_money = $report_filter_state['show_money'];
 
 $organizations = get_organizations(true);
+if (!is_admin() && function_exists('get_user_permissions') && function_exists('get_user_organization_ids')) {
+    $permissions = get_user_permissions((int) ($current_user['id'] ?? 0)) ?? [];
+    $scope = (string) ($permissions['ticket_scope'] ?? 'own');
+    if ($scope === 'organization') {
+        $allowed_org_ids = get_user_organization_ids((int) ($current_user['id'] ?? 0));
+        $organizations = array_values(array_filter($organizations, static fn (array $org): bool => in_array((int) $org['id'], $allowed_org_ids, true)));
+    }
+}
 $agents = db_fetch_all("SELECT id, first_name, last_name FROM users WHERE role IN ('agent', 'admin') AND is_active = 1 ORDER BY first_name, last_name");
 
 $rounding = get_billing_rounding_increment();

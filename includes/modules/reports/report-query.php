@@ -106,8 +106,29 @@ function report_query_time_entries(array $filter_state, array $current_user, boo
 
     $is_admin_user = function_exists('is_admin') ? is_admin() : (($current_user['role'] ?? '') === 'admin');
     if (!$is_admin_user) {
-        $sql .= " AND tte.user_id = ?";
-        $params[] = (int) ($current_user['id'] ?? 0);
+        $user_id = (int) ($current_user['id'] ?? 0);
+        $permissions = function_exists('get_user_permissions') ? (get_user_permissions($user_id) ?? []) : [];
+        $scope = (string) ($permissions['ticket_scope'] ?? 'own');
+
+        if ($scope === 'all') {
+            // Agent with 'all' scope can view time entries across all tickets
+        } elseif ($scope === 'organization') {
+            // Agent with 'organization' scope can view time entries for tickets in their allowed organizations
+            $allowed_org_ids = function_exists('get_user_organization_ids') ? get_user_organization_ids($user_id) : [];
+            if (!empty($allowed_org_ids)) {
+                $sql .= " AND t.organization_id IN (" . implode(',', array_fill(0, count($allowed_org_ids), '?')) . ")";
+                foreach ($allowed_org_ids as $allowed_org_id) {
+                    $params[] = (int) $allowed_org_id;
+                }
+            } else {
+                $sql .= " AND tte.user_id = ?";
+                $params[] = $user_id;
+            }
+        } else {
+            // Default ('assigned' / 'own'): only view own logged time entries
+            $sql .= " AND tte.user_id = ?";
+            $params[] = $user_id;
+        }
     }
 
     $selected_tags = (array) ($filter_state['selected_tags'] ?? []);
