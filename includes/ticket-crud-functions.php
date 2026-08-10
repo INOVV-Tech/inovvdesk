@@ -1069,6 +1069,7 @@ function get_history_field_label($field_name) {
         'type' => t('Ticket type'),
         'priority_id' => t('Priority'),
         'status_id' => t('Status'),
+        'created_at' => t('Opening date'),
         'due_date' => t('Due date'),
         'assignee_id' => t('Assignee'),
         'organization_id' => t('Company'),
@@ -1106,6 +1107,7 @@ function format_history_value($field_name, $value) {
         case 'type':
             return e(get_type_label($value));
 
+        case 'created_at':
         case 'due_date':
             return format_date($value);
 
