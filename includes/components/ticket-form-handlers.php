@@ -800,6 +800,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('ticket', ['id' => $ticket_id]);
     }
 
+    // Update the ticket opening date (administrators only)
+    if (isset($_POST['update_ticket_created_date'])) {
+        if (!is_admin()) {
+            flash(t('Access denied.'), 'error');
+            redirect('ticket', ['id' => $ticket_id]);
+        }
+
+        $created_date_input = trim((string) ($_POST['ticket_created_date'] ?? ''));
+        $created_date = DateTime::createFromFormat('!Y-m-d', $created_date_input);
+        $date_errors = DateTime::getLastErrors();
+        $has_date_errors = is_array($date_errors)
+            && (($date_errors['warning_count'] ?? 0) > 0 || ($date_errors['error_count'] ?? 0) > 0);
+
+        if (!$created_date || $has_date_errors || $created_date->format('Y-m-d') !== $created_date_input) {
+            flash(t('Invalid opening date.'), 'error');
+            redirect('ticket', ['id' => $ticket_id]);
+        }
+
+        $old_created_at = (string) ($ticket['created_at'] ?? '');
+        $old_created_timestamp = strtotime($old_created_at);
+        $created_time = $old_created_timestamp !== false ? date('H:i:s', $old_created_timestamp) : '00:00:00';
+        $new_created_at = $created_date->format('Y-m-d') . ' ' . $created_time;
+
+        if (db_update('tickets', ['created_at' => $new_created_at], 'id = ?', [$ticket_id])) {
+            if (function_exists('log_ticket_history')) {
+                log_ticket_history($ticket_id, $user['id'], 'created_at', $old_created_at, $new_created_at);
+            }
+            log_activity($ticket_id, $user['id'], 'ticket_edited', 'Ticket opening date updated');
+            flash(t('Opening date updated.'), 'success');
+        } else {
+            flash(t('Failed to update ticket.'), 'error');
+        }
+
+        redirect('ticket', ['id' => $ticket_id]);
+    }
+
     // Update ticket billing rate directly from the sidebar
     if (isset($_POST['update_ticket_billing_rate']) && is_admin()) {
         $new_rate = function_exists('parse_optional_rate_value')

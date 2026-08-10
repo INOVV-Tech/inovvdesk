@@ -237,7 +237,25 @@ if (is_agent()) {
 
             <div class="ticket-side-row">
                 <dt class="ticket-side-label"><?php echo e(t('Created')); ?></dt>
-                <dd class="ticket-side-value"><?php echo format_date($ticket['created_at']); ?></dd>
+                <dd class="ticket-side-value <?php echo is_admin() ? 'ticket-side-value--control' : ''; ?>">
+                    <?php if (is_admin()): ?>
+                        <form method="post" class="ticket-side-inline-form">
+                            <?php echo csrf_field(); ?>
+                            <input type="date"
+                                name="ticket_created_date"
+                                value="<?php echo e(date('Y-m-d', strtotime($ticket['created_at']))); ?>"
+                                class="ticket-side-control ticket-side-input"
+                                aria-label="<?php echo e(t('Opening date')); ?>"
+                                required>
+                            <button type="submit" name="update_ticket_created_date" class="btn btn-secondary btn-xs"
+                                title="<?php echo e(t('Save')); ?>">
+                                <?php echo get_icon('check', 'w-3 h-3'); ?>
+                            </button>
+                        </form>
+                    <?php else: ?>
+                        <?php echo format_date($ticket['created_at']); ?>
+                    <?php endif; ?>
+                </dd>
             </div>
 
             <?php if (!empty($attachment_list)): ?>
