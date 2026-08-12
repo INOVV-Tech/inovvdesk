@@ -8997,6 +8997,18 @@ body.ticket-timeline-open {
   max-width: 20rem;
 }
 
+.project-card-detail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.project-card-detail-title-row .project-card-detail-title-input {
+  min-height: var(--fd-control-height);
+  font-weight: 600;
+}
+
 .project-card-detail-assignee-label {
   display: flex;
   align-items: center;

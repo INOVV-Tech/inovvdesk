@@ -313,6 +313,98 @@ function project_card_preview_description(?string $description): string
     return preg_replace('/\s+/u', ' ', $plain) ?: '';
 }
 
+/**
+ * Render a card description as safe HTML for previews and the detail modal.
+ *
+ * Rich text (Quill) is stored as HTML; only a strict element/attribute
+ * allowlist survives (formatting, links and structure — no scripts, no
+ * event handlers). Plain text descriptions get newlines converted to
+ * <br> so both composer styles render the same way.
+ */
+function project_card_description_html(?string $description): string
+{
+    $description = trim((string) $description);
+    if ($description === '') {
+        return '';
+    }
+
+    if (!str_contains($description, '<')) {
+        return nl2br(e($description));
+    }
+
+    $allowed_elements = [
+        'p' => true, 'br' => true, 'strong' => true, 'b' => true, 'em' => true, 'i' => true,
+        'u' => true, 's' => true, 'strike' => true, 'ul' => true, 'ol' => true, 'li' => true,
+        'blockquote' => true, 'pre' => true, 'h1' => true, 'h2' => true, 'h3' => true,
+        'h4' => true, 'h5' => true, 'h6' => true, 'span' => true, 'a' => true,
+    ];
+    $allowed_attributes = [
+        'a' => ['href' => true],
+    ];
+
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    // Wrap in a root div; ignore the doctype/html scaffolding libxml adds.
+    $dom->loadHTML(
+        '<?xml encoding="UTF-8"><div id="project-desc-root">' . $description . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+
+    $xpath = new DOMXPath($dom);
+    $root = $xpath->query('//*[@id="project-desc-root"]')->item(0);
+    if (!$root) {
+        return '';
+    }
+
+    $remove_queue = [];
+
+    foreach ($xpath->query('descendant::*', $root) as $node) {
+        $tag = strtolower($node->nodeName);
+
+        if ($tag === 'script' || $tag === 'style' || $tag === 'iframe' || $tag === 'object' || $tag === 'embed' || $tag === 'form' || $tag === 'input' || $tag === 'button' || $tag === 'video' || $tag === 'audio' || $tag === 'link' || $tag === 'meta') {
+            $remove_queue[] = $node;
+            continue;
+        }
+
+        if (!isset($allowed_elements[$tag])) {
+            // Unwrap disallowed elements, keeping their text content.
+            $fragment = $dom->createDocumentFragment();
+            while ($node->firstChild) {
+                $fragment->appendChild($node->firstChild);
+            }
+            $node->parentNode->replaceChild($fragment, $node);
+            continue;
+        }
+
+        $allowed = $allowed_attributes[$tag] ?? [];
+        foreach (iterator_to_array($node->attributes) as $attribute) {
+            $attr_name = strtolower($attribute->nodeName);
+            if ($attr_name === 'style' || str_starts_with($attr_name, 'on') || !isset($allowed[$attr_name])) {
+                $node->removeAttribute($attribute->nodeName);
+                continue;
+            }
+            if ($attr_name === 'href') {
+                $href = strtolower(trim((string) $attribute->nodeValue));
+                if (str_starts_with($href, 'javascript:') || str_starts_with($href, 'data:')) {
+                    $node->removeAttribute($attribute->nodeName);
+                }
+            }
+        }
+    }
+
+    foreach ($remove_queue as $node) {
+        $node->parentNode->removeChild($node);
+    }
+
+    $html = '';
+    foreach ($root->childNodes as $child) {
+        $html .= $dom->saveHTML($child);
+    }
+
+    return $html;
+}
+
 function project_comment_validate_body($body): string
 {
     $body = trim((string) $body);
@@ -662,6 +754,7 @@ function project_card_detail_model(int $card_id): ?array
 
     return [
         'card' => $card,
+        'description_html' => project_card_description_html((string) ($card['description'] ?? '')),
         'comments' => project_card_comments_for_card($card_id),
         'checklists' => project_card_checklists_for_card($card_id),
         'attachments' => $attachments,

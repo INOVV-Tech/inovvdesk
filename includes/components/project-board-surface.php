@@ -225,13 +225,13 @@ function project_render_project_card(array $card): void
         <div class="project-card-top">
             <?php if ($card_due !== ''): ?>
                 <span class="project-card-due<?php echo $card_is_overdue ? ' overdue' : ''; ?>">
-                    <?php echo e(format_date($card_due)); ?>
+                    <?php echo e(format_date($card_due, 'd/m/Y H:i')); ?>
                 </span>
             <?php endif; ?>
         </div>
         <div class="project-card-title"><?php echo e($card['title']); ?></div>
         <?php if (trim((string) ($card['description'] ?? '')) !== ''): ?>
-            <div class="project-card-description"><?php echo e(project_card_preview_description((string) ($card['description'] ?? ''))); ?></div>
+            <div class="project-card-description"><?php echo project_card_description_html((string) ($card['description'] ?? '')); ?></div>
         <?php endif; ?>
         <div class="project-card-meta">
             <span class="<?php echo e(project_card_priority_badge_class($card)); ?>">

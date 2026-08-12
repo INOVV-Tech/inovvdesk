@@ -178,7 +178,11 @@
                 break;
 
             case 'card-open-create':
-                openCardCreate(trigger.getAttribute('data-project-list-id'));
+                if (window.openProjectCardCreate) {
+                    window.openProjectCardCreate(trigger.getAttribute('data-project-list-id'));
+                } else {
+                    openCardCreate(trigger.getAttribute('data-project-list-id'));
+                }
                 break;
 
             case 'card-save':
