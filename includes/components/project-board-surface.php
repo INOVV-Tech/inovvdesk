@@ -1,9 +1,10 @@
 <?php
 /**
- * Project board surfaces: grid, board header and kanban rendering.
+ * Project board surfaces: grid, board header and board rendering.
  *
- * Layout-only markup on top of fd-* and kanban-* primitives. All interactivity
- * is delegated to assets/js/project-board.js through data-project-* hooks.
+ * Layout-only markup on top of fd-* primitives and module-owned project-*
+ * classes (no ticket board vocabulary is shared). All interactivity is
+ * delegated to assets/js/project-board.js through data-project-* hooks.
  * Included from pages/projects.php and pages/project.php with prepared data.
  */
 
@@ -123,20 +124,20 @@ function project_render_board_header(array $board): void
     <?php
 }
 
-function project_render_board_kanban(array $lists, array $cards_by_list): void
+function project_render_board(array $lists, array $cards_by_list): void
 {
     ?>
-    <div class="kanban-board-wrapper project-board-wrapper" data-project-board-scope>
-        <div class="kanban-board project-board">
+    <div class="project-board-wrapper" data-project-board-scope>
+        <div class="project-board">
             <?php foreach ($lists as $list): ?>
                 <?php project_render_project_column($list, $cards_by_list[(int) ($list['id'] ?? 0)] ?? []); ?>
             <?php endforeach; ?>
 
-            <div class="kanban-column project-column project-column--composer">
-                <div class="kanban-column-header">
-                    <span class="kanban-status-name"><?php echo e(t('Add list')); ?></span>
+            <div class="project-column project-column--composer">
+                <div class="project-column-header">
+                    <span class="project-status-name"><?php echo e(t('Add list')); ?></span>
                 </div>
-                <div class="kanban-cards project-list-composer" data-project-list-composer>
+                <div class="project-cards project-list-composer" data-project-list-composer>
                     <input type="text" class="form-input w-full project-list-composer-input"
                            placeholder="<?php echo e(t('List name...')); ?>"
                            aria-label="<?php echo e(t('List name')); ?>">
@@ -155,13 +156,13 @@ function project_render_project_column(array $list, array $cards): void
 {
     $list_id = (int) ($list['id'] ?? 0);
     ?>
-    <div class="kanban-column project-column" data-project-list-id="<?php echo $list_id; ?>"
+    <div class="project-column" data-project-list-id="<?php echo $list_id; ?>"
          data-project-list-name="<?php echo e((string) ($list['name'] ?? '')); ?>"
          draggable="true" data-project-list-drag>
-        <div class="kanban-column-header">
-            <span class="kanban-drag-handle" aria-hidden="true"><?php echo get_icon('bars', 'w-4 h-4'); ?></span>
-            <span class="kanban-status-name project-list-name"><?php echo e(project_list_label($list)); ?></span>
-            <span class="kanban-count"><?php echo count($cards); ?></span>
+        <div class="project-column-header">
+            <span class="project-drag-handle" aria-hidden="true"><?php echo get_icon('bars', 'w-4 h-4'); ?></span>
+            <span class="project-status-name project-list-name"><?php echo e(project_list_label($list)); ?></span>
+            <span class="project-list-count"><?php echo count($cards); ?></span>
             <span class="project-column-actions">
                 <button type="button" class="project-icon-action" title="<?php echo e(t('Rename')); ?>"
                         data-project-action="list-edit" data-project-list-id="<?php echo $list_id; ?>">
@@ -173,7 +174,7 @@ function project_render_project_column(array $list, array $cards): void
                 </button>
             </span>
         </div>
-        <div class="kanban-cards" data-project-list="<?php echo $list_id; ?>">
+        <div class="project-cards" data-project-list="<?php echo $list_id; ?>">
             <?php foreach ($cards as $card): ?>
                 <?php project_render_project_card($card); ?>
             <?php endforeach; ?>
@@ -216,23 +217,23 @@ function project_render_project_card(array $card): void
         'priority' => $card_priority,
     ];
     ?>
-    <article class="kanban-card project-card"
+    <article class="project-card"
              data-project-card-id="<?php echo $card_id; ?>"
              data-project-card-json="<?php echo e(json_encode($card_json)); ?>"
              data-project-card-priority="<?php echo e($card_priority); ?>"
              draggable="true">
-        <div class="kanban-card-top">
+        <div class="project-card-top">
             <?php if ($card_due !== ''): ?>
-                <span class="kanban-card-due<?php echo $card_is_overdue ? ' overdue' : ''; ?>">
+                <span class="project-card-due<?php echo $card_is_overdue ? ' overdue' : ''; ?>">
                     <?php echo e(format_date($card_due)); ?>
                 </span>
             <?php endif; ?>
         </div>
-        <div class="kanban-card-title project-card-title"><?php echo e($card['title']); ?></div>
+        <div class="project-card-title"><?php echo e($card['title']); ?></div>
         <?php if (trim((string) ($card['description'] ?? '')) !== ''): ?>
             <div class="project-card-description"><?php echo e($card['description']); ?></div>
         <?php endif; ?>
-        <div class="kanban-card-meta">
+        <div class="project-card-meta">
             <span class="<?php echo e(project_card_priority_badge_class($card)); ?>">
                 <?php echo e(project_priority_label($card_priority)); ?>
             </span>
@@ -243,7 +244,7 @@ function project_render_project_card(array $card): void
                 </span>
             <?php endif; ?>
         </div>
-        <select class="kanban-mobile-status project-mobile-move" data-project-card-id="<?php echo $card_id; ?>"
+        <select class="project-mobile-move" data-project-card-id="<?php echo $card_id; ?>"
                 aria-label="<?php echo e(t('Move to')); ?>"></select>
     </article>
     <?php

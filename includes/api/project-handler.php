@@ -3,7 +3,7 @@
  * API Handler: Project boards, lists and cards.
  *
  * Staff-only surface (agents and admins). Every write requires POST + CSRF,
- * mirrors the change-status flow used by the ticket kanban.
+ * with optimistic DOM updates and revert on error handled in project-board.js.
  */
 
 function api_project_require_staff_post(): void

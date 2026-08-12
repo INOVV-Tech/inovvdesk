@@ -22,7 +22,7 @@ $assert(project_can_view(null) === false, 'Guests must not be able to view proje
 $assert(project_can_manage(['role' => 'agent']) === true, 'Agents must be able to manage projects as staff.');
 $assert(project_can_manage(['role' => 'user']) === false, 'Clients must not manage projects.');
 
-// --- Priorities reuse the ticket key convention ---
+// --- Priorities use the module's own key convention ---
 $assert(project_priority_normalize('urgent') === 'urgent', 'Urgent priority must normalize to itself.');
 $assert(project_priority_normalize('URGENT') === 'urgent', 'Priority must normalize case.');
 $assert(project_priority_normalize('blocked') === 'medium', 'Unknown priority must fall back to medium.');
@@ -41,7 +41,8 @@ $assert(count($by_list[1] ?? []) === 2, 'Board cards model must group cards by l
 $assert(($by_list[1][0]['priority'] ?? '') === 'high', 'Board cards model must keep normalized priority.');
 $assert(($by_list[1][1]['priority'] ?? '') === 'medium', 'Board cards model must normalize unknown priority.');
 $assert(!isset($by_list[99]), 'Board cards model must drop cards from missing lists.');
-$assert(str_contains(project_card_priority_badge_class($cards[0]), 'ticket-priority-inline--high'), 'Priority badge must reuse ticket priority classes.');
+$assert(str_contains(project_card_priority_badge_class($cards[0]), 'project-priority-inline--high'), 'Priority badge must use module-owned project-priority classes.');
+$assert(!str_contains(project_card_priority_badge_class($cards[0]), 'ticket-priority'), 'Priority badge must never reuse ticket priority classes.');
 
 // --- Routes stay thin and registered ---
 $index = file_get_contents($root . '/index.php');

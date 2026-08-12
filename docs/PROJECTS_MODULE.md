@@ -19,9 +19,13 @@ Domínio novo e independente de tickets: **Projects** → **Boards** (quadros) �
   `product-architecture-refactor.md`). Strings de UI via `t()` com
   `en.php` como fonte e `pt.php` como tradução obrigatória (teste
   `portuguese-language-contract-test.php` exige cobertura 1:1).
-- Cards **não** são tickets. Vínculo card ↔ ticket é pós-MVP.
-- Prioridade do card usa as chaves existentes `low|medium|high|urgent` e as
-  classes `ticket-priority-inline--*` já testadas.
+- Cards **não são tickets e não têm nenhum vínculo com eles em nenhuma fase**:
+  domínio, schema, markup, CSS, JS e badges são 100% independentes. Não há
+  "criar ticket a partir do card", nem status de ticket no card, nem
+  compartilhamento de classes `kanban-*` ou `ticket-priority-inline--*`.
+- Prioridade do card usa as chaves `low|medium|high|urgent` como convenção
+  própria do módulo, com classes próprias `project-priority-inline--*`
+  (proibido reusar `ticket-priority-inline--*`).
 
 ## 2. Estrutura (regras do `MONOLITH_EXIT_INVENTORY.md`)
 
@@ -38,7 +42,7 @@ includes/modules/projects/project-boards.php      # consulta/CRUD de boards
 includes/modules/projects/project-lists.php       # consulta/CRUD de colunas + sort_order
 includes/modules/projects/project-cards.php       # consulta/CRUD/move/reorder de cards + view model
 includes/modules/projects/project-activity.php    # (pós-MVP) auditoria
-includes/components/project-board-surface.php     # render do board (tokens .fd-* e classes kanban)
+includes/components/project-board-surface.php     # render do board (tokens .fd-* e classes próprias project-*)
 includes/components/project-card-composer.php     # composer/modal de card
 includes/api/project-handler.php                  # ações AJAX (CSRF + revert on error)
 assets/js/project-board.js                        # drag & drop HTML5 + fallback mobile (select)
@@ -87,10 +91,10 @@ project_cards  (id, board_id→project_boards CASCADE, list_id→project_lists C
 2. Board detail: colunas ordenadas, criar/renomear/excluir coluna.
 3. Cards: criar (quick add), editar título/descrição, **assignee**, **due
    date**, **prioridade**, excluir.
-4. **Drag & drop** entre colunas + reordenação na coluna (padrões de
-   `assets/js/kanban.js`: placeholder, ghost, revert-shake, fetch com
+4. **Drag & drop** entre colunas + reordenação na coluna (padrões próprios do
+   `assets/js/project-board.js`: placeholder, ghost, revert-shake, fetch com
    `X-CSRF-Token`).
-5. Fallback mobile: `<select>` de mover card (padrão `kanban-mobile-status`).
+5. Fallback mobile: `<select>` de mover card (`project-mobile-move`).
 6. `includes/api/project-handler.php` no roteador: `project-board-save/delete`,
    `project-list-save/delete/reorder`, `project-card-save/move/delete`.
 7. UI seguindo `UI_SYSTEM_CONTRACT.md` (`.fd-card`, `.fd-button`, `.fd-input`,
@@ -102,18 +106,17 @@ project_cards  (id, board_id→project_boards CASCADE, list_id→project_lists C
 1. Card detail em modal (padrão `ticket-detail-modals.php`): descrição rica,
    comentários internos, checklists, anexos (reuso do `upload` API).
 2. Filtros/pesquisa no board: assignee, prioridade, prazo, texto (padrão
-   `ticket-list-filters.php`).
-3. Vínculo card ↔ ticket: "criar ticket a partir do card" e status do ticket
-   no card.
-4. Integrações: seção na busca global (`global-search.php`), contagens "meus
+   `ticket-list-filters.php`, adaptado com classes `project-*`).
+3. Integrações: seção na busca global (`global-search.php`), contagens "meus
    cards" no Work/app-feed, avisos de prazo/atribuição via
-   `notification-policy.php`.
-5. Permissão por quadro (membros), cards arquivados em coluna própria
-   (espelho do modelo closed do kanban) e templates de board
+   `notification-policy.php`. (Nenhuma integração cria vínculo com tickets.)
+4. Permissão por quadro (membros), cards arquivados em coluna própria (modelo
+   próprio de arquivamento do módulo, sem espelhar o modelo closed do kanban
+   de tickets) e templates de board
    (Backlog → Em andamento → Revisão → Concluído).
-6. Auditoria: `project-activity.php` + página de activity log (padrão
+5. Auditoria: `project-activity.php` + página de activity log (padrão
    `security_log` / `pages/admin/activity.php`).
-7. API de agentes (`agent-list-projects`, etc. no `router.php`) seguindo os
+6. API de agentes (`agent-list-projects`, etc. no `router.php`) seguindo os
    docs `AGENT_API_*` e contrato `app-shell` para clientes nativos.
 
 ## 5. Testes (contrato — sempre antes da lógica)
@@ -123,8 +126,8 @@ project_cards  (id, board_id→project_boards CASCADE, list_id→project_lists C
 | `project-foundation-contract-test.php` | rota fina, bootstrap carrega módulos, permissões (client bloqueado), rota no index.php, nav, app-shell |
 | `project-boards-contract-test.php` | consulta/CRUD de boards, archiving, created_by, validação |
 | `project-cards-contract-test.php` | view model, move entre listas, reordenação, prioridade/assignee/prazo, validação |
-| `project-ui-contract-test.php` | classes `.fd-*`/`kanban-*` no markup, sem radius hardcoded, `t()` em toda string |
-| `project-js-contract-test.php` | `project-board.js` usa `X-CSRF-Token`, `appConfig`, padrões do kanban |
+| `project-ui-contract-test.php` | classes `.fd-*`/`project-*` no markup, sem radius hardcoded, `t()` em toda string, e **proibição** de classes `kanban-*`/`ticket-priority-inline--*` no módulo |
+| `project-js-contract-test.php` | `project-board.js` usa `X-CSRF-Token`, `appConfig`, vocabulário próprio `project-*` (placeholder/ghost só do módulo) |
 | update `tests/ui-system-contract.test.js` | superfície nova não quebra o contrato de tokens |
 
 Verificação: `npm run lint:php`, `sh ./bin/run-php.sh tests/project-*.php`,
@@ -137,9 +140,18 @@ Verificação: `npm run lint:php`, `sh ./bin/run-php.sh tests/project-*.php`,
 2. Símbolos em inglês, UI via `t()`; qualquer recurso novo nasce na Fase 0
    (schema → permissão → rota → nav → teste).
 3. Todo POST via CSRF; todo write auditável (pós-MVP).
-4. UI só com primitivas do `UI_SYSTEM_CONTRACT.md` (`fd-*`) e classes kanban
-   reutilizadas.
+4. UI só com primitivas do `UI_SYSTEM_CONTRACT.md` (`fd-*`) e classes próprias
+   `project-*`. **Proibido** reusar classes `kanban-*` (board de tickets) ou
+   `ticket-priority-inline--*` (badges de ticket) no módulo Projects.
 5. Registrar tudo novo na inventário (`MONOLITH_EXIT_INVENTORY.md`), no
    `package.json` e neste documento.
 6. Onde houver decisão de produto (campos, permissões, integrações), registrar
    aqui antes de implementar.
+
+## 7. Decisões de produto
+
+- **Proibição de vínculo card ↔ ticket**: cards não têm relação com tickets em
+  nenhuma fase (nem "criar ticket a partir do card", nem exibição de status de
+  ticket, nem compartilhamento de CSS/JS). Verificada pelos contract tests.
+- Prioridades do card: chaves `low|medium|high|urgent` como convenção própria,
+  renderizadas só com classes `project-priority-inline--*`.

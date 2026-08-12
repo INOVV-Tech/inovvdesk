@@ -8418,7 +8418,7 @@ body.ticket-timeline-open {
 }
 
 /* ============================================================
-   Projects module — layout only (primitives from fd-* and kanban-*)
+   Projects module — layout only (primitives from fd-* and module-owned project-*)
    ============================================================ */
 
 .projects-overview-card {
@@ -8556,13 +8556,195 @@ body.ticket-timeline-open {
   margin: 0.35rem 0 0;
 }
 
+.project-board-wrapper {
+  overflow: visible !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
 .project-board {
+  display: flex;
+  gap: 0.75rem;
   min-width: max-content;
+  overflow-x: auto;
+  padding: 0.5rem 0.75rem 0.75rem;
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
 }
 
 .project-column {
+  flex: 0 0 272px;
   min-width: 272px;
   max-width: 272px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--fd-radius-card);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+.project-column-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
+  font-size: var(--type-13);
+  font-weight: 600;
+}
+
+.project-status-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-list-count {
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--fd-radius-pill);
+  background: var(--border-light);
+  color: var(--text-muted);
+  font-size: var(--type-2xs);
+  font-weight: 500;
+}
+
+.project-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-height: 2rem;
+  padding: 0.5rem;
+}
+
+.project-card {
+  position: relative;
+  padding: 0.5rem 0.625rem;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: var(--fd-radius-control);
+  background: var(--surface-primary);
+  transition:
+    box-shadow 0.2s,
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+.project-card[draggable='true'] {
+  cursor: grab;
+}
+
+.project-card[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.project-card:hover {
+  box-shadow: var(--shadow-popover);
+  transform: translateY(-1px);
+}
+
+.project-card.dragging {
+  opacity: 0.35;
+  transform: scale(0.97) rotate(1.5deg);
+  box-shadow: none;
+}
+
+.project-column.drag-source {
+  opacity: 0.7;
+}
+
+.project-column.drag-over {
+  background: color-mix(in srgb, var(--primary) 6%, var(--surface-secondary));
+  border-color: var(--primary);
+  transform: scale(1.01);
+}
+
+.project-column.drag-over .project-cards {
+  outline: 2px dashed color-mix(in srgb, var(--primary) 30%, transparent);
+  outline-offset: -2px;
+  border-radius: var(--fd-radius-control);
+}
+
+.project-card-top,
+.project-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.project-card-top {
+  justify-content: space-between;
+  min-height: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.project-card-meta {
+  margin-top: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.project-card-due,
+.project-card-assignee {
+  color: var(--text-muted);
+  font-size: var(--type-2xs);
+}
+
+.project-card-due.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.project-mobile-move {
+  display: none;
+}
+
+.project-drag-ghost {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  z-index: 9999;
+  max-width: 280px;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: var(--fd-radius-control);
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-modal);
+  opacity: 0.95;
+  pointer-events: none;
+  transform: rotate(-2deg) scale(1.02);
+}
+
+.project-drop-placeholder {
+  margin: 0.25rem 0;
+  border: 2px dashed color-mix(in srgb, var(--primary) 25%, transparent);
+  border-radius: var(--fd-radius-control);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  transition: height 0.2s ease;
+}
+
+.project-priority-inline--high,
+.project-priority-inline--urgent {
+  background: rgba(220, 38, 38, 0.09);
+  color: #b91c1c;
+}
+
+.project-priority-inline--low {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.project-priority-inline--medium {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
 }
 
 /* ============================================================
@@ -8696,22 +8878,18 @@ body.ticket-timeline-open {
   gap: 0.5rem;
 }
 
-.project-kanban-board {
-  min-width: max-content;
-}
-
-.kanban-drag-handle {
+.project-drag-handle {
   display: inline-flex;
   color: var(--fd-text-muted);
   cursor: grab;
   opacity: 0.7;
 }
 
-.kanban-column[draggable='true'] .kanban-column-header {
+.project-column[draggable='true'] .project-column-header {
   cursor: grab;
 }
 
-.kanban-column[draggable='true'] .kanban-column-header:active {
+.project-column[draggable='true'] .project-column-header:active {
   cursor: grabbing;
 }
 
@@ -8723,7 +8901,7 @@ body.ticket-timeline-open {
   transition: opacity 0.15s ease;
 }
 
-.kanban-column-header:hover .project-column-actions {
+.project-column-header:hover .project-column-actions {
   opacity: 1;
 }
 
@@ -8769,11 +8947,6 @@ body.ticket-timeline-open {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.project-card .kanban-card-top {
-  min-height: 0.75rem;
-  margin-bottom: 0.25rem;
 }
 
 .project-color-input {

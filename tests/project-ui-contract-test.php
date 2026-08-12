@@ -46,14 +46,28 @@ $assert(str_contains($composer, 'form-select'), 'Card composer must use form-sel
 $assert(str_contains($composer, 'modal-overlay'), 'Card composer must use the modal-overlay pattern.');
 $assert(str_contains($composer, 'modal-panel'), 'Card composer must use the modal-panel pattern.');
 
-// --- Kanban vocabulary reused for cards ---
-$assert(str_contains($surface, 'kanban-card'), 'Board surface must reuse kanban card classes.');
-$assert(str_contains($surface, 'kanban-column'), 'Board surface must reuse kanban column classes.');
-$assert(str_contains($surface, 'kanban-cards'), 'Board surface must reuse kanban cards container classes.');
-$assert(str_contains($surface, 'kanban-count'), 'Board surface must keep column counts.');
+// --- Module-owned board vocabulary: project-* classes only ---
+$assert(str_contains($surface, 'project-card'), 'Board surface must use project card classes.');
+$assert(str_contains($surface, 'project-column'), 'Board surface must use project column classes.');
+$assert(str_contains($surface, 'project-cards'), 'Board surface must use the project cards container class.');
+$assert(str_contains($surface, 'project-list-count'), 'Board surface must keep column counts.');
 $assert(str_contains($surface, 'project_card_priority_badge_class('), 'Card priorities must go through the shared badge helper.');
+
+// --- No ticket/kanban coupling in the module (cards are not tickets) ---
 $cards_module = file_get_contents($root . '/includes/modules/projects/project-cards.php');
-$assert(str_contains($cards_module, "'badge-inline ticket-priority-inline'"), 'Priority badges must reuse ticket priority classes.');
+foreach ($files as $path) {
+    $contents = file_get_contents($root . '/' . $path);
+    $assert($contents !== false, 'Project file must be readable: ' . $path);
+    $assert(
+        !preg_match('/\bkanban-/', $contents),
+        'Projects module must not reuse ticket kanban classes: ' . $path
+    );
+    $assert(
+        !str_contains($contents, 'ticket-priority'),
+        'Projects module must not reuse ticket priority classes: ' . $path
+    );
+}
+$assert(str_contains($cards_module, "'badge-inline project-priority-inline'"), 'Priority badges must use module-owned project-priority classes.');
 
 // --- Every literal t() call is covered by pt (mirrors main language test) ---
 $pt = require $root . '/includes/lang/pt.php';

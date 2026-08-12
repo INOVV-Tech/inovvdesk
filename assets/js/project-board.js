@@ -9,7 +9,8 @@
  *  - mobile fallback: per-card list select
  *
  * Every write goes through the project API endpoints with X-CSRF-Token and a
- * JSON body, mirroring kanban.js conventions (optimistic DOM + revert on error).
+ * JSON body, using module-owned project-* classes throughout (optimistic DOM
+ * updates with revert on error).
  */
 (function () {
     var gridRoot = document.querySelector('[data-projects-surface]');
@@ -377,8 +378,8 @@
 
     // --- Card drag & drop (HTML5) ---
 
-    var kanban = root.querySelector('.kanban-board-wrapper');
-    if (!kanban) kanban = root;
+    var board = root.querySelector('.project-board-wrapper');
+    if (!board) board = root;
 
     var draggedCard = null;
     var draggedColumn = null;
@@ -388,12 +389,12 @@
 
     function createPlaceholder() {
         var el = document.createElement('div');
-        el.className = 'kanban-drop-placeholder';
+        el.className = 'project-drop-placeholder';
         return el;
     }
 
-    kanban.addEventListener('dragstart', function (e) {
-        var card = e.target.closest('.kanban-card[data-project-card-id]');
+    board.addEventListener('dragstart', function (e) {
+        var card = e.target.closest('.project-card[data-project-card-id]');
         var column = e.target.closest('[data-project-list-drag]');
         if (card) {
             draggedCard = card;
@@ -402,7 +403,7 @@
             placeholder.style.height = card.offsetHeight + 'px';
 
             dragGhost = card.cloneNode(true);
-            dragGhost.classList.add('kanban-drag-ghost');
+            dragGhost.classList.add('project-drag-ghost');
             var sel = dragGhost.querySelector('.project-mobile-move');
             if (sel) sel.remove();
             var ghost = dragGhost;
@@ -419,21 +420,21 @@
         }
     });
 
-    kanban.addEventListener('dragover', function (e) {
-        var targetCol = e.target.closest('.kanban-column');
+    board.addEventListener('dragover', function (e) {
+        var targetCol = e.target.closest('.project-column');
         if (!targetCol) return;
 
         if (draggedCard) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            kanban.querySelectorAll('.kanban-column.drag-over').forEach(function (c) {
+            board.querySelectorAll('.project-column.drag-over').forEach(function (c) {
                 if (c !== targetCol) {
                     c.classList.remove('drag-over');
                     removePlaceholder(c);
                 }
             });
             targetCol.classList.add('drag-over');
-            var cardsContainer = targetCol.querySelector('.kanban-cards');
+            var cardsContainer = targetCol.querySelector('.project-cards');
             if (!cardsContainer) return;
             var afterCard = getCardAfterCursor(cardsContainer, e.clientY);
             if (afterCard) {
@@ -445,9 +446,9 @@
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
             if (targetCol === draggedColumn) return;
-            var boardEl = targetCol.closest('.kanban-board');
+            var boardEl = targetCol.closest('.project-board');
             var afterCol = getColumnAfterCursor(boardEl, e.clientX);
-            var targetCols = boardEl.querySelectorAll('.kanban-column');
+            var targetCols = boardEl.querySelectorAll('.project-column');
             if (afterCol) {
                 boardEl.insertBefore(draggedColumn, afterCol);
             } else {
@@ -456,11 +457,11 @@
         }
     });
 
-    kanban.addEventListener('drop', function (e) {
+    board.addEventListener('drop', function (e) {
         e.preventDefault();
 
         if (draggedCard) {
-            var col = e.target.closest('.kanban-column');
+            var col = e.target.closest('.project-column');
             if (!col) { cleanupCard(); return; }
             col.classList.remove('drag-over');
 
@@ -470,7 +471,7 @@
             var cardId = draggedCard.getAttribute('data-project-card-id');
             var savedSource = sourceColumn;
 
-            var targetCards = col.querySelector('.kanban-cards');
+            var targetCards = col.querySelector('.project-cards');
             if (placeholder && placeholder.parentNode === targetCards) {
                 targetCards.insertBefore(draggedCard, placeholder);
             } else if (targetCards) {
@@ -499,18 +500,18 @@
         }
     });
 
-    kanban.addEventListener('dragend', function () {
+    board.addEventListener('dragend', function () {
         if (draggedColumn) persistColumnReorder();
         cleanupCard();
         cleanupColumn();
-        kanban.querySelectorAll('.drag-over, .drag-source').forEach(function (el) {
+        board.querySelectorAll('.drag-over, .drag-source').forEach(function (el) {
             el.classList.remove('drag-over', 'drag-source');
         });
         removePlaceholderGlobal();
     });
 
     function getCardAfterCursor(container, y) {
-        var cards = Array.from(container.querySelectorAll('.kanban-card:not(.dragging)'));
+        var cards = Array.from(container.querySelectorAll('.project-card:not(.dragging)'));
         var closest = null;
         var closestOffset = Number.NEGATIVE_INFINITY;
         cards.forEach(function (card) {
@@ -525,7 +526,7 @@
     }
 
     function getColumnAfterCursor(boardEl, x) {
-        var cols = Array.from(boardEl.querySelectorAll('.kanban-column:not(.dragging)'));
+        var cols = Array.from(boardEl.querySelectorAll('.project-column:not(.dragging)'));
         var closest = null;
         var closestOffset = Number.NEGATIVE_INFINITY;
         cols.forEach(function (col) {
@@ -542,7 +543,7 @@
 
     function persistCardMove(cardId, targetListId, targetCards, savedSource, originCardId) {
         var order = [];
-        targetCards.querySelectorAll('.kanban-card').forEach(function (card) {
+        targetCards.querySelectorAll('.project-card').forEach(function (card) {
             order.push(parseInt(card.getAttribute('data-project-card-id'), 10) || 0);
         });
 
@@ -570,9 +571,9 @@
     }
 
     function persistColumnReorder() {
-        var boardEl = kanban.querySelector('.kanban-board');
+        var boardEl = board.querySelector('.project-board');
         var order = [];
-        boardEl.querySelectorAll('.kanban-column[data-project-list-id]').forEach(function (col) {
+        boardEl.querySelectorAll('.project-column[data-project-list-id]').forEach(function (col) {
             order.push(parseInt(col.getAttribute('data-project-list-id'), 10) || 0);
         });
         projectApi('project-list-reorder', { board_id: projectBoardId, order: order }).then(function (res) {
@@ -587,12 +588,12 @@
     }
 
     function removePlaceholder(col) {
-        var ph = col.querySelector('.kanban-drop-placeholder');
+        var ph = col.querySelector('.project-drop-placeholder');
         if (ph) ph.remove();
     }
 
     function removePlaceholderGlobal() {
-        kanban.querySelectorAll('.kanban-drop-placeholder').forEach(function (ph) { ph.remove(); });
+        board.querySelectorAll('.project-drop-placeholder').forEach(function (ph) { ph.remove(); });
         placeholder = null;
     }
 
@@ -609,9 +610,9 @@
     }
 
     function updateColumnCounts() {
-        kanban.querySelectorAll('.kanban-column').forEach(function (col) {
-            var count = (col.querySelector('.kanban-cards') || col).querySelectorAll('.kanban-card').length;
-            var badge = col.querySelector('.kanban-count');
+        board.querySelectorAll('.project-column').forEach(function (col) {
+            var count = (col.querySelector('.project-cards') || col).querySelectorAll('.project-card').length;
+            var badge = col.querySelector('.project-list-count');
             if (badge) badge.textContent = count;
         });
     }
@@ -627,7 +628,7 @@
                 currentList = listEl ? listEl.getAttribute('data-project-list') : null;
             }
             sel.innerHTML = '';
-            root.querySelectorAll('.kanban-column[data-project-list-id]').forEach(function (col) {
+            root.querySelectorAll('.project-column[data-project-list-id]').forEach(function (col) {
                 var listId = col.getAttribute('data-project-list-id');
                 var option = document.createElement('option');
                 option.value = listId;
@@ -640,7 +641,7 @@
 
     if (boardRoot) populateMoveSelects();
 
-    kanban.addEventListener('change', function (e) {
+    board.addEventListener('change', function (e) {
         var sel = e.target.closest('.project-mobile-move');
         if (!sel) return;
 
@@ -653,8 +654,8 @@
         if (newListId === oldListId) return;
 
         var sourceContainer = card.parentNode;
-        var targetCol = root.querySelector('.kanban-column[data-project-list-id="' + newListId + '"]');
-        var targetCards = targetCol ? targetCol.querySelector('.kanban-cards') : null;
+        var targetCol = root.querySelector('.project-column[data-project-list-id="' + newListId + '"]');
+        var targetCards = targetCol ? targetCol.querySelector('.project-cards') : null;
         if (!targetCards) return;
 
         targetCards.appendChild(card);

@@ -51,7 +51,7 @@ require_once BASE_PATH . '/includes/header.php';
             </button>
         </div>
     <?php else: ?>
-        <?php project_render_board_kanban($project_lists, $project_cards_by_list); ?>
+        <?php project_render_board($project_lists, $project_cards_by_list); ?>
     <?php endif; ?>
 </section>
 

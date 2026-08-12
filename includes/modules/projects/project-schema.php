@@ -3,8 +3,8 @@
  * Project module schema helpers.
  *
  * Creates the project_boards, project_lists and project_cards tables
- * idempotently at runtime, following the ensure_* pattern used by
- * ticket-status-groups, so existing installations upgrade without
+ * idempotently at runtime, following the ensure_* pattern used by other
+ * modules, so existing installations upgrade without
  * running upgrade.php manually. Fresh installs also get the same DDL
  * through includes/schema.sql and upgrade.php.
  */

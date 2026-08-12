@@ -3,7 +3,7 @@
  * Project cards: query and view model.
  *
  * Phase 0 ships the read model for a board's cards (grouped by list, with
- * priority helpers reusing the ticket priority key convention). Phase 1
+ * priority helpers using the module's own key convention). Phase 1
  * (MVP) adds create/edit/move/reorder/delete through this module.
  */
 
@@ -83,9 +83,9 @@ function project_board_cards_model(array $lists, array $cards): array
     return $by_list;
 }
 
-function project_card_priority_badge_class(array $card, string $base = 'badge-inline ticket-priority-inline'): string
+function project_card_priority_badge_class(array $card, string $base = 'badge-inline project-priority-inline'): string
 {
-    return $base . ' ticket-priority-inline--' . project_priority_normalize((string) ($card['priority'] ?? ''));
+    return $base . ' project-priority-inline--' . project_priority_normalize((string) ($card['priority'] ?? ''));
 }
 
 function project_card_validate_title($title): string

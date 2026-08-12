@@ -12,20 +12,21 @@ $assert = static function (bool $condition, string $message): void {
 $assert($js !== false, 'project-board.js must exist.');
 $assert(trim($js) !== '', 'project-board.js must not be an empty stub.');
 
-// --- API conventions mirror the ticket kanban ---
+// --- API conventions ---
 $assert(str_contains($js, 'X-CSRF-Token'), 'Board JS must send the CSRF token.');
 $assert(str_contains($js, 'window.csrfToken'), 'Board JS must read window.csrfToken.');
 $assert(str_contains($js, 'window.appConfig'), 'Board JS must consume appConfig.');
 $assert(str_contains($js, 'projectApi('), 'Board JS must use the shared API helper.');
 $assert(str_contains($js, 'JSON.stringify(payload'), 'Board JS must send JSON bodies.');
 
-// --- Drag & drop vocabulary ---
+// --- Drag & drop vocabulary (module-owned, no ticket kanban classes) ---
 foreach ([
     'dragstart', 'dragover', 'drop', 'dragend',
-    'kanban-drop-placeholder', 'kanban-drag-ghost', 'just-dropped',
+    'project-drop-placeholder', 'project-drag-ghost', 'just-dropped',
 ] as $needle) {
     $assert(str_contains($js, $needle), 'Board JS must implement ' . $needle . '.');
 }
+$assert(!preg_match('/\bkanban-/', $js), 'Board JS must not reference ticket kanban classes.');
 $assert(str_contains($js, 'effectAllowed'), 'Board JS must set the drag effect.');
 
 // --- Optimistic move with revert on failure ---
