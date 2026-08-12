@@ -55,6 +55,16 @@ function app_shell_navigation(array $user): array
         ];
     }
 
+    if (!$is_client_user) {
+        $items[] = [
+            'key' => 'projects',
+            'label' => 'Projects',
+            'url' => url('projects'),
+            'icon' => 'trello',
+            'primary' => true,
+        ];
+    }
+
     if (app_shell_can_view_reports($user)) {
         $items[] = [
             'key' => 'reports',
@@ -161,6 +171,8 @@ function app_shell_capabilities(array $user): array
         'create_ticket' => true,
         'triage_inbox' => !$is_client_user,
         'view_clients' => !$is_client_user,
+        'view_projects' => !$is_client_user,
+        'manage_projects' => !$is_client_user,
         'view_reports' => app_shell_can_view_reports($user),
         'manage_settings' => is_admin(),
         'use_timers' => !$is_client_user,
