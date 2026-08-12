@@ -247,3 +247,66 @@ function ticket_email_suppression_reason(string $event, array $context = []): st
     }
     return 'event_not_email_actionable';
 }
+
+/**
+ * Project card notification policy (module-owned; cards are not tickets).
+ *
+ * Cards live in their own tables, so their email decisions are pure policy
+ * helpers here: normalize the event namespace, decide whether an email is
+ * actionable, and explain suppressions. No ticket entities are involved.
+ */
+function project_card_event_normalize($event): string
+{
+    $event = trim(strtolower((string) $event));
+    return in_array($event, [
+        'project.card.assigned',
+        'project.card.due_soon',
+        'project.card.overdue',
+        'project.card.created',
+        'project.card.updated',
+    ], true) ? $event : '';
+}
+
+function should_send_project_card_email(string $event, array $card = [], array $actor = [], array $context = []): bool
+{
+    $event = project_card_event_normalize($event);
+
+    switch ($event) {
+        case 'project.card.assigned':
+            if (!empty($context['assignment_is_self'])) {
+                return false;
+            }
+            $assignee_id = (int) ($card['assignee_id'] ?? 0);
+            $actor_id = (int) ($actor['id'] ?? 0);
+            if ($assignee_id > 0 && $actor_id > 0 && $assignee_id === $actor_id) {
+                return false;
+            }
+            return true;
+
+        case 'project.card.due_soon':
+            if (!empty($context['suppress_due']) || empty($card['assignee_id'])) {
+                return false;
+            }
+            return true;
+
+        case 'project.card.overdue':
+            if (!empty($context['suppress_due']) || empty($card['assignee_id'])) {
+                return false;
+            }
+            return true;
+    }
+
+    return false;
+}
+
+function project_card_email_suppression_reason(string $event, array $context = []): string
+{
+    $event = project_card_event_normalize($event);
+    if ($event === 'project.card.assigned' && !empty($context['assignment_is_self'])) {
+        return 'self_assignment';
+    }
+    if ($event === 'project.card.created' || $event === 'project.card.updated') {
+        return 'card_update_not_actionable';
+    }
+    return 'event_not_email_actionable';
+}

@@ -2429,6 +2429,11 @@ return [
     'Due today' => 'Vencem hoje',
     'Upcoming' => 'Próximas',
     'No due date' => 'Sem prazo',
+    // Resumo de cards no Work (Fase 2)
+    'My cards' => 'Meus cards',
+    'No cards assigned to you.' => 'Nenhum card atribuído a você.',
+    'overdue' => 'atrasado(s)',
+    'open' => 'aberto(s)',
     // Card detail (Fase 2): descrição, comentários, checklists, anexos
     'Card details' => 'Detalhes do card',
     'Card not found.' => 'Card não encontrado.',

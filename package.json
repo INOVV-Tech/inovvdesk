@@ -34,7 +34,7 @@
     "test:ticket-list-filters": "sh ./bin/run-php.sh tests/ticket-list-filter-contract-test.php",
     "test:ticket-bulk-actions": "sh ./bin/run-php.sh tests/ticket-bulk-actions-contract-test.php",
     "test:ticket-row-view-model": "sh ./bin/run-php.sh tests/ticket-row-view-model-contract-test.php",
-    "test:project-modules": "sh -c 'sh ./bin/run-php.sh tests/project-foundation-contract-test.php && sh ./bin/run-php.sh tests/project-boards-contract-test.php && sh ./bin/run-php.sh tests/project-cards-contract-test.php && sh ./bin/run-php.sh tests/project-ui-contract-test.php && sh ./bin/run-php.sh tests/project-js-contract-test.php && sh ./bin/run-php.sh tests/project-detail-contract-test.php && sh ./bin/run-php.sh tests/project-board-filters-contract-test.php'",
+    "test:project-modules": "sh -c 'sh ./bin/run-php.sh tests/project-foundation-contract-test.php && sh ./bin/run-php.sh tests/project-boards-contract-test.php && sh ./bin/run-php.sh tests/project-cards-contract-test.php && sh ./bin/run-php.sh tests/project-ui-contract-test.php && sh ./bin/run-php.sh tests/project-js-contract-test.php && sh ./bin/run-php.sh tests/project-detail-contract-test.php && sh ./bin/run-php.sh tests/project-board-filters-contract-test.php && sh ./bin/run-php.sh tests/project-integrations-contract-test.php'",
     "test:ticket-list-js": "sh ./bin/run-php.sh tests/ticket-list-js-contract-test.php",
     "test:ticket-detail-js": "sh ./bin/run-php.sh tests/ticket-detail-js-contract-test.php",
     "test:ticket-share-state": "sh ./bin/run-php.sh tests/ticket-share-state-contract-test.php",

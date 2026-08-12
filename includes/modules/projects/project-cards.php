@@ -869,3 +869,82 @@ function project_card_detail_model(int $card_id): ?array
         'attachments' => $attachments,
     ];
 }
+/**
+ * "My cards" summary for the Work page and the app feed (Fase 2 item 3).
+ *
+ * Staff-only by construction: open cards assigned to the user in boards that
+ * are not archived. Clients never reach this model.
+ */
+function project_card_work_summary(array $user, int $limit = 5): array
+{
+    if (in_array((string) ($user['role'] ?? ''), ['admin', 'agent'], true) === false) {
+        return ['count' => 0, 'overdue_count' => 0, 'items' => []];
+    }
+
+    $user_id = (int) ($user['id'] ?? 0);
+    if ($user_id <= 0 || !project_cards_table_exists()) {
+        return ['count' => 0, 'overdue_count' => 0, 'items' => []];
+    }
+
+    $scoped = "FROM project_cards pc
+               JOIN project_boards pb ON pb.id = pc.board_id
+               WHERE pc.assignee_id = ? AND pb.is_archived = 0";
+
+    $count_row = db_fetch_one('SELECT COUNT(*) AS total ' . $scoped, [$user_id]);
+    $overdue_row = db_fetch_one('SELECT COUNT(*) AS total ' . $scoped . ' AND pc.due_date IS NOT NULL AND pc.due_date < NOW()', [$user_id]);
+
+    $limit = max(1, min(20, $limit));
+    $items = db_fetch_all(
+        'SELECT pc.id, pc.title, pc.board_id, pb.name AS board_name, pc.due_date '
+            . $scoped
+            . ' ORDER BY (pc.due_date IS NULL) ASC, pc.due_date ASC, pc.id DESC LIMIT ' . $limit,
+        [$user_id]
+    );
+
+    foreach ($items as $key => $item) {
+        $due = (string) ($item['due_date'] ?? '');
+        $items[$key]['is_overdue'] = $due !== '' && strtotime($due) < time();
+    }
+
+    return [
+        'count' => (int) ($count_row['total'] ?? 0),
+        'overdue_count' => (int) ($overdue_row['total'] ?? 0),
+        'items' => $items,
+    ];
+}
+
+/**
+ * Due alert candidates for the notification sweep (Fase 2 item 3).
+ *
+ * Only cards with an assignee in non-archived boards: due_soon within the
+ * next window, overdue already past. Consumers pair these candidates with
+ * should_send_project_card_email() before sending anything.
+ */
+function project_card_due_alert_candidates(int $soon_minutes = 30): array
+{
+    if (!project_cards_table_exists()) {
+        return ['due_soon' => [], 'overdue' => []];
+    }
+
+    $soon_minutes = max(1, min(1440, $soon_minutes));
+
+    $scoped = "FROM project_cards pc
+               JOIN project_boards pb ON pb.id = pc.board_id
+               WHERE pb.is_archived = 0 AND pc.assignee_id IS NOT NULL AND pc.assignee_id > 0";
+
+    $due_soon = db_fetch_all(
+        'SELECT pc.*, pb.name AS board_name '
+            . $scoped
+            . ' AND pc.due_date IS NOT NULL AND pc.due_date >= NOW()
+               AND pc.due_date <= NOW() + INTERVAL ' . (int) $soon_minutes . ' MINUTE
+               ORDER BY pc.due_date ASC, pc.id DESC'
+    );
+    $overdue = db_fetch_all(
+        'SELECT pc.*, pb.name AS board_name '
+            . $scoped
+            . ' AND pc.due_date IS NOT NULL AND pc.due_date < NOW()
+               ORDER BY pc.due_date ASC, pc.id DESC'
+    );
+
+    return ['due_soon' => $due_soon, 'overdue' => $overdue];
+}

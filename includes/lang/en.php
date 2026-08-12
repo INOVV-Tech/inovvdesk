@@ -1506,6 +1506,11 @@ return [
     'Due today' => 'Due today',
     'Upcoming' => 'Upcoming',
     'No due date' => 'No due date',
+    // Card work summary (Phase 2)
+    'My cards' => 'My cards',
+    'No cards assigned to you.' => 'No cards assigned to you.',
+    'overdue' => 'overdue',
+    'open' => 'open',
     // Card detail (Phase 2): description, comments, checklists, attachments
     'Card details' => 'Card details',
     'Card not found.' => 'Card not found.',

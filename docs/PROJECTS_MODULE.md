@@ -163,8 +163,29 @@ project_card_attachments     (id, card_id→project_cards CASCADE, filename, ori
      `none = due_date IS NULL`.
    - `search`: LIKE em título + descrição (wildcards escapados).
 3. Integrações: seção na busca global (`global-search.php`), contagens "meus
-   cards" no Work/app-feed, avisos de prazo/atribuição via
-   `notification-policy.php`. (Nenhuma integração cria vínculo com tickets.)
+    cards" no Work/app-feed, avisos de prazo/atribuição via
+    `notification-policy.php`. (Nenhuma integração cria vínculo com tickets.)
+    — **em andamento**:
+    - Busca global: seções staff-only `projects` (boards; `name LIKE`,
+      subtitle = descrição, url do board) e `cards` (cards;
+      `title/description LIKE`, subtitle = nome do board, url do board);
+      `app-shell` as remove para clientes; `shortcuts.js` (palette) passa a
+      iterar as duas seções.
+    - Work/app-feed: `project_card_work_summary($user, $limit)` em
+      `project-cards.php` → `count` (cards abertos atribuídos a mim em boards
+      não arquivados) + `overdue_count` + itens (limit) ordenados por prazo
+      (`NULLS LAST`); seção staff-only `data-work-my-cards` no Work com
+      contagens + lista compacta + link para Projects; `app-feed.php` ganha
+      `app_feed_project_cards()` e a chave `projects` no payload.
+    - Notification policy: helpers próprios do módulo em
+      `notification-policy.php` (sem tocar em tickets):
+      `project_card_event_normalize()`,
+      `should_send_project_card_email()` (true para `project.card.assigned`
+      exceto auto-atribuição, `project.card.due_soon`, `project.card.overdue`;
+      false p/ os demais) e `project_card_email_suppression_reason()`.
+      Candidatos de alerta por `project_card_due_alert_candidates()`
+      (`due_soon` = `due_date BETWEEN NOW() e NOW()+30min`, `overdue` =
+      `due_date < NOW()`; só cards com assignee em boards não arquivados).
 4. Permissão por quadro (membros), cards arquivados em coluna própria (modelo
    próprio de arquivamento do módulo, sem espelhar o modelo closed do kanban
    de tickets) e templates de board
@@ -184,6 +205,7 @@ project_card_attachments     (id, card_id→project_cards CASCADE, filename, ori
 | `project-detail-contract-test.php` | Fase 2: schema das tabelas `project_card_*`, view models (comentários/checklists/anexos), endpoints, markup do modal, traduções, ausência de vínculo com tickets |
 | `project-ui-contract-test.php` | classes `.fd-*`/`project-*` no markup, sem radius hardcoded, `t()` em toda string, e **proibição** de classes `kanban-*`/`ticket-priority-inline--*` no módulo |
 | `project-js-contract-test.php` | `project-board.js` usa `X-CSRF-Token`, `appConfig`, vocabulário próprio `project-*` (placeholder/ghost só do módulo) |
+| `project-integrations-contract-test.php` | Fase 2 item 3: seções `projects`/`cards` na busca global (modelo + palette + app-shell), `project_card_work_summary` (Work + app-feed), policy de notificação de cards (eventos, supressão, candidatos due_soon/overdue), traduções, ausência de vínculo com tickets |
 | update `tests/ui-system-contract.test.js` | superfície nova não quebra o contrato de tokens |
 
 Verificação: `npm run lint:php`, `sh ./bin/run-php.sh tests/project-*.php`,

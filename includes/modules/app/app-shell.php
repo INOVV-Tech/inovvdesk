@@ -143,7 +143,7 @@ function app_shell_search_sections(array $user): array
 
     $sections = global_search_sections();
     if (($user['role'] ?? '') === 'user') {
-        unset($sections['clients'], $sections['contacts'], $sections['reports']);
+        unset($sections['clients'], $sections['contacts'], $sections['reports'], $sections['projects'], $sections['cards']);
     }
 
     return $sections;
