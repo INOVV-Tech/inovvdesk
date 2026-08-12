@@ -57,7 +57,7 @@ require_once BASE_PATH . '/includes/header.php';
 </section>
 
 <?php project_render_modal_templates($project_lists, $project_agents); ?>
-<?php project_render_card_detail_modal(); ?>
+<?php project_render_card_detail_modal($project_agents); ?>
 
 <!-- Quill Editor JS (1.3.7 stable, same CDN as ticket detail) -->
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">

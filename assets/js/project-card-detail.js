@@ -81,6 +81,7 @@
 
         modal.classList.remove('hidden');
         renderDetailMeta();
+        syncAssigneeSelect();
         api('project-card-detail', { id: currentCardId }).then(function (data) {
             if (data && data.error) {
                 toast(data.error || '', 'error');
@@ -108,9 +109,6 @@
         if (card.priority_label) {
             parts.push('<span class="project-priority-inline project-priority-inline--' + esc(card.priority || 'medium') + '">' + esc(card.priority_label) + '</span>');
         }
-        if (card.assignee_name) {
-            parts.push('<span class="project-card-detail-meta-item">' + userIcon() + esc(card.assignee_name) + '</span>');
-        }
         if (card.due_display) {
             parts.push('<span class="project-card-detail-meta-item">' + clockIcon() + esc(card.due_display) + '</span>');
         }
@@ -124,6 +122,14 @@
         renderComments(detail.comments || []);
         renderChecklists(detail.checklists || []);
         renderAttachments(detail.attachments || []);
+        syncAssigneeSelect();
+    }
+
+    function syncAssigneeSelect() {
+        var sel = modal.querySelector('[data-project-card-assignee-select]');
+        if (!sel) return;
+        var assigneeId = currentCard && currentCard.assignee_id ? String(currentCard.assignee_id) : '';
+        if (sel.value !== assigneeId) sel.value = assigneeId;
     }
 
     function renderDescription(card) {
@@ -405,6 +411,54 @@
         });
     }
 
+    function saveAssignee(assigneeId) {
+        var card = currentCard || {};
+        api('project-card-save', {
+            id: currentCardId,
+            title: card.title || '',
+            description: card.description || '',
+            assignee_id: assigneeId ? parseInt(assigneeId, 10) || 0 : 0,
+            due_date: card.due_date || '',
+            priority: card.priority || 'medium'
+        }).then(function (data) {
+            if (data && data.error) {
+                toast(data.error, 'error');
+                return;
+            }
+            toast(cfg.assigneeSavedLabel || 'Assignee updated.');
+            currentCard.assignee_id = assigneeId ? (parseInt(assigneeId, 10) || 0) : 0;
+            var sel = modal.querySelector('[data-project-card-assignee-select]');
+            if (sel) {
+                var option = sel.options[sel.selectedIndex];
+                currentCard.assignee_name = option && option.value !== '' ? option.text : '';
+            }
+            updateBoardCardJson();
+            refreshDetail();
+        });
+    }
+
+    function updateBoardCardJson() {
+        var cardEl = document.querySelector('.project-card[data-project-card-id="' + currentCardId + '"]');
+        if (!cardEl) return;
+        cardEl.setAttribute('data-project-card-json', JSON.stringify(currentCard));
+        var chip = cardEl.querySelector('.project-card-assignee');
+        if (currentCard.assignee_name) {
+            if (chip) {
+                chip.innerHTML = userIcon() + esc(currentCard.assignee_name);
+            } else {
+                var meta = cardEl.querySelector('.project-card-meta');
+                if (meta) {
+                    var span = document.createElement('span');
+                    span.className = 'project-card-assignee';
+                    span.innerHTML = userIcon() + esc(currentCard.assignee_name);
+                    meta.appendChild(span);
+                }
+            }
+        } else if (chip) {
+            chip.remove();
+        }
+    }
+
     function refreshDetail() {
         api('project-card-detail', { id: currentCardId }).then(function (data) {
             if (data && data.error) {
@@ -531,6 +585,11 @@
             var itemId = box.getAttribute('data-project-item-id');
             if (!itemId) return;
             toggleChecklistItem(itemId, box.checked);
+            return;
+        }
+        var assigneeSel = event.target.closest('[data-project-card-assignee-select]');
+        if (assigneeSel) {
+            saveAssignee(assigneeSel.value || '');
         }
     });
 

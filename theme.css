@@ -8559,6 +8559,7 @@ body.ticket-timeline-open {
 
 .project-board-wrapper {
   overflow: visible !important;
+  min-width: 0;
   border: 0 !important;
   box-shadow: none !important;
   background: transparent !important;
@@ -8568,7 +8569,7 @@ body.ticket-timeline-open {
 .project-board {
   display: flex;
   gap: 0.75rem;
-  min-width: max-content;
+  min-width: 0;
   overflow-x: auto;
   padding: 0.5rem 0.75rem 0.75rem;
   align-items: flex-start;
@@ -8988,6 +8989,24 @@ body.ticket-timeline-open {
   font-size: 0.8125rem;
 }
 
+.project-card-detail-assignee {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  max-width: 20rem;
+}
+
+.project-card-detail-assignee-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fd-text-secondary);
+  white-space: nowrap;
+}
+
 .project-card-detail-section {
   padding: 1rem 0;
   border-top: 1px solid var(--fd-border-light, var(--border-light));
@@ -9237,4 +9256,78 @@ body.ticket-timeline-open {
 
 .project-card {
   cursor: pointer;
+}
+
+/* ============================================================
+   Projects module — mobile pass
+   ============================================================ */
+
+/* Touch devices cannot drag & drop: the per-card move select
+   becomes the primary move control. */
+@media (pointer: coarse) {
+  .project-mobile-move {
+    display: block;
+    width: 100%;
+    height: var(--fd-control-height-sm);
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .project-board-page {
+    padding: 1rem;
+  }
+
+  /* Mobile: lists stack vertically (one full-width list per row)
+     instead of a horizontal board scroll. */
+  .project-board {
+    flex-direction: column;
+    align-items: stretch;
+    overflow-x: visible;
+    padding: 0.25rem 0.5rem 0.5rem;
+  }
+
+  .project-column {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .project-board-head-actions {
+    width: 100%;
+  }
+
+  .project-board-head-actions .fd-button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .project-checklist-item-composer,
+  .project-attachment-composer {
+    flex-wrap: wrap;
+  }
+
+  .project-checklist-item-composer .form-input,
+  .project-card-attachment-input {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .project-card-detail-head {
+    align-items: flex-start;
+  }
+
+  .project-card-detail-section-actions {
+    flex-wrap: wrap;
+  }
+}
+
+.project-checklist-item-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
 }

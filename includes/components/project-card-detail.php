@@ -8,7 +8,7 @@
  * Included from pages/project.php after the board is rendered.
  */
 
-function project_render_card_detail_modal(): void
+function project_render_card_detail_modal(array $agents = []): void
 {
     ?>
     <!-- Card detail modal (description, comments, checklists, attachments) -->
@@ -30,6 +30,23 @@ function project_render_card_detail_modal(): void
                 </div>
 
                 <div class="project-card-detail-meta" data-project-card-detail-meta></div>
+
+                <!-- Assignee (inline editable) -->
+                <div class="project-card-detail-assignee">
+                    <label class="project-card-detail-assignee-label" for="project-card-detail-assignee-select">
+                        <?php echo get_icon('user', 'w-3.5 h-3.5'); ?>
+                        <?php echo e(t('Assignee')); ?>
+                    </label>
+                    <select id="project-card-detail-assignee-select"
+                            class="form-select w-full project-card-detail-assignee-select"
+                            data-project-card-assignee-select
+                            aria-label="<?php echo e(t('Assignee')); ?>">
+                        <option value=""><?php echo e(t('Unassigned')); ?></option>
+                        <?php foreach ($agents as $agent): ?>
+                            <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo e($agent['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
                 <!-- Description (rich text via Quill) -->
                 <section class="project-card-detail-section project-card-detail-description">
