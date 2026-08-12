@@ -292,6 +292,26 @@ function find_attachment_by_relative_path($relative_path)
         && ($relative_path === $upload_dir || str_starts_with($relative_path, $upload_dir . '/'))
     ) {
         $filename = basename($relative_path);
+
+        // Projects module rows are marked with a project_card_id so the
+        // access check below can gate them to staff without touching the
+        // ticket branch.
+        try {
+            $project_row = db_fetch_one(
+                "SELECT a.*, a.card_id AS project_card_id
+                 FROM project_card_attachments a
+                 WHERE a.filename = ?
+                 LIMIT 1",
+                [$filename]
+            );
+        } catch (Throwable $e) {
+            $project_row = null;
+        }
+
+        if ($project_row) {
+            return $project_row;
+        }
+
         return db_fetch_one(
             "SELECT a.*, c.is_internal AS comment_is_internal
              FROM attachments a
@@ -323,6 +343,17 @@ function find_attachment_by_relative_path($relative_path)
  */
 function attachment_user_can_access($attachment, $user = null)
 {
+    // Projects module attachments: staff-only surface.
+    if (!empty($attachment['project_card_id'])) {
+        if ($user === null) {
+            $user = current_user();
+        }
+        if (!$user) {
+            return false;
+        }
+        return in_array((string) ($user['role'] ?? ''), ['agent', 'admin'], true);
+    }
+
     if (empty($attachment['ticket_id'])) {
         return false;
     }

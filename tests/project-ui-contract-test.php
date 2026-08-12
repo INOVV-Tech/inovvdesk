@@ -14,6 +14,7 @@ $files = [
     'pages/project.php',
     'includes/components/project-board-surface.php',
     'includes/components/project-card-composer.php',
+    'includes/components/project-card-detail.php',
     'includes/modules/projects/project-boards.php',
     'includes/modules/projects/project-lists.php',
     'includes/modules/projects/project-cards.php',

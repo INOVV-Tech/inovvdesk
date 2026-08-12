@@ -33,6 +33,7 @@ $assert(str_contains($js, 'effectAllowed'), 'Board JS must set the drag effect.'
 $assert(str_contains($js, 'project-card-move'), 'Board JS must call project-card-move.');
 $assert(str_contains($js, 'order: order'), 'Card move must persist the target list order.');
 $assert(str_contains($js, 'savedSource'), 'Card move must keep a revert source.');
+$assert(str_contains($js, 'projectSuppressCardClick'), 'Board JS must suppress card clicks right after a drop.');
 
 // --- All write actions present ---
 foreach ([

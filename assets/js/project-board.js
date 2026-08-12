@@ -508,6 +508,9 @@
             el.classList.remove('drag-over', 'drag-source');
         });
         removePlaceholderGlobal();
+        // A click right after a drag must not open the card detail modal.
+        window.projectSuppressCardClick = true;
+        window.setTimeout(function () { window.projectSuppressCardClick = false; }, 150);
     });
 
     function getCardAfterCursor(container, y) {

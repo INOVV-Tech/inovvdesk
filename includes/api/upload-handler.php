@@ -26,6 +26,7 @@ function api_upload() {
 
     // Validate ticket permission if ticket_id is provided
     $ticket_id = isset($_POST['ticket_id']) ? (int)$_POST['ticket_id'] : 0;
+    $card_id = isset($_POST['card_id']) ? (int)$_POST['card_id'] : 0;
     $allowed_types = null;
 
     if ($ticket_id > 0) {
@@ -45,6 +46,14 @@ function api_upload() {
             }
             api_error('You do not have permission to upload files to this ticket', 403);
         }
+    } elseif ($card_id > 0) {
+        // Project card attachments (Projects module, staff-only surface).
+        if (!function_exists('project_can_manage') || !project_can_manage()) {
+            api_error('Forbidden', 403);
+        }
+        if (!function_exists('project_card_get') || !project_card_get($card_id)) {
+            api_error('Card not found', 404);
+        }
     } else {
         $purpose = trim((string) ($_POST['purpose'] ?? ''));
         if ($purpose !== 'editor-image') {
@@ -58,8 +67,24 @@ function api_upload() {
     }
 
     try {
-        $visibility = $ticket_id > 0 ? 'private' : 'public';
+        $visibility = ($ticket_id > 0 || $card_id > 0) ? 'private' : 'public';
         $result = upload_file($_FILES['file'], $allowed_types, null, $visibility);
+
+        if ($card_id > 0) {
+            $attachment_id = db_insert('project_card_attachments', [
+                'card_id' => $card_id,
+                'filename' => $result['filename'],
+                'original_name' => $result['original_name'],
+                'mime_type' => $result['mime_type'],
+                'file_size' => $result['file_size'],
+                'uploaded_by' => (int) ($user['id'] ?? 0),
+            ]);
+            api_success(['file' => $result, 'attachment' => [
+                'id' => (int) $attachment_id,
+                'original_name' => $result['original_name'],
+            ]]);
+        }
+
         api_success(['file' => $result]);
     } catch (Exception $e) {
         api_error($e->getMessage());

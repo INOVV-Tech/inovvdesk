@@ -8467,6 +8467,7 @@ body.ticket-timeline-open {
 
 .projects-grid-card:hover {
   transform: translateY(-2px);
+   padding: 2rem 1rem;
 }
 
 .project-board-swatch {
@@ -8956,4 +8957,284 @@ body.ticket-timeline-open {
 
 .project-board-page .project-board-first-list {
   margin-top: 1rem;
+}
+
+/* ============================================================
+   Projects module — card detail modal (Fase 2)
+   ============================================================ */
+
+.project-card-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.project-card-detail-title {
+  margin-bottom: 0.35rem;
+}
+
+.project-card-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.project-card-detail-meta-item {
+  color: var(--fd-text-muted);
+  font-size: 0.8125rem;
+}
+
+.project-card-detail-section {
+  padding: 1rem 0;
+  border-top: 1px solid var(--fd-border-light, var(--border-light));
+}
+
+.project-card-detail-section:first-of-type {
+  border-top: none;
+}
+
+.project-card-detail-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fd-text-secondary);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.project-card-detail-description-preview {
+  color: var(--fd-text-primary);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.project-card-detail-editor {
+  margin-bottom: 0.5rem;
+}
+
+.project-card-detail-section-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.project-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.project-comments-empty,
+.project-checklists-empty,
+.project-attachments-empty {
+  color: var(--fd-text-muted);
+  font-size: 0.8125rem;
+}
+
+.project-comment {
+  padding: 0.625rem 0.75rem;
+  background: var(--fd-surface-muted, var(--surface-secondary));
+  border: 1px solid var(--fd-border-light, var(--border-light));
+  border-radius: var(--fd-radius-control);
+}
+
+.project-comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.project-comment-meta strong {
+  font-size: 0.75rem;
+}
+
+.project-comment-date {
+  color: var(--fd-text-muted);
+  font-size: 0.6875rem;
+}
+
+.project-comment-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.project-comment-body {
+  color: var(--fd-text-primary);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.project-comment-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-comment-input {
+  background: var(--fd-surface-muted, var(--surface-secondary));
+}
+
+.project-checklist-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-checklist {
+  padding: 0.625rem 0.75rem;
+  margin-bottom: 0.75rem;
+  background: var(--fd-surface-muted, var(--surface-secondary));
+  border: 1px solid var(--fd-border-light, var(--border-light));
+  border-radius: var(--fd-radius-control);
+}
+
+.project-checklist-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.project-checklist-name {
+  font-size: 0.8125rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-checklist-progress {
+  color: var(--fd-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.project-checklist-bar {
+  display: block;
+  width: 5rem;
+  height: 0.375rem;
+  border-radius: var(--fd-radius-control);
+  background: var(--fd-border-light, var(--border-light));
+  overflow: hidden;
+}
+
+.project-checklist-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--primary, #3b82f6);
+  border-radius: var(--fd-radius-control);
+  transition: width 0.2s ease;
+}
+
+.project-checklist-items {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.project-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.project-checklist-item-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.project-checklist-item.is-checked .project-checklist-item-name {
+  text-decoration: line-through;
+  color: var(--fd-text-muted);
+}
+
+.project-checklist-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-checklist-checkbox {
+  accent-color: var(--primary, #3b82f6);
+  cursor: pointer;
+}
+
+.project-checklist-item-composer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.project-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.project-attachment {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.625rem;
+  background: var(--fd-surface-muted, var(--surface-secondary));
+  border: 1px solid var(--fd-border-light, var(--border-light));
+  border-radius: var(--fd-radius-control);
+}
+
+.project-attachment-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  color: var(--fd-text-primary);
+  font-size: 0.8125rem;
+}
+
+.project-attachment-link:hover {
+  color: var(--primary, #3b82f6);
+}
+
+.project-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-attachment-size {
+  color: var(--fd-text-muted);
+  font-size: 0.6875rem;
+}
+
+.project-attachment-composer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+
+.project-card {
+  cursor: pointer;
 }

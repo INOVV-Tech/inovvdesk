@@ -237,3 +237,209 @@ function api_project_card_delete()
 
     api_success();
 }
+
+/**
+ * Card detail view model (read-only; GET is allowed for staff).
+ * Expects: id.
+ */
+function api_project_card_detail()
+{
+    if (!project_can_manage()) {
+        api_error('Forbidden', 403);
+    }
+
+    $input = get_json_input();
+    $id = project_board_normalize_id($input['id'] ?? 0);
+
+    $model = project_card_detail_model($id);
+    if ($model === null) {
+        api_error('Card not found', 404);
+    }
+
+    api_success($model);
+}
+
+/**
+ * Create or update a card comment (internal by construction).
+ * Expects: id (optional), card_id (on create), body.
+ * The author edits their own comment; the author or an admin may delete.
+ */
+function api_project_card_comment_save()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $body = api_project_input_string($input, 'body');
+
+    try {
+        $id = project_board_normalize_id($input['id'] ?? 0);
+        $user = current_user();
+
+        if ($id > 0) {
+            $comment = project_card_comment_get($id);
+            if (!$comment) {
+                api_error('Comment not found', 404);
+            }
+            if (!project_card_comment_can_modify($comment, $user)) {
+                api_error('Forbidden', 403);
+            }
+            if (!project_card_comment_update($id, $body)) {
+                api_error('Comment not found', 404);
+            }
+            api_success(['id' => $id]);
+        }
+
+        $card_id = project_board_normalize_id($input['card_id'] ?? 0);
+        $new_id = project_card_comment_create($card_id, (int) ($user['id'] ?? 0), $body);
+        api_success(['id' => $new_id]);
+    } catch (InvalidArgumentException $e) {
+        api_error($e->getMessage());
+    }
+}
+
+/**
+ * Delete a card comment (author or admin).
+ * Expects: id.
+ */
+function api_project_card_comment_delete()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $id = project_board_normalize_id($input['id'] ?? 0);
+
+    $comment = project_card_comment_get($id);
+    if (!$comment) {
+        api_error('Comment not found', 404);
+    }
+    if (!project_card_comment_can_modify($comment, current_user(), true)) {
+        api_error('Forbidden', 403);
+    }
+
+    if (!project_card_comment_delete($id)) {
+        api_error('Comment not found', 404);
+    }
+
+    api_success();
+}
+
+/**
+ * Create or update a card checklist.
+ * Expects: id (optional), card_id (on create), name.
+ */
+function api_project_card_checklist_save()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $name = api_project_input_string($input, 'name');
+
+    try {
+        $id = project_board_normalize_id($input['id'] ?? 0);
+        if ($id > 0) {
+            if (!project_card_checklist_update($id, $name)) {
+                api_error('Checklist not found', 404);
+            }
+            api_success(['id' => $id, 'name' => $name]);
+        }
+
+        $card_id = project_board_normalize_id($input['card_id'] ?? 0);
+        $new_id = project_card_checklist_create($card_id, $name);
+        api_success(['id' => $new_id, 'name' => $name]);
+    } catch (InvalidArgumentException $e) {
+        api_error($e->getMessage());
+    }
+}
+
+/**
+ * Delete a card checklist (cascades items).
+ * Expects: id.
+ */
+function api_project_card_checklist_delete()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $id = project_board_normalize_id($input['id'] ?? 0);
+
+    if (!project_card_checklist_delete($id)) {
+        api_error('Checklist not found', 404);
+    }
+
+    api_success();
+}
+
+/**
+ * Add an item to a card checklist.
+ * Expects: checklist_id, name.
+ */
+function api_project_card_checklist_item_save()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $name = api_project_input_string($input, 'name');
+
+    try {
+        $checklist_id = project_board_normalize_id($input['checklist_id'] ?? 0);
+        $new_id = project_card_checklist_item_create($checklist_id, $name);
+        api_success(['id' => $new_id, 'name' => $name]);
+    } catch (InvalidArgumentException $e) {
+        api_error($e->getMessage());
+    }
+}
+
+/**
+ * Toggle a checklist item.
+ * Expects: id, is_checked (0|1).
+ */
+function api_project_card_checklist_item_toggle()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $id = project_board_normalize_id($input['id'] ?? 0);
+    $is_checked = !empty($input['is_checked']);
+
+    if (!project_card_checklist_item_toggle($id, $is_checked)) {
+        api_error('Checklist item not found', 404);
+    }
+
+    api_success(['id' => $id, 'is_checked' => $is_checked ? 1 : 0]);
+}
+
+/**
+ * Delete a checklist item.
+ * Expects: id.
+ */
+function api_project_card_checklist_item_delete()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $id = project_board_normalize_id($input['id'] ?? 0);
+
+    if (!project_card_checklist_item_delete($id)) {
+        api_error('Checklist item not found', 404);
+    }
+
+    api_success();
+}
+
+/**
+ * Delete a card attachment (row + file).
+ * Expects: id.
+ */
+function api_project_card_attachment_delete()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $id = project_board_normalize_id($input['id'] ?? 0);
+
+    if (!project_card_attachment_delete($id)) {
+        api_error('Attachment not found', 404);
+    }
+
+    api_success();
+}

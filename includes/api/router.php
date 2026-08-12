@@ -188,6 +188,15 @@ function route_api_request($action) {
         'project-card-save' => 'api_project_card_save',
         'project-card-move' => 'api_project_card_move',
         'project-card-delete' => 'api_project_card_delete',
+        'project-card-detail' => 'api_project_card_detail',
+        'project-card-comment-save' => 'api_project_card_comment_save',
+        'project-card-comment-delete' => 'api_project_card_comment_delete',
+        'project-card-checklist-save' => 'api_project_card_checklist_save',
+        'project-card-checklist-delete' => 'api_project_card_checklist_delete',
+        'project-card-checklist-item-save' => 'api_project_card_checklist_item_save',
+        'project-card-checklist-item-toggle' => 'api_project_card_checklist_item_toggle',
+        'project-card-checklist-item-delete' => 'api_project_card_checklist_item_delete',
+        'project-card-attachment-delete' => 'api_project_card_attachment_delete',
     ];
 
     if (isset($routes[$action])) {

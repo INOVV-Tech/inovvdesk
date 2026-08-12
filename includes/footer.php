@@ -33,7 +33,32 @@
         listNameRequiredLabel: <?php echo json_encode(t('List name is required.')); ?>,
         deleteProjectConfirm: <?php echo json_encode(t('Delete this project and all its lists and cards?')); ?>,
         deleteListConfirm: <?php echo json_encode(t('Delete this list and all its cards?')); ?>,
-        deleteCardConfirm: <?php echo json_encode(t('Delete this card?')); ?>
+        deleteCardConfirm: <?php echo json_encode(t('Delete this card?')); ?>,
+        cardDetailLabel: <?php echo json_encode(t('Card details')); ?>,
+        commentRequiredLabel: <?php echo json_encode(t('Comment body is required.')); ?>,
+        checklistNameRequiredLabel: <?php echo json_encode(t('Checklist name is required.')); ?>,
+        commentAddedLabel: <?php echo json_encode(t('Comment added.')); ?>,
+        commentDeletedLabel: <?php echo json_encode(t('Comment deleted.')); ?>,
+        checklistAddedLabel: <?php echo json_encode(t('Checklist added.')); ?>,
+        deleteCommentConfirm: <?php echo json_encode(t('Delete this comment?')); ?>,
+        deleteChecklistConfirm: <?php echo json_encode(t('Delete this checklist and its items?')); ?>,
+        deleteAttachmentConfirm: <?php echo json_encode(t('Delete this attachment?')); ?>,
+        attachmentUploadedLabel: <?php echo json_encode(t('Attachment uploaded.')); ?>,
+        attachmentDeletedLabel: <?php echo json_encode(t('Attachment deleted.')); ?>,
+        editCommentTitle: <?php echo json_encode(t('Edit comment')); ?>,
+        deleteCommentTitle: <?php echo json_encode(t('Delete comment')); ?>,
+        deleteChecklistTitle: <?php echo json_encode(t('Delete checklist')); ?>,
+        deleteItemTitle: <?php echo json_encode(t('Delete item')); ?>,
+        deleteAttachmentTitle: <?php echo json_encode(t('Delete attachment')); ?>,
+        noCommentsLabel: <?php echo json_encode(t('No comments yet')); ?>,
+        noChecklistsLabel: <?php echo json_encode(t('No checklists yet')); ?>,
+        noAttachmentsLabel: <?php echo json_encode(t('No attachments yet')); ?>,
+        itemNamePlaceholder: <?php echo json_encode(t('Item...')); ?>,
+        itemNameLabel: <?php echo json_encode(t('Item name')); ?>,
+        itemNameRequiredLabel: <?php echo json_encode(t('Item name is required.')); ?>,
+        addItemLabel: <?php echo json_encode(t('Add item')); ?>,
+        selectFileLabel: <?php echo json_encode(t('Select a file first.')); ?>,
+        deleteItemConfirm: <?php echo json_encode(t('Delete this item?')); ?>
     };
 </script>
 <script>

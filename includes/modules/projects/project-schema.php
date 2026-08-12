@@ -25,7 +25,15 @@ function project_table_exists(string $table, bool $refresh = false): bool
         return $available[$table];
     }
 
-    $allowed = ['project_boards', 'project_lists', 'project_cards'];
+    $allowed = [
+        'project_boards',
+        'project_lists',
+        'project_cards',
+        'project_card_comments',
+        'project_card_checklists',
+        'project_card_checklist_items',
+        'project_card_attachments',
+    ];
     if (!in_array($table, $allowed, true)) {
         $available[$table] = false;
         return false;
@@ -53,6 +61,26 @@ function project_lists_table_exists(bool $refresh = false): bool
 function project_cards_table_exists(bool $refresh = false): bool
 {
     return project_table_exists('project_cards', $refresh);
+}
+
+function project_card_comments_table_exists(bool $refresh = false): bool
+{
+    return project_table_exists('project_card_comments', $refresh);
+}
+
+function project_card_checklists_table_exists(bool $refresh = false): bool
+{
+    return project_table_exists('project_card_checklists', $refresh);
+}
+
+function project_card_checklist_items_table_exists(bool $refresh = false): bool
+{
+    return project_table_exists('project_card_checklist_items', $refresh);
+}
+
+function project_card_attachments_table_exists(bool $refresh = false): bool
+{
+    return project_table_exists('project_card_attachments', $refresh);
 }
 
 function project_tables_ready(bool $refresh = false): bool
@@ -163,4 +191,123 @@ function ensure_project_tables(): bool
     $lists = ensure_project_lists_table();
     $cards = ensure_project_cards_table();
     return $boards && $lists && $cards;
+}
+
+function ensure_project_card_comments_table(): bool
+{
+    if (project_card_comments_table_exists()) {
+        return true;
+    }
+
+    try {
+        db_query("
+            CREATE TABLE IF NOT EXISTS project_card_comments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                card_id INT NOT NULL,
+                author_id INT NULL,
+                body TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_project_card_comments_card (card_id),
+                INDEX idx_project_card_comments_author (author_id),
+                FOREIGN KEY (card_id) REFERENCES project_cards(id) ON DELETE CASCADE,
+                FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Throwable $e) {
+        // See project_boards ensure_* note.
+    }
+
+    return project_card_comments_table_exists(true);
+}
+
+function ensure_project_card_checklists_table(): bool
+{
+    if (project_card_checklists_table_exists()) {
+        return true;
+    }
+
+    try {
+        db_query("
+            CREATE TABLE IF NOT EXISTS project_card_checklists (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                card_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                sort_order INT NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_project_card_checklists_card (card_id),
+                FOREIGN KEY (card_id) REFERENCES project_cards(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Throwable $e) {
+        // See project_boards ensure_* note.
+    }
+
+    return project_card_checklists_table_exists(true);
+}
+
+function ensure_project_card_checklist_items_table(): bool
+{
+    if (project_card_checklist_items_table_exists()) {
+        return true;
+    }
+
+    try {
+        db_query("
+            CREATE TABLE IF NOT EXISTS project_card_checklist_items (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                checklist_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                is_checked TINYINT(1) NOT NULL DEFAULT 0,
+                sort_order INT NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_project_card_checklist_items_checklist (checklist_id),
+                FOREIGN KEY (checklist_id) REFERENCES project_card_checklists(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Throwable $e) {
+        // See project_boards ensure_* note.
+    }
+
+    return project_card_checklist_items_table_exists(true);
+}
+
+function ensure_project_card_attachments_table(): bool
+{
+    if (project_card_attachments_table_exists()) {
+        return true;
+    }
+
+    try {
+        db_query("
+            CREATE TABLE IF NOT EXISTS project_card_attachments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                card_id INT NOT NULL,
+                filename VARCHAR(255) NOT NULL,
+                original_name VARCHAR(255) NOT NULL,
+                mime_type VARCHAR(100) NULL,
+                file_size BIGINT NULL,
+                uploaded_by INT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_project_card_attachments_card (card_id),
+                INDEX idx_project_card_attachments_uploaded_by (uploaded_by),
+                FOREIGN KEY (card_id) REFERENCES project_cards(id) ON DELETE CASCADE,
+                FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } catch (Throwable $e) {
+        // See project_boards ensure_* note.
+    }
+
+    return project_card_attachments_table_exists(true);
+}
+
+function ensure_project_detail_tables(): bool
+{
+    return ensure_project_card_comments_table()
+        && ensure_project_card_checklists_table()
+        && ensure_project_card_checklist_items_table()
+        && ensure_project_card_attachments_table();
 }

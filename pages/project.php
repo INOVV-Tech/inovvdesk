@@ -12,6 +12,7 @@ $user = current_user();
 
 project_requires_staff_redirect();
 ensure_project_tables();
+ensure_project_detail_tables();
 
 $project_board_id = project_board_normalize_id($_GET['board_id'] ?? 0);
 $project_board = project_board_get_visible($project_board_id);
@@ -56,7 +57,14 @@ require_once BASE_PATH . '/includes/header.php';
 </section>
 
 <?php project_render_modal_templates($project_lists, $project_agents); ?>
+<?php project_render_card_detail_modal(); ?>
+
+<!-- Quill Editor JS (1.3.7 stable, same CDN as ticket detail) -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script src="<?php echo e(foxdesk_asset_url('assets/js/quill-image-upload.js')); ?>"></script>
 
 <script defer src="<?php echo e(foxdesk_asset_url('assets/js/project-board.js')); ?>"></script>
+<script defer src="<?php echo e(foxdesk_asset_url('assets/js/project-card-detail.js')); ?>"></script>
 
 <?php require_once BASE_PATH . '/includes/footer.php'; ?>
