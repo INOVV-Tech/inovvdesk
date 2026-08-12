@@ -25,7 +25,15 @@
         errorLabel: <?php echo json_encode(t('Error')); ?>,
         savedLabel: <?php echo json_encode(t('Saved')); ?>,
         pauseLabel: <?php echo json_encode(t('Pause')); ?>,
-        resumeLabel: <?php echo json_encode(t('Resume')); ?>
+        resumeLabel: <?php echo json_encode(t('Resume')); ?>,
+        newProjectLabel: <?php echo json_encode(t('New project')); ?>,
+        renameProjectLabel: <?php echo json_encode(t('Rename project')); ?>,
+        newCardLabel: <?php echo json_encode(t('New card')); ?>,
+        editCardLabel: <?php echo json_encode(t('Edit card')); ?>,
+        listNameRequiredLabel: <?php echo json_encode(t('List name is required.')); ?>,
+        deleteProjectConfirm: <?php echo json_encode(t('Delete this project and all its lists and cards?')); ?>,
+        deleteListConfirm: <?php echo json_encode(t('Delete this list and all its cards?')); ?>,
+        deleteCardConfirm: <?php echo json_encode(t('Delete this card?')); ?>
     };
 </script>
 <script>

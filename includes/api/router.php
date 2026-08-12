@@ -20,6 +20,7 @@ require_once __DIR__ . '/notification-handler.php';
 require_once __DIR__ . '/allowed-senders-handler.php';
 require_once __DIR__ . '/push-handler.php';
 require_once __DIR__ . '/app-handler.php';
+require_once __DIR__ . '/project-handler.php';
 
 /**
  * Route API requests to appropriate handlers
@@ -176,6 +177,17 @@ function route_api_request($action) {
         'push-unsubscribe' => 'api_push_unsubscribe',
         'push-vapid-key' => 'api_push_vapid_key',
         'push-notifications' => 'api_push_notifications',
+
+        // --- Project board endpoints (staff only) ---
+        'project-board-save' => 'api_project_board_save',
+        'project-board-archive' => 'api_project_board_archive',
+        'project-board-delete' => 'api_project_board_delete',
+        'project-list-save' => 'api_project_list_save',
+        'project-list-delete' => 'api_project_list_delete',
+        'project-list-reorder' => 'api_project_list_reorder',
+        'project-card-save' => 'api_project_card_save',
+        'project-card-move' => 'api_project_card_move',
+        'project-card-delete' => 'api_project_card_delete',
     ];
 
     if (isset($routes[$action])) {

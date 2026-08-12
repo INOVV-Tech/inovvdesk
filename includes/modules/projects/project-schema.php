@@ -9,6 +9,15 @@
  * through includes/schema.sql and upgrade.php.
  */
 
+/**
+ * Translate a validation message, falling back to the key when the app
+ * translator is not bootstrapped (CLI contract tests).
+ */
+function project_validation_message(string $key): string
+{
+    return function_exists('t') ? t($key) : $key;
+}
+
 function project_table_exists(string $table, bool $refresh = false): bool
 {
     static $available = [];

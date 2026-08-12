@@ -2,7 +2,8 @@
 /**
  * Projects page: board grid.
  *
- * Thin route: permission guard and read model live in modules.
+ * Thin route: permission guard and read models live in modules; grid rendering
+ * and modal templates come from shared components.
  */
 
 $page_title = t('Projects');
@@ -12,8 +13,8 @@ $user = current_user();
 project_requires_staff_redirect();
 ensure_project_tables();
 
-$project_boards = project_boards_list();
-$project_board_count = count($project_boards);
+$project_boards = project_boards_list(true);
+$project_agents = function_exists('project_assignee_options') ? project_assignee_options() : [];
 
 require_once BASE_PATH . '/includes/header.php';
 ?>
@@ -28,32 +29,23 @@ require_once BASE_PATH . '/includes/header.php';
         </div>
     </div>
 
-    <?php if ($project_board_count === 0): ?>
+    <?php if (count($project_boards) === 0): ?>
         <div class="projects-empty">
             <div class="projects-empty-icon"><?php echo get_icon('trello', 'w-10 h-10'); ?></div>
             <p class="projects-empty-title"><?php echo e(t('No projects yet')); ?></p>
             <p class="projects-empty-text"><?php echo e(t('Create your first board to start planning development work.')); ?></p>
+            <button type="button" class="fd-button fd-button--primary mt-3"
+                    data-project-action="board-open-create">
+                <?php echo get_icon('plus', 'w-4 h-4 mr-1'); ?><?php echo e(t('New project')); ?>
+            </button>
         </div>
     <?php else: ?>
-        <div class="projects-grid">
-            <?php foreach ($project_boards as $board): ?>
-                <?php
-                $board_name = project_board_label($board);
-                $board_url = project_board_url($board);
-                $board_color = (string) ($board['color'] ?? '#0a84ff');
-                ?>
-                <a href="<?php echo e($board_url); ?>" class="fd-card projects-grid-card project-board-card">
-                    <span class="project-board-swatch" style="background: <?php echo e($board_color); ?>;"></span>
-                    <div class="project-board-card-body">
-                        <strong class="project-board-card-name"><?php echo e($board_name); ?></strong>
-                        <?php if (trim((string) ($board['description'] ?? '')) !== ''): ?>
-                            <span class="project-board-card-description"><?php echo e($board['description']); ?></span>
-                        <?php endif; ?>
-                    </div>
-                </a>
-            <?php endforeach; ?>
-        </div>
+        <?php project_render_board_grid($project_boards); ?>
     <?php endif; ?>
 </section>
+
+<?php project_render_modal_templates([], $project_agents); ?>
+
+<script defer src="<?php echo e(foxdesk_asset_url('assets/js/project-board.js')); ?>"></script>
 
 <?php require_once BASE_PATH . '/includes/footer.php'; ?>
