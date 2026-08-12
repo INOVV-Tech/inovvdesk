@@ -63,6 +63,8 @@ platform, billing, tenant, R2, or Cloudflare managed-service controls.
 | `pages/admin/feedback.php` | 128 | already modular | shared customer workflow | Keep admin feedback list/status logic in `includes/feedback-functions.php`. |
 | `pages/work.php` | 64 | already modular | shared customer workflow | Work queues live in `includes/modules/work/work-queues.php`. |
 | `pages/inbox.php` | 62 | already modular | shared customer workflow | Inbox behavior lives in `includes/modules/inbox/inbox-service.php`. |
+| `pages/projects.php` | thin | already modular | shared customer workflow | Board grid route; models live in `includes/modules/projects/*`. |
+| `pages/project.php` | thin | already modular | shared customer workflow | Board detail route; models live in `includes/modules/projects/*`. |
 
 ## Existing Module Map
 
@@ -80,6 +82,7 @@ platform, billing, tenant, R2, or Cloudflare managed-service controls.
 | Feedback | `includes/feedback-functions.php` | User feedback storage, status updates, and optional admin email notification. |
 | Clients | `includes/modules/clients/client-overview.php` | Client detail summary. |
 | Team | `includes/modules/team/team-users.php` | Users/team filter state, organization assignment normalization, permission payloads, user list read model, time totals, and AI-agent token read model. |
+| Projects | `includes/modules/projects/project-schema.php`, `includes/modules/projects/project-permissions.php`, `includes/modules/projects/project-boards.php`, `includes/modules/projects/project-lists.php`, `includes/modules/projects/project-cards.php`, `assets/js/project-board.js` | Trello-style project boards: schema bootstrap, staff permission model, board/list/card query models, and board browser behavior. See `docs/PROJECTS_MODULE.md` for the phased roadmap. |
 
 ## Priority Extractions
 

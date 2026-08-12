@@ -1456,4 +1456,12 @@ return [
     'OneDrive file' => 'OneDrive file',
     'Figma design' => 'Figma design',
     'Image' => 'Image',
+    'Project' => 'Project',
+    'Projects' => 'Projects',
+    'Project management' => 'Project management',
+    'Project not found.' => 'Project not found.',
+    'No projects yet' => 'No projects yet',
+    'Create your first board to start planning development work.' => 'Create your first board to start planning development work.',
+    'No lists yet' => 'No lists yet',
+    'Boards are made of lists. Add your first column to start moving cards.' => 'Boards are made of lists. Add your first column to start moving cards.',
 ];

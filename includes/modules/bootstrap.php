@@ -43,3 +43,8 @@ require_once __DIR__ . '/app/dashboard-compat.php';
 require_once __DIR__ . '/app/app-contract.php';
 require_once __DIR__ . '/app/app-shell.php';
 require_once __DIR__ . '/app/app-feed.php';
+require_once __DIR__ . '/projects/project-schema.php';
+require_once __DIR__ . '/projects/project-permissions.php';
+require_once __DIR__ . '/projects/project-boards.php';
+require_once __DIR__ . '/projects/project-lists.php';
+require_once __DIR__ . '/projects/project-cards.php';

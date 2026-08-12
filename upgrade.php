@@ -1389,6 +1389,88 @@ if (!$check) {
     }
 }
 
+// Create project_boards table (Projects module)
+$check = db_fetch_one("SHOW TABLES LIKE 'project_boards'");
+if (!$check) {
+    try {
+        db_query("
+            CREATE TABLE project_boards (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT NULL,
+                color VARCHAR(7) DEFAULT '#0a84ff',
+                is_archived TINYINT(1) NOT NULL DEFAULT 0,
+                created_by INT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by) REFERENCES users(id),
+                INDEX idx_project_boards_created_by (created_by),
+                INDEX idx_project_boards_archived (is_archived),
+                INDEX idx_project_boards_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $messages[] = "OK: Created table `project_boards`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to create table `project_boards`: " . $e->getMessage();
+    }
+}
+
+// Create project_lists table (Projects module)
+$check = db_fetch_one("SHOW TABLES LIKE 'project_lists'");
+if (!$check) {
+    try {
+        db_query("
+            CREATE TABLE project_lists (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                board_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                sort_order INT NOT NULL DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (board_id) REFERENCES project_boards(id) ON DELETE CASCADE,
+                INDEX idx_project_lists_board_order (board_id, sort_order)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $messages[] = "OK: Created table `project_lists`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to create table `project_lists`: " . $e->getMessage();
+    }
+}
+
+// Create project_cards table (Projects module)
+$check = db_fetch_one("SHOW TABLES LIKE 'project_cards'");
+if (!$check) {
+    try {
+        db_query("
+            CREATE TABLE project_cards (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                board_id INT NOT NULL,
+                list_id INT NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NULL,
+                assignee_id INT NULL,
+                due_date DATETIME NULL,
+                priority VARCHAR(20) NOT NULL DEFAULT 'medium',
+                sort_order INT NOT NULL DEFAULT 0,
+                created_by INT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (board_id) REFERENCES project_boards(id) ON DELETE CASCADE,
+                FOREIGN KEY (list_id) REFERENCES project_lists(id) ON DELETE CASCADE,
+                FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id),
+                INDEX idx_project_cards_board_list_order (board_id, list_id, sort_order),
+                INDEX idx_project_cards_assignee (assignee_id),
+                INDEX idx_project_cards_due (due_date),
+                INDEX idx_project_cards_priority (priority)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        $messages[] = "OK: Created table `project_cards`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to create table `project_cards`: " . $e->getMessage();
+    }
+}
+
 if (empty($messages)) {
     $messages[] = "Database is up to date; no changes were required.";
 }

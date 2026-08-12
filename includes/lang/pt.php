@@ -2381,4 +2381,12 @@ return [
     '{actor} assigned you: {ticket}' => '{actor} atribuiu a você: {ticket}',
     '{actor} commented on: {ticket}' => '{actor} comentou em: {ticket}',
     '{actor} mentioned you in: {ticket}' => '{actor} mencionou você em: {ticket}',
+    'Project' => 'Projeto',
+    'Projects' => 'Projetos',
+    'Project management' => 'Gestão de projetos',
+    'Project not found.' => 'Projeto não encontrado.',
+    'No projects yet' => 'Nenhum projeto ainda',
+    'Create your first board to start planning development work.' => 'Crie seu primeiro quadro para começar a planejar o trabalho de desenvolvimento.',
+    'No lists yet' => 'Nenhuma lista ainda',
+    'Boards are made of lists. Add your first column to start moving cards.' => 'Quadros são feitos de listas. Adicione sua primeira coluna para começar a mover cards.',
 ];

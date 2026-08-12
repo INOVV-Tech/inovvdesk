@@ -681,3 +681,55 @@ CREATE TABLE IF NOT EXISTS app_sessions (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_last_activity (last_activity)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Project boards (Trello-style project management)
+CREATE TABLE IF NOT EXISTS project_boards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    color VARCHAR(7) DEFAULT '#0a84ff',
+    is_archived TINYINT(1) NOT NULL DEFAULT 0,
+    created_by INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    INDEX idx_project_boards_created_by (created_by),
+    INDEX idx_project_boards_archived (is_archived),
+    INDEX idx_project_boards_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Project board lists (columns)
+CREATE TABLE IF NOT EXISTS project_lists (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    board_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (board_id) REFERENCES project_boards(id) ON DELETE CASCADE,
+    INDEX idx_project_lists_board_order (board_id, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Project cards (tasks)
+CREATE TABLE IF NOT EXISTS project_cards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    board_id INT NOT NULL,
+    list_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    assignee_id INT NULL,
+    due_date DATETIME NULL,
+    priority VARCHAR(20) NOT NULL DEFAULT 'medium',
+    sort_order INT NOT NULL DEFAULT 0,
+    created_by INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (board_id) REFERENCES project_boards(id) ON DELETE CASCADE,
+    FOREIGN KEY (list_id) REFERENCES project_lists(id) ON DELETE CASCADE,
+    FOREIGN KEY (assignee_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id),
+    INDEX idx_project_cards_board_list_order (board_id, list_id, sort_order),
+    INDEX idx_project_cards_assignee (assignee_id),
+    INDEX idx_project_cards_due (due_date),
+    INDEX idx_project_cards_priority (priority)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

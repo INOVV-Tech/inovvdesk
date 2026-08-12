@@ -326,6 +326,14 @@ switch ($page) {
         require_once BASE_PATH . '/pages/tickets.php';
         break;
 
+    case 'projects':
+        require_once BASE_PATH . '/pages/projects.php';
+        break;
+
+    case 'project':
+        require_once BASE_PATH . '/pages/project.php';
+        break;
+
     case 'client':
         require_once BASE_PATH . '/pages/client.php';
         break;
