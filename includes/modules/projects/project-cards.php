@@ -31,7 +31,7 @@ function project_cards_for_board($board_id, array $filters = []): array
         return [];
     }
 
-    $where = ['board_id = ?'];
+    $where = ['board_id = ?', 'is_archived = 0'];
     $params = [$board_id];
 
     $filter_assignee = $filters['assignee'] ?? 'all';
@@ -154,9 +154,53 @@ function project_cards_for_list($list_id): array
     }
 
     return db_fetch_all(
-        "SELECT * FROM project_cards WHERE list_id = ? ORDER BY sort_order ASC, created_at DESC, id DESC",
+        "SELECT * FROM project_cards WHERE list_id = ? AND is_archived = 0 ORDER BY sort_order ASC, created_at DESC, id DESC",
         [$list_id]
     );
+}
+
+/**
+ * Archived cards of a board (Phase 2 item 4): the module's own archived
+ * model — cards leave their column surfaces and live in their own column
+ * on the board page, newest archived first.
+ */
+function project_archived_cards_for_board($board_id): array
+{
+    $board_id = project_board_normalize_id($board_id);
+    if ($board_id <= 0 || !project_cards_table_exists()) {
+        return [];
+    }
+
+    return db_fetch_all(
+        "SELECT * FROM project_cards WHERE board_id = ? AND is_archived = 1
+         ORDER BY archived_at DESC, id DESC",
+        [$board_id]
+    );
+}
+
+/**
+ * Archive or restore a card. Restoring clears the archive timestamp.
+ */
+function project_card_set_archived(int $card_id, bool $archived): bool
+{
+    $card_id = project_board_normalize_id($card_id);
+    if ($card_id <= 0 || !project_card_get($card_id)) {
+        return false;
+    }
+    if (!project_card_archived_column_exists()) {
+        return false;
+    }
+
+    db_update(
+        'project_cards',
+        [
+            'is_archived' => $archived ? 1 : 0,
+            'archived_at' => $archived ? date('Y-m-d H:i:s') : null,
+        ],
+        'id = ?',
+        [$card_id]
+    );
+    return true;
 }
 
 function project_card_get($card_id): ?array
@@ -283,6 +327,58 @@ function project_assignee_options(): array
     return $options;
 }
 
+/**
+ * Board-scoped assignee options (Phase 2 item 4): only board members may be
+ * assigned to a card. Falls back to all staff while membership is absent.
+ */
+function project_assignee_options_for_board(int $board_id): array
+{
+    $board_id = project_board_normalize_id($board_id);
+    if ($board_id <= 0 || !project_board_members_table_exists()) {
+        return project_assignee_options();
+    }
+
+    $options = [];
+    foreach (project_board_members_for_board($board_id) as $member) {
+        if (!in_array((string) ($member['role'] ?? ''), ['admin', 'agent'], true)) {
+            continue;
+        }
+        $options[] = [
+            'id' => (int) ($member['id'] ?? 0),
+            'name' => trim((string) (($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''))) ?: (string) ($member['email'] ?? ''),
+        ];
+    }
+    if (!$options) {
+        return project_assignee_options();
+    }
+    return $options;
+}
+
+/**
+ * API-level assignee rule: the assignee must be a member of the card's
+ * board (admins stay valid without membership). Unassigned is always valid.
+ */
+function project_assignee_valid_for_board(?int $assignee_id, int $board_id): bool
+{
+    $assignee_id = project_board_normalize_id($assignee_id);
+    $board_id = project_board_normalize_id($board_id);
+    if ($assignee_id <= 0 || $board_id <= 0) {
+        return true;
+    }
+    if (!project_board_members_table_exists()) {
+        return true;
+    }
+
+    $assignee = function_exists('get_user') ? get_user($assignee_id) : null;
+    if (!$assignee) {
+        return false;
+    }
+    if (in_array((string) ($assignee['role'] ?? ''), ['admin'], true)) {
+        return true;
+    }
+    return project_board_is_member($board_id, $assignee_id);
+}
+
 function project_card_create(int $board_id, int $list_id, string $title, ?string $description, ?int $assignee_id, $due_date, $priority, int $created_by, ?int $sort_order = null): int
 {
     $board_id = project_board_normalize_id($board_id);
@@ -295,6 +391,9 @@ function project_card_create(int $board_id, int $list_id, string $title, ?string
 
     $title = project_card_validate_title($title);
     $assignee_id = project_card_validate_assignee($assignee_id);
+    if (!project_assignee_valid_for_board($assignee_id, $board_id)) {
+        throw new InvalidArgumentException(project_validation_message('Invalid assignee.'));
+    }
     $due_date = project_card_normalize_due_date($due_date);
     $priority = project_priority_normalize($priority);
     $created_by = project_board_normalize_id($created_by);
@@ -330,14 +429,20 @@ function project_card_next_sort_order(int $list_id): int
 function project_card_update(int $card_id, string $title, ?string $description, ?int $assignee_id, $due_date, $priority): bool
 {
     $card_id = project_board_normalize_id($card_id);
-    if ($card_id <= 0 || !project_card_get($card_id)) {
+    $card = $card_id > 0 ? project_card_get($card_id) : null;
+    if (!$card) {
         return false;
+    }
+
+    $assignee_id = project_card_validate_assignee($assignee_id);
+    if (!project_assignee_valid_for_board($assignee_id, (int) ($card['board_id'] ?? 0))) {
+        throw new InvalidArgumentException(project_validation_message('Invalid assignee.'));
     }
 
     db_update('project_cards', [
         'title' => project_card_validate_title($title),
         'description' => trim((string) $description) !== '' ? trim((string) $description) : null,
-        'assignee_id' => project_card_validate_assignee($assignee_id),
+        'assignee_id' => $assignee_id,
         'due_date' => project_card_normalize_due_date($due_date),
         'priority' => project_priority_normalize($priority),
     ], 'id = ?', [$card_id]);
@@ -886,9 +991,10 @@ function project_card_work_summary(array $user, int $limit = 5): array
         return ['count' => 0, 'overdue_count' => 0, 'items' => []];
     }
 
+    $archived_guard = project_card_archived_column_exists() ? ' AND pc.is_archived = 0' : '';
     $scoped = "FROM project_cards pc
                JOIN project_boards pb ON pb.id = pc.board_id
-               WHERE pc.assignee_id = ? AND pb.is_archived = 0";
+               WHERE pc.assignee_id = ? AND pb.is_archived = 0" . $archived_guard;
 
     $count_row = db_fetch_one('SELECT COUNT(*) AS total ' . $scoped, [$user_id]);
     $overdue_row = db_fetch_one('SELECT COUNT(*) AS total ' . $scoped . ' AND pc.due_date IS NOT NULL AND pc.due_date < NOW()', [$user_id]);
@@ -928,9 +1034,11 @@ function project_card_due_alert_candidates(int $soon_minutes = 30): array
 
     $soon_minutes = max(1, min(1440, $soon_minutes));
 
+    $archived_guard = project_card_archived_column_exists() ? ' AND pc.is_archived = 0' : '';
     $scoped = "FROM project_cards pc
                JOIN project_boards pb ON pb.id = pc.board_id
-               WHERE pb.is_archived = 0 AND pc.assignee_id IS NOT NULL AND pc.assignee_id > 0";
+               WHERE pb.is_archived = 0 AND pc.assignee_id IS NOT NULL AND pc.assignee_id > 0"
+        . $archived_guard;
 
     $due_soon = db_fetch_all(
         'SELECT pc.*, pb.name AS board_name '

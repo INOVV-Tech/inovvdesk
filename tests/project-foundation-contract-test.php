@@ -71,7 +71,7 @@ $project_page = file_get_contents($root . '/pages/project.php');
 $assert($projects_page !== false && $project_page !== false, 'Project pages must be readable.');
 $assert(str_contains($projects_page, 'project_requires_staff_redirect()'), 'Projects page must guard staff access.');
 $assert(str_contains($project_page, 'project_requires_staff_redirect()'), 'Project page must guard staff access.');
-$assert(str_contains($projects_page, 'project_boards_list(true)'), 'Projects page must delegate board listing to the module.');
+$assert(str_contains($projects_page, 'project_boards_list(true,'), 'Projects page must delegate board listing to the module.');
 $assert(str_contains($project_page, 'project_lists_for_board('), 'Project page must delegate list loading to the module.');
 $assert(str_contains($project_page, 'project_cards_for_board('), 'Project page must delegate card loading to the module.');
 $assert(str_contains($project_page, 'assets/js/project-board.js'), 'Project page must load the board JS module.');

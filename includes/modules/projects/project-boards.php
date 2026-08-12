@@ -12,7 +12,36 @@ function project_board_normalize_id($board_id): int
     return max(0, (int) $board_id);
 }
 
-function project_boards_list(bool $include_archived = false): array
+/**
+ * Board templates (Phase 2 item 4): blank (no lists) and development
+ * (Backlog → In Progress → Review → Done, in that order). Only applied on
+ * board creation.
+ */
+function project_board_templates(): array
+{
+    return [
+        ['key' => 'blank', 'name' => 'Blank board', 'lists' => []],
+        ['key' => 'development', 'name' => 'Development board', 'lists' => ['Backlog', 'In Progress', 'Review', 'Done']],
+    ];
+}
+
+/**
+ * Lists of a template key; unknown or blank templates ship no lists.
+ */
+function project_board_template_lists(?string $template): array
+{
+    foreach (project_board_templates() as $candidate) {
+        if (($candidate['key'] ?? '') === trim((string) $template)) {
+            return array_values(array_filter(array_map(
+                static fn ($name) => trim((string) $name),
+                $candidate['lists'] ?? []
+            )));
+        }
+    }
+    return [];
+}
+
+function project_boards_list(bool $include_archived = false, ?array $user = null): array
 {
     if (!project_boards_table_exists()) {
         return [];
@@ -23,6 +52,23 @@ function project_boards_list(bool $include_archived = false): array
     if (!$include_archived) {
         $sql .= " AND is_archived = 0";
     }
+
+    // Per-board membership (Phase 2 item 4): agents only see boards they
+    // belong to; admins see everything. Without a user context (CLI, no
+    // session) no membership filter is applied.
+    if ($user === null && function_exists('current_user')) {
+        $user = current_user() ?: null;
+    }
+    if ($user && in_array((string) ($user['role'] ?? ''), ['agent'], true)) {
+        $user_id = (int) ($user['id'] ?? 0);
+        if ($user_id > 0 && project_board_members_table_exists()) {
+            $sql .= " AND id IN (SELECT board_id FROM project_board_members WHERE user_id = ?)";
+            $params[] = $user_id;
+        } elseif ($user_id <= 0) {
+            $sql .= " AND 1 = 0";
+        }
+    }
+
     $sql .= " ORDER BY created_at DESC, id DESC";
 
     return db_fetch_all($sql, $params);
@@ -91,7 +137,7 @@ function project_board_normalize_color($color): string
     return preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#0a84ff';
 }
 
-function project_board_create(string $name, ?string $description, $color, int $created_by): int
+function project_board_create(string $name, ?string $description, $color, int $created_by, ?string $template = null): int
 {
     $name = project_board_validate_name($name);
     $created_by = project_board_normalize_id($created_by);
@@ -99,13 +145,32 @@ function project_board_create(string $name, ?string $description, $color, int $c
         throw new InvalidArgumentException(project_validation_message('Board owner is required.'));
     }
 
-    return (int) db_insert('project_boards', [
+    $board_id = (int) db_insert('project_boards', [
         'name' => $name,
         'description' => trim((string) $description) !== '' ? trim((string) $description) : null,
         'color' => project_board_normalize_color($color),
         'is_archived' => 0,
         'created_by' => $created_by,
     ]);
+
+    // The creator becomes a member automatically (per-board permission model).
+    if (project_board_members_table_exists()) {
+        db_query(
+            "INSERT IGNORE INTO project_board_members (board_id, user_id) VALUES (?, ?)",
+            [$board_id, $created_by]
+        );
+    }
+
+    // Board templates pre-seed the lists in order (blank ships none).
+    foreach (project_board_template_lists($template) as $position => $list_name) {
+        db_insert('project_lists', [
+            'board_id' => $board_id,
+            'name' => $list_name,
+            'sort_order' => $position,
+        ]);
+    }
+
+    return $board_id;
 }
 
 function project_board_update(int $board_id, string $name, ?string $description, $color): bool

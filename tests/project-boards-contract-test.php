@@ -78,7 +78,7 @@ $assert(str_contains($handler_require, 'require_once __DIR__ . \'/project-handle
 $project_page = file_get_contents($root . '/pages/projects.php');
 $surface = file_get_contents($root . '/includes/components/project-board-surface.php');
 $assert($project_page !== false && $surface !== false, 'Project grid files must be readable.');
-$assert(str_contains($project_page, 'project_boards_list(true)'), 'Projects page must list boards through the module.');
+$assert(str_contains($project_page, 'project_boards_list(true,'), 'Projects page must list boards through the module.');
 $assert(str_contains($project_page, 'project_render_board_grid('), 'Projects page must render the grid through the shared component.');
 $assert(str_contains($surface, 'function project_render_board_grid'), 'Board surface must expose the grid renderer.');
 $assert(str_contains($surface, 'function project_render_board_grid_card'), 'Board surface must expose the grid card renderer.');

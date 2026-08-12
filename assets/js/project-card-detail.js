@@ -122,6 +122,11 @@
     function setCreateModeUI(create) {
         var deleteBtn = modal.querySelector('[data-project-action="card-detail-delete"]');
         if (deleteBtn) deleteBtn.classList.toggle('hidden', create);
+        var archiveBtn = modal.querySelector('.project-card-detail-archive');
+        if (archiveBtn) {
+            archiveBtn.classList.toggle('hidden', create);
+            if (!create) archiveBtn.setAttribute('data-project-card-id', String(currentCardId || ''));
+        }
         modal.querySelectorAll('.project-card-detail-comments, .project-card-detail-checklists, .project-card-detail-attachments')
             .forEach(function (section) { section.classList.toggle('hidden', create); });
         var head = modal.querySelector('[data-project-card-detail-title]');

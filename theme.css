@@ -9085,6 +9085,115 @@ body.ticket-timeline-open {
 }
 
 /* ============================================================
+   Projects module — board governance (Fase 2 item 4):
+   member strip, archived column, template field
+   ============================================================ */
+
+.project-board-members {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--fd-border);
+  border-radius: var(--fd-radius-control);
+  background: var(--fd-surface-secondary, var(--surface));
+}
+
+.project-board-members-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.project-board-members-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fd-text-strong, var(--text-primary));
+}
+
+.project-board-member-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.project-member-candidates-select {
+  min-width: 10rem;
+}
+
+.project-board-member-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.project-member-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.175rem 0.5rem;
+  border: 1px solid var(--fd-border);
+  border-radius: var(--fd-radius-control);
+  background: var(--surface);
+  font-size: 0.75rem;
+  color: var(--fd-text, var(--text-primary));
+}
+
+.project-member-chip .project-icon-action {
+  padding: 0.1rem;
+}
+
+.project-board-members-empty {
+  font-size: 0.8125rem;
+  color: var(--fd-text-muted);
+}
+
+.project-column--archived {
+  border-style: dashed;
+  opacity: 0.92;
+}
+
+.project-column--archived .project-column-header {
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  background: none;
+}
+
+.project-column--archived .project-column-header:hover {
+  background: var(--fd-surface-hover, var(--surface-hover, #f1f5f9));
+}
+
+.project-card.is-archived {
+  opacity: 0.85;
+}
+
+.project-archived-cards {
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.project-archived-cards.hidden {
+  display: none !important;
+}
+
+.project-archived-cards .project-card-restore {
+  margin-top: 0.375rem;
+}
+
+.project-board-template-field .hidden {
+  display: none;
+}
+
+/* ============================================================
    Projects module — card detail modal (Fase 2)
    ============================================================ */
 

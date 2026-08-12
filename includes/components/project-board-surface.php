@@ -124,6 +124,98 @@ function project_render_board_header(array $board): void
     <?php
 }
 
+/**
+ * Board member strip (Phase 2 item 4). Admins manage membership: an add
+ * picker (staff users not yet members) and per-member remove buttons.
+ */
+function project_render_board_members(int $board_id, array $members, array $candidates = [], bool $can_manage = false): void
+{
+    ?>
+    <div class="project-board-members" data-project-board-members>
+        <div class="project-board-members-head">
+            <span class="project-board-members-title">
+                <?php echo get_icon('users', 'w-4 h-4'); ?>
+                <?php echo e(t('Board members')); ?>
+            </span>
+            <?php if ($can_manage): ?>
+                <div class="project-board-member-add">
+                    <select class="form-select project-member-candidates-select"
+                            aria-label="<?php echo e(t('Add member')); ?>">
+                        <option value=""><?php echo e(t('Add member')); ?>...</option>
+                        <?php foreach ($candidates as $candidate): ?>
+                            <option value="<?php echo (int) ($candidate['id'] ?? 0); ?>">
+                                <?php echo e($candidate['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="button" class="fd-button fd-button--primary fd-button--sm"
+                            data-project-action="member-add" data-project-board-id="<?php echo $board_id; ?>">
+                        <?php echo e(t('Add')); ?>
+                    </button>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="project-board-member-list">
+            <?php if (empty($members)): ?>
+                <span class="project-board-members-empty"><?php echo e(t('No members yet')); ?></span>
+            <?php else: ?>
+                <?php foreach ($members as $member): ?>
+                    <?php
+                    $member_name = trim((string) ($member['first_name'] ?? '') . ' ' . (string) ($member['last_name'] ?? ''));
+                    if ($member_name === '') {
+                        $member_name = trim((string) ($member['email'] ?? ''));
+                    }
+                    ?>
+                    <span class="project-member-chip" data-project-user-id="<?php echo (int) ($member['id'] ?? 0); ?>">
+                        <?php echo get_icon('user', 'w-3.5 h-3.5'); ?>
+                        <span class="project-member-name"><?php echo e($member_name); ?></span>
+                        <?php if ($can_manage): ?>
+                            <button type="button" class="project-icon-action project-icon-action--danger"
+                                    title="<?php echo e(t('Remove member')); ?>"
+                                    data-project-action="member-remove"
+                                    data-project-board-id="<?php echo $board_id; ?>"
+                                    data-project-user-id="<?php echo (int) ($member['id'] ?? 0); ?>">
+                                <?php echo get_icon('x', 'w-3 h-3'); ?>
+                            </button>
+                        <?php endif; ?>
+                    </span>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+
+/**
+ * Archived cards in their own column (Phase 2 item 4): the module's own
+ * archiving model — archived cards leave their list columns and are
+ * restored from here.
+ */
+function project_render_archived_column(array $archived_cards): void
+{
+    ?>
+    <div class="project-column project-column--archived" data-project-archived-column>
+        <button type="button" class="project-column-header" data-project-action="archived-toggle"
+             aria-expanded="false">
+            <span class="project-drag-handle" aria-hidden="true"><?php echo get_icon('archive', 'w-4 h-4'); ?></span>
+            <span class="project-status-name"><?php echo e(t('Archived')); ?></span>
+            <span class="project-list-count"><?php echo count($archived_cards); ?></span>
+        </button>
+        <div class="project-cards project-archived-cards hidden" data-project-archived-cards>
+            <?php foreach ($archived_cards as $card): ?>
+                <?php project_render_project_card($card, true); ?>
+            <?php endforeach; ?>
+            <?php if (empty($archived_cards) === false): ?>
+                <button type="button" class="fd-button fd-button--secondary fd-button--sm w-full project-archived-collapse"
+                        data-project-action="archived-toggle">
+                    <?php echo e(t('Hide archived')); ?>
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+
 function project_render_board(array $lists, array $cards_by_list): void
 {
     ?>
@@ -189,7 +281,7 @@ function project_render_project_column(array $list, array $cards): void
     <?php
 }
 
-function project_render_project_card(array $card): void
+function project_render_project_card(array $card, bool $is_archived = false): void
 {
     $card_priority = project_priority_normalize((string) ($card['priority'] ?? ''));
     $card_due = (string) ($card['due_date'] ?? '');
@@ -217,11 +309,11 @@ function project_render_project_card(array $card): void
         'priority' => $card_priority,
     ];
     ?>
-    <article class="project-card"
+    <article class="project-card<?php echo $is_archived ? ' is-archived' : ''; ?>"
              data-project-card-id="<?php echo $card_id; ?>"
              data-project-card-json="<?php echo e(json_encode($card_json)); ?>"
              data-project-card-priority="<?php echo e($card_priority); ?>"
-             draggable="true">
+             <?php echo $is_archived ? '' : 'draggable="true"'; ?>>
         <div class="project-card-top">
             <?php if ($card_due !== ''): ?>
                 <span class="project-card-due<?php echo $card_is_overdue ? ' overdue' : ''; ?>">
@@ -244,8 +336,16 @@ function project_render_project_card(array $card): void
                 </span>
             <?php endif; ?>
         </div>
-        <select class="project-mobile-move" data-project-card-id="<?php echo $card_id; ?>"
-                aria-label="<?php echo e(t('Move to')); ?>"></select>
+        <?php if ($is_archived): ?>
+            <button type="button" class="fd-button fd-button--secondary fd-button--sm w-full project-card-restore"
+                    data-project-action="card-archive" data-project-card-id="<?php echo $card_id; ?>"
+                    data-project-archived="1">
+                <?php echo get_icon('undo', 'w-3.5 h-3.5 mr-1'); ?><?php echo e(t('Restore card')); ?>
+            </button>
+        <?php else: ?>
+            <select class="project-mobile-move" data-project-card-id="<?php echo $card_id; ?>"
+                    aria-label="<?php echo e(t('Move to')); ?>"></select>
+        <?php endif; ?>
     </article>
     <?php
 }

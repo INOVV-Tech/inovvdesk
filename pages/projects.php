@@ -12,8 +12,9 @@ $user = current_user();
 
 project_requires_staff_redirect();
 ensure_project_tables();
+ensure_project_governance_tables();
 
-$project_boards = project_boards_list(true);
+$project_boards = project_boards_list(true, $user);
 $project_agents = function_exists('project_assignee_options') ? project_assignee_options() : [];
 
 require_once BASE_PATH . '/includes/header.php';

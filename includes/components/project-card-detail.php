@@ -156,10 +156,17 @@ function project_render_card_detail_modal(array $agents = []): void
                 </section>
             </div>
             <div class="modal-panel-footer flex justify-between items-center gap-2">
-                <button type="button" class="fd-button fd-button--secondary project-danger-button project-card-detail-delete hidden"
-                        data-project-action="card-detail-delete">
-                    <?php echo get_icon('trash', 'w-4 h-4 mr-1'); ?><?php echo e(t('Delete')); ?>
-                </button>
+                <span class="flex items-center gap-2">
+                    <button type="button" class="fd-button fd-button--secondary project-card-detail-archive hidden"
+                            data-project-action="card-archive" data-project-card-id=""
+                            data-project-archived="0">
+                        <?php echo get_icon('archive', 'w-4 h-4 mr-1'); ?><?php echo e(t('Archive card')); ?>
+                    </button>
+                    <button type="button" class="fd-button fd-button--secondary project-danger-button project-card-detail-delete hidden"
+                            data-project-action="card-detail-delete">
+                        <?php echo get_icon('trash', 'w-4 h-4 mr-1'); ?><?php echo e(t('Delete')); ?>
+                    </button>
+                </span>
                 <span class="flex-1"></span>
                 <button type="button" class="fd-button fd-button--secondary" data-project-action="card-detail-cancel">
                     <?php echo e(t('Cancel')); ?>

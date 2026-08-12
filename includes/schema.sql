@@ -698,6 +698,18 @@ CREATE TABLE IF NOT EXISTS project_boards (
     INDEX idx_project_boards_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Project board members (per-board permission model: agent access is
+-- membership-scoped; admins bypass membership)
+CREATE TABLE IF NOT EXISTS project_board_members (
+    board_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (board_id, user_id),
+    FOREIGN KEY (board_id) REFERENCES project_boards(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_project_board_members_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Project board lists (columns)
 CREATE TABLE IF NOT EXISTS project_lists (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -720,6 +732,8 @@ CREATE TABLE IF NOT EXISTS project_cards (
     assignee_id INT NULL,
     due_date DATETIME NULL,
     priority VARCHAR(20) NOT NULL DEFAULT 'medium',
+    is_archived TINYINT(1) NOT NULL DEFAULT 0,
+    archived_at DATETIME NULL,
     sort_order INT NOT NULL DEFAULT 0,
     created_by INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -731,7 +745,8 @@ CREATE TABLE IF NOT EXISTS project_cards (
     INDEX idx_project_cards_board_list_order (board_id, list_id, sort_order),
     INDEX idx_project_cards_assignee (assignee_id),
     INDEX idx_project_cards_due (due_date),
-    INDEX idx_project_cards_priority (priority)
+    INDEX idx_project_cards_priority (priority),
+    INDEX idx_project_cards_archived (is_archived)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Project card comments (internal, staff-only module)

@@ -235,10 +235,13 @@ function global_search_cards(string $query, array $user, int $limit): array
 
     $term = '%' . $query . '%';
     $params = [$term, $term];
+    $archived_guard = function_exists('project_card_archived_column_exists') && project_card_archived_column_exists()
+        ? ' AND pc.is_archived = 0'
+        : '';
     $sql = "SELECT pc.id, pc.title, pc.board_id, pc.priority, pb.name AS board_name
             FROM project_cards pc
             JOIN project_boards pb ON pb.id = pc.board_id
-            WHERE pb.is_archived = 0 AND (pc.title LIKE ? OR pc.description LIKE ?)";
+            WHERE pb.is_archived = 0 AND (pc.title LIKE ? OR pc.description LIKE ?)" . $archived_guard;
     $sql .= " ORDER BY pc.updated_at DESC, pc.created_at DESC LIMIT " . max(1, min(20, $limit));
 
     $items = [];

@@ -17,6 +17,20 @@ function api_project_require_staff_post(): void
     require_csrf_token(true);
 }
 
+/**
+ * Membership management is admin-only (product decision 2026-08-12).
+ */
+function api_project_require_admin_post(): void
+{
+    if (!project_board_admin_can_manage_members()) {
+        api_error('Forbidden', 403);
+    }
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        api_error('Method not allowed', 405);
+    }
+    require_csrf_token(true);
+}
+
 function api_project_input_string(array $input, string $key): string
 {
     return trim((string) ($input[$key] ?? ''));
@@ -24,7 +38,8 @@ function api_project_input_string(array $input, string $key): string
 
 /**
  * Create or update a board.
- * Expects: id (optional), name, description (optional), color (optional).
+ * Expects: id (optional), name, description (optional), color (optional),
+ * template (optional; create mode only — blank | development).
  */
 function api_project_board_save()
 {
@@ -34,6 +49,7 @@ function api_project_board_save()
     $name = api_project_input_string($input, 'name');
     $description = api_project_input_string($input, 'description');
     $color = api_project_input_string($input, 'color');
+    $template = api_project_input_string($input, 'template');
 
     try {
         $id = project_board_normalize_id($input['id'] ?? 0);
@@ -45,11 +61,55 @@ function api_project_board_save()
         }
 
         $user = current_user();
-        $new_id = project_board_create($name, $description, $color, (int) ($user['id'] ?? 0));
+        $new_id = project_board_create($name, $description, $color, (int) ($user['id'] ?? 0), $template);
         api_success(['id' => $new_id, 'name' => $name]);
     } catch (InvalidArgumentException $e) {
         api_error($e->getMessage());
     }
+}
+
+/**
+ * Add a staff member to a board (admin only).
+ * Expects: board_id, user_id.
+ */
+function api_project_board_member_add()
+{
+    api_project_require_admin_post();
+
+    $input = get_json_input();
+    $board_id = project_board_normalize_id($input['board_id'] ?? 0);
+    $user_id = project_board_normalize_id($input['user_id'] ?? 0);
+
+    try {
+        project_board_member_add($board_id, $user_id);
+    } catch (InvalidArgumentException $e) {
+        api_error($e->getMessage());
+    }
+
+    api_success();
+}
+
+/**
+ * Remove a member from a board (admin only; the last member is protected).
+ * Expects: board_id, user_id.
+ */
+function api_project_board_member_remove()
+{
+    api_project_require_admin_post();
+
+    $input = get_json_input();
+    $board_id = project_board_normalize_id($input['board_id'] ?? 0);
+    $user_id = project_board_normalize_id($input['user_id'] ?? 0);
+
+    try {
+        if (!project_board_member_remove($board_id, $user_id)) {
+            api_error('Member not found', 404);
+        }
+    } catch (InvalidArgumentException $e) {
+        api_error($e->getMessage());
+    }
+
+    api_success();
 }
 
 /**
@@ -236,6 +296,33 @@ function api_project_card_delete()
     }
 
     api_success();
+}
+
+/**
+ * Archive or restore a card (own archived-column model, Phase 2 item 4).
+ * Expects: id, archived (0|1). Gated on the card's board permission.
+ */
+function api_project_card_archive()
+{
+    api_project_require_staff_post();
+
+    $input = get_json_input();
+    $id = project_board_normalize_id($input['id'] ?? 0);
+    $archived = !empty($input['archived']);
+
+    $card = project_card_get($id);
+    if (!$card) {
+        api_error('Card not found', 404);
+    }
+    if (!project_can_manage_board(project_board_get((int) ($card['board_id'] ?? 0)))) {
+        api_error('Forbidden', 403);
+    }
+
+    if (!project_card_set_archived($id, $archived)) {
+        api_error('Card not found', 404);
+    }
+
+    api_success(['id' => $id, 'archived' => $archived ? 1 : 0]);
 }
 
 /**
