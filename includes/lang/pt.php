@@ -2419,6 +2419,16 @@ return [
     'Invalid assignee.' => 'Responsável inválido.',
     'Invalid list.' => 'Lista inválida.',
     'Rename' => 'Renomear',
+    // Filtros do board (Fase 2)
+    'Board filters' => 'Filtros do board',
+    'Search' => 'Buscar',
+    'Search cards...' => 'Buscar cards...',
+    'Any assignee' => 'Qualquer responsável',
+    'Any priority' => 'Qualquer prioridade',
+    'Any due date' => 'Qualquer prazo',
+    'Due today' => 'Vencem hoje',
+    'Upcoming' => 'Próximas',
+    'No due date' => 'Sem prazo',
     // Card detail (Fase 2): descrição, comentários, checklists, anexos
     'Card details' => 'Detalhes do card',
     'Card not found.' => 'Card não encontrado.',

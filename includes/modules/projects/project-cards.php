@@ -24,17 +24,126 @@ function project_priority_label(string $priority): string
     return function_exists('t') ? t($label) : $label;
 }
 
-function project_cards_for_board($board_id): array
+function project_cards_for_board($board_id, array $filters = []): array
 {
     $board_id = project_board_normalize_id($board_id);
     if ($board_id <= 0 || !project_cards_table_exists()) {
         return [];
     }
 
+    $where = ['board_id = ?'];
+    $params = [$board_id];
+
+    $filter_assignee = $filters['assignee'] ?? 'all';
+    if ($filter_assignee === 'unassigned') {
+        $where[] = 'assignee_id IS NULL';
+    } elseif ((int) $filter_assignee > 0) {
+        $where[] = 'assignee_id = ?';
+        $params[] = (int) $filter_assignee;
+    }
+
+    $filter_priority = $filters['priority'] ?? 'all';
+    if (in_array($filter_priority, project_priority_keys(), true)) {
+        $where[] = 'priority = ?';
+        $params[] = $filter_priority;
+    }
+
+    $filter_due = $filters['due'] ?? 'all';
+    switch ($filter_due) {
+        case 'overdue':
+            $where[] = 'due_date IS NOT NULL AND due_date < NOW()';
+            break;
+        case 'today':
+            $where[] = 'due_date >= CURDATE() AND due_date < CURDATE() + INTERVAL 1 DAY';
+            break;
+        case 'upcoming':
+            $where[] = 'due_date IS NOT NULL AND due_date >= NOW()';
+            break;
+        case 'none':
+            $where[] = 'due_date IS NULL';
+            break;
+    }
+
+    $filter_search = trim((string) ($filters['search'] ?? ''));
+    if ($filter_search !== '') {
+        $like = '%' . project_board_filter_escape_like($filter_search) . '%';
+        $where[] = '(title LIKE ? OR description LIKE ?)';
+        $params[] = $like;
+        $params[] = $like;
+    }
+
     return db_fetch_all(
-        "SELECT * FROM project_cards WHERE board_id = ? ORDER BY sort_order ASC, created_at DESC, id DESC",
-        [$board_id]
+        'SELECT * FROM project_cards WHERE ' . implode(' AND ', $where)
+            . ' ORDER BY sort_order ASC, created_at DESC, id DESC',
+        $params
     );
+}
+
+/**
+ * Due date filter options for the board filter bar
+ * (overdue | today | upcoming | none; documented in docs/PROJECTS_MODULE.md).
+ */
+function project_board_filter_due_options(): array
+{
+    return ['all', 'overdue', 'today', 'upcoming', 'none'];
+}
+
+function project_board_filter_due_label(string $due_key): string
+{
+    $labels = [
+        'all' => 'Any due date',
+        'overdue' => 'Overdue',
+        'today' => 'Due today',
+        'upcoming' => 'Upcoming',
+        'none' => 'No due date',
+    ];
+    return $labels[$due_key] ?? 'Any due date';
+}
+
+/**
+ * Normalize board filter state from a request (GET). Only known keys are
+ * honored; anything else resets to the neutral value.
+ */
+function project_board_filter_state_from_request(array $request): array
+{
+    $assignee = trim((string) ($request['assignee'] ?? ''));
+    if ((string) (int) $assignee === $assignee && (int) $assignee > 0) {
+        $normalized_assignee = (int) $assignee;
+    } elseif ($assignee === 'unassigned') {
+        $normalized_assignee = 'unassigned';
+    } else {
+        $normalized_assignee = 'all';
+    }
+
+    $priority = trim((string) ($request['priority'] ?? ''));
+    $normalized_priority = in_array($priority, project_priority_keys(), true) ? $priority : 'all';
+
+    $due = trim((string) ($request['due'] ?? ''));
+    $normalized_due = in_array($due, project_board_filter_due_options(), true) ? $due : 'all';
+
+    return [
+        'assignee' => $normalized_assignee,
+        'priority' => $normalized_priority,
+        'due' => $normalized_due,
+        'search' => trim((string) ($request['search'] ?? '')),
+    ];
+}
+
+function project_board_filter_has(array $state): bool
+{
+    return ($state['assignee'] ?? 'all') !== 'all'
+        || ($state['priority'] ?? 'all') !== 'all'
+        || ($state['due'] ?? 'all') !== 'all'
+        || trim((string) ($state['search'] ?? '')) !== '';
+}
+
+/**
+ * Escape LIKE wildcards (and the backslash escape itself) for safe
+ * parametrized searches; the default MySQL escape character applies.
+ */
+function project_board_filter_escape_like(string $term): string
+{
+    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
 }
 
 function project_cards_for_list($list_id): array

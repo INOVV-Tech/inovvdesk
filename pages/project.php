@@ -23,8 +23,9 @@ if (!$project_board) {
 }
 
 $page_title = project_board_label($project_board);
+$project_card_filters = project_board_filter_state_from_request($_GET);
 $project_lists = project_lists_for_board($project_board_id);
-$project_cards = project_cards_for_board($project_board_id);
+$project_cards = project_cards_for_board($project_board_id, $project_card_filters);
 $project_cards_by_list = project_board_cards_model($project_lists, $project_cards);
 $project_agents = function_exists('project_assignee_options') ? project_assignee_options() : [];
 
@@ -35,6 +36,8 @@ require_once BASE_PATH . '/includes/header.php';
          data-app-contract-surface="project"
          data-app-contract-action="app-project-board">
     <?php project_render_board_header($project_board); ?>
+
+    <?php project_render_board_filters($project_card_filters, $project_board_id, $project_agents); ?>
 
     <?php if (empty($project_lists)): ?>
         <div class="projects-empty">

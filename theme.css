@@ -8961,6 +8961,66 @@ body.ticket-timeline-open {
 }
 
 /* ============================================================
+   Projects module — board filters (Fase 2)
+   ============================================================ */
+
+.project-board-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--fd-border);
+  border-radius: var(--fd-radius-control);
+  background: var(--fd-surface-secondary, var(--surface));
+}
+
+.project-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.project-filter-search {
+  flex: 1 1 14rem;
+}
+
+.project-filter-group .project-filter-select {
+  min-width: 8.5rem;
+}
+
+.project-filter-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--fd-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.project-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.125rem;
+}
+
+.project-filter-clear {
+  color: var(--fd-text-muted);
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+.project-filter-clear:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* ============================================================
    Projects module — card detail modal (Fase 2)
    ============================================================ */
 

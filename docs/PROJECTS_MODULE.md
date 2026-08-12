@@ -99,7 +99,7 @@ project_card_attachments     (id, card_id→project_cards CASCADE, filename, ori
 5. Traduções `en.php`/`pt.php` + ícone `trello` em `includes/icons.php`.
 6. Contract tests de fundação + scripts no `package.json`.
 
-### Fase 1 — MVP
+### Fase 1 — MVP (feita)
 1. Grid de boards: listar, criar, renomear, excluir (com confirmação), arquivar.
 2. Board detail: colunas ordenadas, criar/renomear/excluir coluna.
 3. Cards: criar (quick add), editar título/descrição, **assignee**, **due
@@ -116,8 +116,8 @@ project_card_attachments     (id, card_id→project_cards CASCADE, filename, ori
 9. E2E Playwright smoke (criar board → card → mover) no fim da fase.
 
 ### Fase 2 — Pós-MVP (em ordem de prioridade)
-1. Card detail em modal (padrão `ticket-detail-modals.php`): descrição rica,
-   **feito — item 1.1 em andamento**:
+1. Card detail em modal (padrão `ticket-detail-modals.php`): descrição rica —
+   **feito (1.1–1.5; ver decisão de produto sobre o item 1.6)**:
    1.1 Comentários internos de card (staff-only por construção do módulo) em
        tabela própria `project_card_comments`; autor edita o próprio
        comentário; autor **ou admin** exclui. Sem toggle público/interno
@@ -141,10 +141,27 @@ project_card_attachments     (id, card_id→project_cards CASCADE, filename, ori
        `project-*`); dados lidos via GET `project-card-detail`; writes via
        POST + CSRF em `project-handler.php`; interatividade em
        `assets/js/project-card-detail.js`.
-   1.6 Título/assignee/prioridade/prazo seguem editáveis apenas no composer
-       existente; o modal de detalhe os exibe (recap) sem duplicar edição.
+   1.6 ~~Título/assignee/prioridade/prazo seguem editáveis apenas no composer
+       existente; o modal de detalhe os exibe (recap) sem duplicar edição.~~
+       **Decisão de produto (2026-08-12): o modal de detalhe também edita**
+       título, assignee e prazo inline (salvos via `project-card-save` no
+       `change` do `<select>`/`<input>`); o composer rápido segue como segunda
+       superfície. Prioridade permanece só no composer (recap no modal).
 2. Filtros/pesquisa no board: assignee, prioridade, prazo, texto (padrão
-   `ticket-list-filters.php`, adaptado com classes `project-*`).
+   `ticket-list-filters.php`, adaptado com classes `project-*`) — **em
+   andamento**:
+   - Filtros renderizados pelo servidor (GET form) em
+     `project_render_board_filters()`; estado normalizado por
+     `project_board_filter_state_from_request()` e aplicado em
+     `project_cards_for_board()` (WHERE parametrizado; sem JS novo).
+   - `assignee`: `all` | `unassigned` | id de agente.
+   - `priority`: `all` | `low|medium|high|urgent`.
+   - `due`: `all` | `overdue` | `today` | `upcoming` | `none`. SQL:
+     `overdue = due_date IS NOT NULL AND due_date < NOW()`;
+     `today = due_date >= CURDATE() AND due_date < CURDATE()+INTERVAL 1 DAY`;
+     `upcoming = due_date IS NOT NULL AND due_date >= NOW()`;
+     `none = due_date IS NULL`.
+   - `search`: LIKE em título + descrição (wildcards escapados).
 3. Integrações: seção na busca global (`global-search.php`), contagens "meus
    cards" no Work/app-feed, avisos de prazo/atribuição via
    `notification-policy.php`. (Nenhuma integração cria vínculo com tickets.)
@@ -203,3 +220,10 @@ Verificação: `npm run lint:php`, `sh ./bin/run-php.sh tests/project-*.php`,
   edição só do autor; exclusão por autor ou admin.
 - **Descrição rica**: armazenada como HTML (Quill); preview em coluna sempre
   via `project_card_preview_description()` (sem tags).
+- **Edição de meta no modal de detalhe**: título, assignee e prazo são
+  editáveis no próprio modal de detalhe (salvos por `project-card-save` no
+  `change`); prioridade fica no composer. O modal de detalhe também é a
+  superfície de criação de card ("Add card" → modo create). No modo create,
+  mudar assignee/prazo **não** dispara API (só entra no payload do
+  `createCard`) — evita "Project not found." (board_id ausente).
+- **Filtros de board**: opções e SQL documentados na Fase 2 item 2.

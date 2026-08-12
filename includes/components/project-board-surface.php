@@ -249,3 +249,84 @@ function project_render_project_card(array $card): void
     </article>
     <?php
 }
+
+function project_render_board_filters(array $state, int $board_id, array $agents = []): void
+{
+    $state_assignee = (string) ($state['assignee'] ?? 'all');
+    $state_priority = (string) ($state['priority'] ?? 'all');
+    $state_due = (string) ($state['due'] ?? 'all');
+    $state_search = (string) ($state['search'] ?? '');
+    $clear_url = url('project', ['board_id' => $board_id]);
+    ?>
+    <form class="project-board-filters" method="get" action="index.php"
+          aria-label="<?php echo e(t('Board filters')); ?>">
+        <input type="hidden" name="page" value="project">
+        <input type="hidden" name="board_id" value="<?php echo $board_id; ?>">
+
+        <div class="project-filter-group project-filter-search">
+            <label class="project-filter-label" for="project-filter-search">
+                <?php echo get_icon('search', 'w-3.5 h-3.5'); ?>
+                <span class="sr-only"><?php echo e(t('Search')); ?></span>
+            </label>
+            <input type="search" id="project-filter-search" name="search"
+                   class="form-input project-filter-input"
+                   value="<?php echo e($state_search); ?>"
+                   placeholder="<?php echo e(t('Search cards...')); ?>"
+                   aria-label="<?php echo e(t('Search cards...')); ?>">
+        </div>
+
+        <div class="project-filter-group">
+            <label class="project-filter-label" for="project-filter-assignee"><?php echo e(t('Assignee')); ?></label>
+            <select id="project-filter-assignee" name="assignee"
+                    class="form-select project-filter-select">
+                <option value="all" <?php echo $state_assignee === 'all' ? 'selected' : ''; ?>><?php echo e(t('Any assignee')); ?></option>
+                <option value="unassigned" <?php echo $state_assignee === 'unassigned' ? 'selected' : ''; ?>><?php echo e(t('Unassigned')); ?></option>
+                <?php foreach ($agents as $agent): ?>
+                    <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"
+                        <?php echo (string) $state_assignee === (string) ($agent['id'] ?? '') ? 'selected' : ''; ?>>
+                        <?php echo e($agent['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="project-filter-group">
+            <label class="project-filter-label" for="project-filter-priority"><?php echo e(t('Priority')); ?></label>
+            <select id="project-filter-priority" name="priority"
+                    class="form-select project-filter-select">
+                <option value="all" <?php echo $state_priority === 'all' ? 'selected' : ''; ?>><?php echo e(t('Any priority')); ?></option>
+                <?php foreach (project_priority_keys() as $priority_key): ?>
+                    <option value="<?php echo e($priority_key); ?>"
+                        <?php echo $state_priority === $priority_key ? 'selected' : ''; ?>>
+                        <?php echo e(project_priority_label($priority_key)); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="project-filter-group">
+            <label class="project-filter-label" for="project-filter-due"><?php echo e(t('Due date')); ?></label>
+            <select id="project-filter-due" name="due"
+                    class="form-select project-filter-select">
+                <?php foreach (project_board_filter_due_options() as $due_key): ?>
+                    <option value="<?php echo e($due_key); ?>"
+                        <?php echo $state_due === $due_key ? 'selected' : ''; ?>>
+                        <?php echo e(t(project_board_filter_due_label($due_key))); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="project-filter-actions">
+            <button type="submit" class="fd-button fd-button--primary fd-button--sm">
+                <?php echo e(t('Apply')); ?>
+            </button>
+            <?php if (project_board_filter_has($state)): ?>
+                <a href="<?php echo e($clear_url); ?>" class="project-filter-clear">
+                    <?php echo e(t('Clear')); ?>
+                </a>
+            <?php endif; ?>
+        </div>
+    </form>
+    <?php
+}

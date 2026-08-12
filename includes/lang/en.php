@@ -1496,6 +1496,16 @@ return [
     'Rename' => 'Rename',
     'Title' => 'Title',
     'Assignee' => 'Assignee',
+    // Board filters (Phase 2)
+    'Board filters' => 'Board filters',
+    'Search' => 'Search',
+    'Search cards...' => 'Search cards...',
+    'Any assignee' => 'Any assignee',
+    'Any priority' => 'Any priority',
+    'Any due date' => 'Any due date',
+    'Due today' => 'Due today',
+    'Upcoming' => 'Upcoming',
+    'No due date' => 'No due date',
     // Card detail (Phase 2): description, comments, checklists, attachments
     'Card details' => 'Card details',
     'Card not found.' => 'Card not found.',
