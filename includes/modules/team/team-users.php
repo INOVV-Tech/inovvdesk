@@ -90,6 +90,7 @@ function team_users_permission_payload(string $role, ?int $organization_id, arra
             'can_import_md' => true,
             'can_view_time' => true,
             'can_view_timeline' => true,
+            'can_view_all_company_projects' => true,
         ];
     }
 
@@ -121,6 +122,7 @@ function team_users_permission_payload(string $role, ?int $organization_id, arra
         'can_import_md' => $role === 'agent' && isset($input['can_import_md']),
         'can_view_time' => isset($input['can_view_time']),
         'can_view_timeline' => isset($input['can_view_timeline']),
+        'can_view_all_company_projects' => $role === 'agent' && isset($input['can_view_all_company_projects']),
     ];
 }
 

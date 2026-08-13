@@ -688,13 +688,16 @@ CREATE TABLE IF NOT EXISTS project_boards (
     name VARCHAR(255) NOT NULL,
     description TEXT NULL,
     color VARCHAR(7) DEFAULT '#0a84ff',
+    organization_id INT NULL,
     is_archived TINYINT(1) NOT NULL DEFAULT 0,
     created_by INT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id),
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
     INDEX idx_project_boards_created_by (created_by),
     INDEX idx_project_boards_archived (is_archived),
+    INDEX idx_project_boards_organization (organization_id),
     INDEX idx_project_boards_created (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

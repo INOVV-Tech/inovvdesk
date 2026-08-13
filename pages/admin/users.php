@@ -146,6 +146,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         db_update('users', $updates, 'id = ?', [$user_id]);
                     }
 
+                    // Company-wide project access is membership-backed: add the
+                    // user to every active board of their companies.
+                    if ($role === 'agent'
+                        && !empty($permissions_data['can_view_all_company_projects'])
+                        && function_exists('project_board_sync_company_memberships')) {
+                        project_board_sync_company_memberships($user_id, get_user_organization_ids($user_id));
+                    }
+
                     // Send welcome email with login credentials
                     if (!empty($_POST['send_welcome_email'])) {
                         require_once BASE_PATH . '/includes/mailer.php';
@@ -277,6 +285,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         db_update('users', $user_updates, 'id = ?', [$id]);
+
+        // Company-wide project access is membership-backed: add the user to
+        // every active board of their companies.
+        if ($role === 'agent'
+            && !empty($permission_payload['can_view_all_company_projects'])
+            && function_exists('project_board_sync_company_memberships')) {
+            project_board_sync_company_memberships($id, get_user_organization_ids($id));
+        }
+
         if ($id === (int) ($_SESSION['user_id'] ?? 0)) {
             refresh_user_session();
             current_user(true);
@@ -536,6 +553,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'permissions' => $permissions_data !== null ? json_encode($permissions_data) : null,
                 ], 'id = ?', [$user_id]);
 
+                // Company-wide project access is membership-backed: add the
+                // AI agent to every active board of its companies.
+                if (!empty($permissions_data['can_view_all_company_projects'])
+                    && function_exists('project_board_sync_company_memberships')) {
+                    project_board_sync_company_memberships($user_id, get_user_organization_ids($user_id));
+                }
+
                 // Auto-generate API token
                 if (function_exists('generate_api_token')) {
                     $token_scopes = function_exists('team_ai_agent_token_scopes_from_input')
@@ -592,6 +616,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'organization_id' => $organization_id,
                 'permissions' => $permissions_data !== null ? json_encode($permissions_data) : null,
             ], 'id = ? AND is_ai_agent = 1', [$id]);
+
+            // Company-wide project access is membership-backed: add the AI
+            // agent to every active board of its companies.
+            if (!empty($permissions_data['can_view_all_company_projects'])
+                && function_exists('project_board_sync_company_memberships')) {
+                project_board_sync_company_memberships($id, get_user_organization_ids($id));
+            }
 
             if (isset($_POST['save_and_generate_agent_token']) && function_exists('generate_api_token')) {
                 if (function_exists('team_ai_agent_revoke_active_tokens')) {
@@ -983,6 +1014,10 @@ include BASE_PATH . '/includes/components/page-header.php';
                                     <input type="checkbox" name="can_view_timeline" class="mr-2" checked>
                                     <?php echo e(t('Can view activity timeline')); ?>
                                 </label>
+                                <label class="flex items-center text-sm">
+                                    <input type="checkbox" name="can_view_all_company_projects" class="mr-2">
+                                    <?php echo e(t('Can view all company projects')); ?>
+                                </label>
                             </div>
                         </div>
                         <?php if (!empty($ai_agent_token_scope_groups)): ?>
@@ -1096,6 +1131,10 @@ include BASE_PATH . '/includes/components/page-header.php';
                                 <label class="flex items-center text-sm">
                                     <input type="checkbox" name="can_view_edit_history" id="ai_edit_can_view_edit_history" class="mr-2">
                                     <?php echo e(t('Can view edit history')); ?>
+                                </label>
+                                <label class="flex items-center text-sm">
+                                    <input type="checkbox" name="can_view_all_company_projects" id="ai_edit_can_view_all_company_projects" class="mr-2">
+                                    <?php echo e(t('Can view all company projects')); ?>
                                 </label>
                             </div>
                         </div>
@@ -1327,6 +1366,10 @@ include BASE_PATH . '/includes/components/page-header.php';
                 var historyCheckbox = document.getElementById('ai_edit_can_view_edit_history');
                 if (historyCheckbox) {
                     historyCheckbox.checked = permissions.can_view_edit_history === true;
+                }
+                var allCompanyProjectsCheckbox = document.getElementById('ai_edit_can_view_all_company_projects');
+                if (allCompanyProjectsCheckbox) {
+                    allCompanyProjectsCheckbox.checked = permissions.can_view_all_company_projects === true;
                 }
 
                 syncAiAgentScope('editAiAgentForm', 'ai_edit_org_select');
@@ -1807,6 +1850,12 @@ include BASE_PATH . '/includes/components/page-header.php';
                                     <label class="flex items-center text-sm">
                                         <input type="checkbox" name="can_view_timeline" class="mr-2">
                                         <?php echo e(t('Can view activity timeline')); ?>
+                                    </label>
+                                </div>
+                                <div id="add_can_view_all_company_projects_wrap">
+                                    <label class="flex items-center text-sm">
+                                        <input type="checkbox" name="can_view_all_company_projects" class="mr-2">
+                                        <?php echo e(t('Can view all company projects')); ?>
                                     </label>
                                 </div>
                             </div>
@@ -2292,6 +2341,12 @@ include BASE_PATH . '/includes/components/page-header.php';
                                         <?php echo e(t('Can view activity timeline')); ?>
                                     </label>
                                 </div>
+                                <div id="edit_can_view_all_company_projects_wrap">
+                                    <label class="flex items-center text-sm">
+                                        <input type="checkbox" name="can_view_all_company_projects" id="edit_can_view_all_company_projects" class="mr-2">
+                                        <?php echo e(t('Can view all company projects')); ?>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -2348,6 +2403,8 @@ include BASE_PATH . '/includes/components/page-header.php';
                 const canArchiveInput = form ? form.querySelector('input[name="can_archive"]') : null;
                 const canImportMdWrap = document.getElementById(prefix + '_can_import_md_wrap');
                 const canImportMdInput = form ? form.querySelector('input[name="can_import_md"]') : null;
+                const canViewAllCompanyProjectsWrap = document.getElementById(prefix + '_can_view_all_company_projects_wrap');
+                const canViewAllCompanyProjectsInput = form ? form.querySelector('input[name="can_view_all_company_projects"]') : null;
 
                 // Show permissions for both agents and users (not admins)
                 if ((role === 'agent' || role === 'user') && permissionsDiv) {
@@ -2376,6 +2433,12 @@ include BASE_PATH . '/includes/components/page-header.php';
                 }
                 if (!isAgent && canImportMdInput) {
                     canImportMdInput.checked = false;
+                }
+                if (canViewAllCompanyProjectsWrap) {
+                    canViewAllCompanyProjectsWrap.classList.toggle('hidden', !isAgent);
+                }
+                if (!isAgent && canViewAllCompanyProjectsInput) {
+                    canViewAllCompanyProjectsInput.checked = false;
                 }
             }
 
@@ -2584,6 +2647,10 @@ include BASE_PATH . '/includes/components/page-header.php';
                 if (canViewTimeline) {
                     canViewTimeline.checked = false;
                 }
+                const canViewAllCompanyProjects = document.getElementById('edit_can_view_all_company_projects');
+                if (canViewAllCompanyProjects) {
+                    canViewAllCompanyProjects.checked = false;
+                }
 
                 const defaultScopeRadios = document.querySelectorAll('#editForm input[name="ticket_scope"]');
                 defaultScopeRadios.forEach((radio) => {
@@ -2659,6 +2726,9 @@ include BASE_PATH . '/includes/components/page-header.php';
                 }
                 if (canViewTimeline) {
                     canViewTimeline.checked = permissions.can_view_timeline === true;
+                }
+                if (canViewAllCompanyProjects) {
+                    canViewAllCompanyProjects.checked = permissions.can_view_all_company_projects === true;
                 }
 
                 if (membershipSelect) {

@@ -27,7 +27,9 @@ function project_can_manage(?array $user = null): bool
 }
 
 /**
- * Per-board visibility: admins bypass membership; agents must be members.
+ * Per-board visibility: admins bypass membership; agents must be members —
+ * unless they hold the can_view_all_company_projects permission, in which
+ * case every board linked to one of their companies is visible too.
  */
 function project_can_view_board(?array $board, ?array $user = null): bool
 {
@@ -40,7 +42,23 @@ function project_can_view_board(?array $board, ?array $user = null): bool
     }
 
     $board_id = (int) ($board['id'] ?? 0);
-    return $board_id > 0 && project_board_is_member($board_id, (int) ($user['id'] ?? 0));
+    if ($board_id <= 0) {
+        return false;
+    }
+
+    if (function_exists('project_board_organization_column_exists')
+        && project_board_organization_column_exists()
+        && function_exists('can_view_all_company_projects')
+        && can_view_all_company_projects($user)) {
+        $board_organization_id = (int) ($board['organization_id'] ?? 0);
+        if ($board_organization_id > 0
+            && function_exists('get_user_organization_ids')
+            && in_array($board_organization_id, get_user_organization_ids((int) ($user['id'] ?? 0)), true)) {
+            return true;
+        }
+    }
+
+    return project_board_is_member($board_id, (int) ($user['id'] ?? 0));
 }
 
 /**
@@ -185,6 +203,41 @@ function project_board_member_remove(int $board_id, int $user_id): bool
     }
 
     db_delete('project_board_members', 'board_id = ? AND user_id = ?', [$board_id, $user_id]);
+    return true;
+}
+
+/**
+ * Add a user as member of every active board linked to one of their
+ * companies. Called when can_view_all_company_projects is enabled so the
+ * membership table stays consistent with the company-wide permission
+ * (member-scoped features — assignee options, work summary — keep working).
+ * Idempotent; never removes memberships.
+ */
+function project_board_sync_company_memberships(int $user_id, array $organization_ids): bool
+{
+    $user_id = project_board_normalize_id($user_id);
+    $organization_ids = function_exists('normalize_organization_ids')
+        ? normalize_organization_ids($organization_ids)
+        : array_values(array_filter(array_map('intval', $organization_ids), static fn ($id) => $id > 0));
+
+    if ($user_id <= 0 || empty($organization_ids)
+        || !project_board_members_table_exists()
+        || !project_board_organization_column_exists()) {
+        return false;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($organization_ids), '?'));
+    $params = [$user_id];
+    foreach ($organization_ids as $organization_id) {
+        $params[] = (int) $organization_id;
+    }
+
+    db_query(
+        "INSERT IGNORE INTO project_board_members (board_id, user_id)
+         SELECT id, ? FROM project_boards
+         WHERE organization_id IN ({$placeholders}) AND is_archived = 0",
+        $params
+    );
     return true;
 }
 

@@ -1554,6 +1554,8 @@ return [
     'Bug report' => 'Relatório de bug',
     'Bug, Feature, Support...' => 'Bug, recurso, suporte...',
     'Can view activity timeline' => 'Pode visualizar a linha do tempo da atividade',
+    'Can view all company projects' => 'Pode visualizar todos os projetos da empresa',
+    'Links the project to a company so agents with company-wide project access can see it.' => 'Vincula o projeto a uma empresa para que agentes com acesso a todos os projetos da empresa possam vê-lo.',
     'Cannot create backup directory — parent not writable.' => 'Não é possível criar o diretório de backup — pai não gravável.',
     'CC' => 'CC',
     'changed' => 'alterado',
