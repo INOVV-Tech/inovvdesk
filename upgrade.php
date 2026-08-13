@@ -1415,6 +1415,44 @@ if (!$check) {
     }
 }
 
+// Add project_boards.organization_id (Projects module — company-linked boards)
+$check = db_fetch_one("SHOW COLUMNS FROM project_boards LIKE 'organization_id'");
+if (!$check) {
+    try {
+        db_query(
+            "ALTER TABLE project_boards
+             ADD COLUMN organization_id INT NULL AFTER color,
+             ADD INDEX idx_project_boards_organization (organization_id)"
+        );
+        $messages[] = "OK: Added column `organization_id` to table `project_boards`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to add column `organization_id` to `project_boards`: " . $e->getMessage();
+    }
+}
+
+// project_boards.organization_id foreign key (may fail on restrictive setups;
+// the app degrades gracefully without the constraint)
+$check = db_fetch_one("SHOW COLUMNS FROM project_boards LIKE 'organization_id'");
+if ($check) {
+    $fk_check = db_fetch_one(
+        "SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'project_boards'
+           AND COLUMN_NAME = 'organization_id' LIMIT 1"
+    );
+    if (!$fk_check) {
+        try {
+            db_query(
+                "ALTER TABLE project_boards
+                 ADD CONSTRAINT fk_project_boards_organization
+                 FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL"
+            );
+            $messages[] = "OK: Added foreign key `fk_project_boards_organization` to `project_boards`";
+        } catch (Exception $e) {
+            $messages[] = "WARN: Failed to add foreign key `fk_project_boards_organization`: " . $e->getMessage();
+        }
+    }
+}
+
 // Create project_board_members table (Projects module — per-board permission model)
 $check = db_fetch_one("SHOW TABLES LIKE 'project_board_members'");
 if (!$check) {

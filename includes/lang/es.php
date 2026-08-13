@@ -1066,6 +1066,9 @@ return [
     'Rate' => 'Tarifa',
     'Can view time entries' => 'Puede ver registros de tiempo',
 
+    'Can view all company projects' => 'Puede ver todos los proyectos de la empresa',
+    'Links the project to a company so agents with company-wide project access can see it.' => 'Vincula el proyecto a una empresa para que los agentes con acceso a todos los proyectos de la empresa puedan verlo.',
+
     // v0.3.11 — Dashboard redesign
     'New today' => 'Nuevos hoy',
     'New tickets' => 'Tickets nuevos',

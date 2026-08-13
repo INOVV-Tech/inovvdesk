@@ -7,7 +7,7 @@
  * quick-create (from a list) and edit (from an existing card).
  */
 
-function project_render_modal_templates(array $lists, array $agents): void
+function project_render_modal_templates(array $lists, array $agents, array $organizations = []): void
 {
     ?>
     <!-- Board editor modal (create + rename) -->
@@ -47,6 +47,22 @@ function project_render_modal_templates(array $lists, array $agents): void
                         </select>
                         <p class="text-xs mt-1 text-theme-muted">
                             <?php echo e(t('Templates pre-create the board lists.')); ?>
+                        </p>
+                    </div>
+                    <div class="project-board-organization-field">
+                        <label class="block text-xs font-medium mb-1 text-theme-muted" for="project-board-organization-input">
+                            <?php echo e(t('Company')); ?>
+                        </label>
+                        <select id="project-board-organization-input" class="form-select w-full">
+                            <option value=""><?php echo e(t('No company')); ?></option>
+                            <?php foreach ($organizations as $organization): ?>
+                                <option value="<?php echo (int) ($organization['id'] ?? 0); ?>">
+                                    <?php echo e($organization['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs mt-1 text-theme-muted">
+                            <?php echo e(t('Links the project to a company so agents with company-wide project access can see it.')); ?>
                         </p>
                     </div>
                     <div>

@@ -72,6 +72,8 @@
         var templateInput = document.getElementById('project-board-template-input');
         if (!boardModal || !boardModal.dataset.boardId) {
             payload.template = templateInput ? (templateInput.value || 'blank') : 'blank';
+            var organizationInput = document.getElementById('project-board-organization-input');
+            payload.organization_id = organizationInput ? (parseInt(organizationInput.value, 10) || 0) : 0;
         }
         return payload;
     }
@@ -87,6 +89,10 @@
         if (templateField) templateField.classList.remove('hidden');
         var templateInput = document.getElementById('project-board-template-input');
         if (templateInput) templateInput.value = 'blank';
+        var organizationField = boardModal.querySelector('.project-board-organization-field');
+        if (organizationField) organizationField.classList.remove('hidden');
+        var organizationInput = document.getElementById('project-board-organization-input');
+        if (organizationInput) organizationInput.value = '';
         openModal(boardModal);
     }
 
@@ -101,6 +107,8 @@
         document.getElementById('project-board-color-input').value = card.getAttribute('data-project-board-color') || '#0a84ff';
         var templateField = boardModal.querySelector('.project-board-template-field');
         if (templateField) templateField.classList.add('hidden');
+        var organizationField = boardModal.querySelector('.project-board-organization-field');
+        if (organizationField) organizationField.classList.add('hidden');
         openModal(boardModal);
     }
 

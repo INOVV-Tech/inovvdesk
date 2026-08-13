@@ -16,6 +16,7 @@ ensure_project_governance_tables();
 
 $project_boards = project_boards_list(true, $user);
 $project_agents = function_exists('project_assignee_options') ? project_assignee_options() : [];
+$project_organizations = function_exists('get_organizations') ? get_organizations(true) : [];
 
 require_once BASE_PATH . '/includes/header.php';
 ?>
@@ -45,7 +46,7 @@ require_once BASE_PATH . '/includes/header.php';
     <?php endif; ?>
 </section>
 
-<?php project_render_modal_templates([], $project_agents); ?>
+<?php project_render_modal_templates([], $project_agents, $project_organizations); ?>
 
 <script defer src="<?php echo e(foxdesk_asset_url('assets/js/project-board.js')); ?>"></script>
 

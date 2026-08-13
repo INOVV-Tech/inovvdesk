@@ -56,14 +56,32 @@ function project_boards_list(bool $include_archived = false, ?array $user = null
     // Per-board membership (Phase 2 item 4): agents only see boards they
     // belong to; admins see everything. Without a user context (CLI, no
     // session) no membership filter is applied.
+    // Company-linked boards (Phase 3): agents with can_view_all_company_projects
+    // also see every board tied to one of their companies.
     if ($user === null && function_exists('current_user')) {
         $user = current_user() ?: null;
     }
     if ($user && in_array((string) ($user['role'] ?? ''), ['agent'], true)) {
         $user_id = (int) ($user['id'] ?? 0);
         if ($user_id > 0 && project_board_members_table_exists()) {
-            $sql .= " AND id IN (SELECT board_id FROM project_board_members WHERE user_id = ?)";
+            $sql .= " AND (id IN (SELECT board_id FROM project_board_members WHERE user_id = ?)";
             $params[] = $user_id;
+
+            if (function_exists('project_board_organization_column_exists')
+                && project_board_organization_column_exists()
+                && function_exists('can_view_all_company_projects')
+                && can_view_all_company_projects($user)) {
+                $organization_ids = function_exists('get_user_organization_ids') ? get_user_organization_ids($user_id) : [];
+                if (!empty($organization_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($organization_ids), '?'));
+                    $sql .= " OR (organization_id IS NOT NULL AND organization_id IN ({$placeholders}))";
+                    foreach ($organization_ids as $organization_id) {
+                        $params[] = (int) $organization_id;
+                    }
+                }
+            }
+
+            $sql .= ")";
         } elseif ($user_id <= 0) {
             $sql .= " AND 1 = 0";
         }
@@ -137,7 +155,7 @@ function project_board_normalize_color($color): string
     return preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? $color : '#0a84ff';
 }
 
-function project_board_create(string $name, ?string $description, $color, int $created_by, ?string $template = null): int
+function project_board_create(string $name, ?string $description, $color, int $created_by, ?string $template = null, int $organization_id = 0): int
 {
     $name = project_board_validate_name($name);
     $created_by = project_board_normalize_id($created_by);
@@ -145,13 +163,19 @@ function project_board_create(string $name, ?string $description, $color, int $c
         throw new InvalidArgumentException(project_validation_message('Board owner is required.'));
     }
 
-    $board_id = (int) db_insert('project_boards', [
+    $values = [
         'name' => $name,
         'description' => trim((string) $description) !== '' ? trim((string) $description) : null,
         'color' => project_board_normalize_color($color),
         'is_archived' => 0,
         'created_by' => $created_by,
-    ]);
+    ];
+    $organization_id = project_board_normalize_id($organization_id);
+    if ($organization_id > 0 && function_exists('project_board_organization_column_exists') && project_board_organization_column_exists()) {
+        $values['organization_id'] = $organization_id;
+    }
+
+    $board_id = (int) db_insert('project_boards', $values);
 
     // The creator becomes a member automatically (per-board permission model).
     if (project_board_members_table_exists()) {
@@ -159,6 +183,20 @@ function project_board_create(string $name, ?string $description, $color, int $c
             "INSERT IGNORE INTO project_board_members (board_id, user_id) VALUES (?, ?)",
             [$board_id, $created_by]
         );
+
+        // Company-wide access is membership-backed: every active agent with
+        // can_view_all_company_projects for this company joins automatically.
+        if ($organization_id > 0 && project_board_organization_column_exists()) {
+            db_query(
+                "INSERT IGNORE INTO project_board_members (board_id, user_id)
+                 SELECT ?, id FROM users
+                 WHERE is_active = 1
+                   AND role = 'agent'
+                   AND permissions LIKE '%\"can_view_all_company_projects\":true%'
+                   AND (organization_id = ? OR permissions LIKE '%\"organization_ids\"%' AND JSON_CONTAINS(permissions, ?, '$.organization_ids'))",
+                [$board_id, $organization_id, (string) $organization_id]
+            );
+        }
     }
 
     // Board templates pre-seed the lists in order (blank ships none).

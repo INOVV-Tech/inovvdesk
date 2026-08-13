@@ -1131,6 +1131,9 @@ return [
     'Optional' => 'Optional',
     'Can view time entries' => 'Can view time entries',
 
+    'Can view all company projects' => 'Can view all company projects',
+    'Links the project to a company so agents with company-wide project access can see it.' => 'Links the project to a company so agents with company-wide project access can see it.',
+
     // v0.3.11 — Dashboard redesign
     'New today' => 'New today',
     'New tickets' => 'New tickets',

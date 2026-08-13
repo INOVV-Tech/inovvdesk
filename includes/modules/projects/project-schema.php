@@ -109,14 +109,17 @@ function ensure_project_boards_table(): bool
                 name VARCHAR(255) NOT NULL,
                 description TEXT NULL,
                 color VARCHAR(7) DEFAULT '#0a84ff',
+                organization_id INT NULL,
                 is_archived TINYINT(1) NOT NULL DEFAULT 0,
                 created_by INT NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_project_boards_created_by (created_by),
                 INDEX idx_project_boards_archived (is_archived),
+                INDEX idx_project_boards_organization (organization_id),
                 INDEX idx_project_boards_created (created_at),
-                FOREIGN KEY (created_by) REFERENCES users(id)
+                FOREIGN KEY (created_by) REFERENCES users(id),
+                FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         ");
     } catch (Throwable $e) {
@@ -233,6 +236,48 @@ function ensure_project_cards_archived_column(): bool
     return project_card_archived_column_exists(true);
 }
 
+/**
+ * Company-linked boards: project_boards.organization_id ties a board to a
+ * company so agents with the "all company projects" permission see every
+ * board of their companies. Migration follows the same idempotent ALTER
+ * pattern as the archived card columns.
+ */
+function project_board_organization_column_exists(bool $refresh = false): bool
+{
+    static $available = null;
+    if (!$refresh && $available !== null) {
+        return $available;
+    }
+
+    try {
+        $available = (bool) db_fetch_one("SHOW COLUMNS FROM project_boards LIKE 'organization_id'");
+    } catch (Throwable $e) {
+        $available = false;
+    }
+
+    return $available;
+}
+
+function ensure_project_boards_organization_column(): bool
+{
+    if (project_board_organization_column_exists()) {
+        return true;
+    }
+
+    try {
+        db_query(
+            "ALTER TABLE project_boards
+             ADD COLUMN organization_id INT NULL AFTER color,
+             ADD INDEX idx_project_boards_organization (organization_id)"
+        );
+    } catch (Throwable $e) {
+        // Another request may have added the column, or this database user
+        // may not be allowed to change the schema.
+    }
+
+    return project_board_organization_column_exists(true);
+}
+
 function ensure_project_board_members_table(): bool
 {
     if (project_board_members_table_exists()) {
@@ -266,7 +311,9 @@ function ensure_project_board_members_table(): bool
 
 function ensure_project_governance_tables(): bool
 {
-    return ensure_project_cards_archived_column() && ensure_project_board_members_table();
+    return ensure_project_cards_archived_column()
+        && ensure_project_board_members_table()
+        && ensure_project_boards_organization_column();
 }
 
 function ensure_project_tables(): bool

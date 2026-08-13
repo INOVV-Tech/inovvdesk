@@ -45,11 +45,20 @@ function api_project_board_save()
 {
     api_project_require_staff_post();
 
+    if (function_exists('ensure_project_governance_tables')) {
+        ensure_project_governance_tables();
+    }
+
     $input = get_json_input();
     $name = api_project_input_string($input, 'name');
     $description = api_project_input_string($input, 'description');
     $color = api_project_input_string($input, 'color');
     $template = api_project_input_string($input, 'template');
+    $organization_id = project_board_normalize_id($input['organization_id'] ?? 0);
+
+    if ($organization_id > 0 && function_exists('can_user_use_organization') && !can_user_use_organization($organization_id)) {
+        api_error('Forbidden', 403);
+    }
 
     try {
         $id = project_board_normalize_id($input['id'] ?? 0);
@@ -61,7 +70,7 @@ function api_project_board_save()
         }
 
         $user = current_user();
-        $new_id = project_board_create($name, $description, $color, (int) ($user['id'] ?? 0), $template);
+        $new_id = project_board_create($name, $description, $color, (int) ($user['id'] ?? 0), $template, $organization_id);
         api_success(['id' => $new_id, 'name' => $name]);
     } catch (InvalidArgumentException $e) {
         api_error($e->getMessage());
