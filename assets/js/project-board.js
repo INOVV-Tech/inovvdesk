@@ -63,12 +63,17 @@
     }
 
     function boardModalPayload() {
-        return {
+        var payload = {
             id: (boardModal && boardModal.dataset.boardId) ? parseInt(boardModal.dataset.boardId, 10) : 0,
             name: document.getElementById('project-board-name-input').value,
             description: document.getElementById('project-board-description-input').value,
             color: document.getElementById('project-board-color-input').value
         };
+        var templateInput = document.getElementById('project-board-template-input');
+        if (!boardModal || !boardModal.dataset.boardId) {
+            payload.template = templateInput ? (templateInput.value || 'blank') : 'blank';
+        }
+        return payload;
     }
 
     function openBoardCreate() {
@@ -78,6 +83,10 @@
         document.getElementById('project-board-name-input').value = '';
         document.getElementById('project-board-description-input').value = '';
         document.getElementById('project-board-color-input').value = '#0a84ff';
+        var templateField = boardModal.querySelector('.project-board-template-field');
+        if (templateField) templateField.classList.remove('hidden');
+        var templateInput = document.getElementById('project-board-template-input');
+        if (templateInput) templateInput.value = 'blank';
         openModal(boardModal);
     }
 
@@ -90,6 +99,8 @@
         document.getElementById('project-board-name-input').value = card.getAttribute('data-project-board-name') || '';
         document.getElementById('project-board-description-input').value = card.getAttribute('data-project-board-description') || '';
         document.getElementById('project-board-color-input').value = card.getAttribute('data-project-board-color') || '#0a84ff';
+        var templateField = boardModal.querySelector('.project-board-template-field');
+        if (templateField) templateField.classList.add('hidden');
         openModal(boardModal);
     }
 
@@ -178,7 +189,11 @@
                 break;
 
             case 'card-open-create':
-                openCardCreate(trigger.getAttribute('data-project-list-id'));
+                if (window.openProjectCardCreate) {
+                    window.openProjectCardCreate(trigger.getAttribute('data-project-list-id'));
+                } else {
+                    openCardCreate(trigger.getAttribute('data-project-list-id'));
+                }
                 break;
 
             case 'card-save':
@@ -199,6 +214,22 @@
 
             case 'list-delete':
                 deleteList(trigger.getAttribute('data-project-list-id'));
+                break;
+
+            case 'card-archive':
+                archiveCardFromTrigger(trigger);
+                break;
+
+            case 'archived-toggle':
+                toggleArchived();
+                break;
+
+            case 'member-add':
+                addMemberFromTrigger(trigger);
+                break;
+
+            case 'member-remove':
+                removeMemberFromTrigger(trigger);
                 break;
         }
     });
@@ -376,6 +407,93 @@
         });
     }
 
+    // --- Board governance (Phase 2 item 4): archive/restore cards, members ---
+
+    function archiveCardFromTrigger(trigger) {
+        if (!trigger) return;
+        var cardId = parseInt(trigger.getAttribute('data-project-card-id'), 10) || 0;
+        if (!cardId) {
+            var cardEl = trigger.closest('.project-card[data-project-card-id]');
+            if (cardEl) cardId = parseInt(cardEl.getAttribute('data-project-card-id'), 10) || 0;
+        }
+        if (!cardId) return;
+
+        var isArchived = trigger.getAttribute('data-project-archived') === '1';
+        if (!isArchived && !window.confirm(cfg.archiveCardConfirm || 'Archive this card?')) return;
+        projectApi('project-card-archive', { id: cardId, archived: isArchived ? 0 : 1 }).then(function (res) {
+            if (!res.success) {
+                toast(res.error || cfg.errorLabel || 'Error', 'error');
+                return;
+            }
+            toast(isArchived ? (cfg.cardRestoredLabel || 'Card restored') : (cfg.cardArchivedLabel || 'Card archived'), 'success');
+            location.reload();
+        }).catch(function () {
+            toast(cfg.errorLabel || 'Error', 'error');
+        });
+    }
+
+    function toggleArchived() {
+        var container = document.querySelector('[data-project-archived-cards]');
+        if (!container) return;
+        var willShow = container.classList.contains('hidden');
+        container.classList.toggle('hidden');
+        var column = container.closest('[data-project-archived-column]');
+        if (column) {
+            var header = column.querySelector('.project-column-header');
+            if (header) header.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+        }
+    }
+
+    function boardIdFromTrigger(trigger) {
+        var id = parseInt(trigger.getAttribute('data-project-board-id'), 10) || 0;
+        if (!id && boardRoot) {
+            var scoped = boardRoot.querySelector('[data-project-board-id]');
+            id = parseInt(scoped ? scoped.getAttribute('data-project-board-id') : '', 10) || 0;
+        }
+        if (!id && root) {
+            var fallback = root.querySelector('[data-project-board-id]');
+            id = parseInt(fallback ? fallback.getAttribute('data-project-board-id') : '', 10) || 0;
+        }
+        return id;
+    }
+
+    function addMemberFromTrigger(trigger) {
+        var boardId = boardIdFromTrigger(trigger);
+        var select = document.querySelector('.project-member-candidates-select');
+        var userId = select ? parseInt(select.value, 10) || 0 : 0;
+        if (!boardId || !userId) {
+            toast(cfg.addMemberRequiredLabel || 'Choose a member to add.', 'error');
+            return;
+        }
+        projectApi('project-board-member-add', { board_id: boardId, user_id: userId }).then(function (res) {
+            if (!res.success) {
+                toast(res.error || cfg.errorLabel || 'Error', 'error');
+                return;
+            }
+            toast(cfg.memberAddedLabel || 'Member added', 'success');
+            location.reload();
+        }).catch(function () {
+            toast(cfg.errorLabel || 'Error', 'error');
+        });
+    }
+
+    function removeMemberFromTrigger(trigger) {
+        var boardId = boardIdFromTrigger(trigger);
+        var userId = parseInt(trigger.getAttribute('data-project-user-id'), 10) || 0;
+        if (!boardId || !userId) return;
+        if (!window.confirm(cfg.memberRemoveConfirm || 'Remove this member from the board?')) return;
+        projectApi('project-board-member-remove', { board_id: boardId, user_id: userId }).then(function (res) {
+            if (!res.success) {
+                toast(res.error || cfg.errorLabel || 'Error', 'error');
+                return;
+            }
+            toast(cfg.memberRemovedLabel || 'Member removed', 'success');
+            location.reload();
+        }).catch(function () {
+            toast(cfg.errorLabel || 'Error', 'error');
+        });
+    }
+
     // --- Card drag & drop (HTML5) ---
 
     var board = root.querySelector('.project-board-wrapper');
@@ -423,6 +541,8 @@
     board.addEventListener('dragover', function (e) {
         var targetCol = e.target.closest('.project-column');
         if (!targetCol) return;
+        // The archived column is not a drag target (Phase 2 item 4).
+        if (draggedCard && targetCol.closest('[data-project-archived-column]')) return;
 
         if (draggedCard) {
             e.preventDefault();
@@ -462,7 +582,7 @@
 
         if (draggedCard) {
             var col = e.target.closest('.project-column');
-            if (!col) { cleanupCard(); return; }
+            if (!col || (col.closest && col.closest('[data-project-archived-column]'))) { cleanupCard(); return; }
             col.classList.remove('drag-over');
 
             var targetListId = col.getAttribute('data-project-list-id');

@@ -36,6 +36,19 @@ function project_render_modal_templates(array $lists, array $agents): void
                         </label>
                         <textarea id="project-board-description-input" class="form-input w-full" rows="3"></textarea>
                     </div>
+                    <div class="project-board-template-field">
+                        <label class="block text-xs font-medium mb-1 text-theme-muted" for="project-board-template-input">
+                            <?php echo e(t('Template')); ?>
+                        </label>
+                        <select id="project-board-template-input" class="form-select w-full project-board-template-input">
+                            <?php foreach (project_board_templates() as $template): ?>
+                                <option value="<?php echo e($template['key']); ?>"><?php echo e(t($template['name'])); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="text-xs mt-1 text-theme-muted">
+                            <?php echo e(t('Templates pre-create the board lists.')); ?>
+                        </p>
+                    </div>
                     <div>
                         <label class="block text-xs font-medium mb-1 text-theme-muted" for="project-board-color-input">
                             <?php echo e(t('Color')); ?>

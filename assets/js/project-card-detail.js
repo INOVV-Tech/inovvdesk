@@ -17,6 +17,7 @@
     var API = cfg.apiUrl || ('index.php?page=api');
     var currentCardId = 0;
     var currentCard = null;
+    var createListId = 0;
     var commentEditor = null;
     var editCommentId = 0;
 
@@ -63,12 +64,29 @@
 
     // --- Modal open/close ---
 
-    function openCardDetail(cardId) {
-        currentCardId = parseInt(cardId, 10) || 0;
-        if (!currentCardId) return;
+    function openCardDetail(cardId, opts) {
+        opts = opts || {};
         editCommentId = 0;
+        currentCardId = parseInt(cardId, 10) || 0;
+        createListId = currentCardId > 0 ? 0 : (parseInt(opts.listId, 10) || 0);
+        currentCard = null;
+        setCreateModeUI(currentCardId <= 0);
+
         var composer = modal.querySelector('.project-comment-input');
         if (composer) composer.value = '';
+
+        if (!currentCardId) {
+            modal.classList.remove('hidden');
+            renderDetailMeta();
+            syncTitleInput();
+            syncAssigneeSelect();
+            syncDueInput();
+            var preview = modal.querySelector('[data-project-card-detail-description]');
+            if (preview) preview.innerHTML = '';
+            resetDescriptionEditor({});
+            setDescriptionEditor(true);
+            return;
+        }
 
         var cardEl = document.querySelector('.project-card[data-project-card-id="' + currentCardId + '"]');
         if (cardEl) {
@@ -81,7 +99,9 @@
 
         modal.classList.remove('hidden');
         renderDetailMeta();
+        syncTitleInput();
         syncAssigneeSelect();
+        syncDueInput();
         api('project-card-detail', { id: currentCardId }).then(function (data) {
             if (data && data.error) {
                 toast(data.error || '', 'error');
@@ -99,6 +119,45 @@
         setDescriptionEditor(false);
     }
 
+    function setCreateModeUI(create) {
+        var deleteBtn = modal.querySelector('[data-project-action="card-detail-delete"]');
+        if (deleteBtn) deleteBtn.classList.toggle('hidden', create);
+        var archiveBtn = modal.querySelector('.project-card-detail-archive');
+        if (archiveBtn) {
+            archiveBtn.classList.toggle('hidden', create);
+            if (!create) archiveBtn.setAttribute('data-project-card-id', String(currentCardId || ''));
+        }
+        modal.querySelectorAll('.project-card-detail-comments, .project-card-detail-checklists, .project-card-detail-attachments')
+            .forEach(function (section) { section.classList.toggle('hidden', create); });
+        var head = modal.querySelector('[data-project-card-detail-title]');
+        if (head && create) head.textContent = cfg.newCardLabel || 'New card';
+    }
+
+    function currentBoardId() {
+        var el = document.querySelector('[data-project-board-id]');
+        return el ? parseInt(el.getAttribute('data-project-board-id'), 10) || 0 : 0;
+    }
+
+    function titleValue() {
+        var input = modal.querySelector('[data-project-card-title-input]');
+        return input ? input.value.trim() : '';
+    }
+
+    function assigneeValue() {
+        var sel = modal.querySelector('[data-project-card-assignee-select]');
+        return sel ? sel.value || '' : '';
+    }
+
+    function dueValueDb() {
+        var input = modal.querySelector('[data-project-card-due-input]');
+        var value = input ? input.value : '';
+        if (value) {
+            value = value.replace('T', ' ');
+            if (value.length === 16) value += ':00';
+        }
+        return value;
+    }
+
     // --- Static meta recap (title, assignee, priority, due date) ---
 
     function renderDetailMeta() {
@@ -109,20 +168,26 @@
         if (card.priority_label) {
             parts.push('<span class="project-priority-inline project-priority-inline--' + esc(card.priority || 'medium') + '">' + esc(card.priority_label) + '</span>');
         }
-        if (card.due_display) {
-            parts.push('<span class="project-card-detail-meta-item">' + clockIcon() + esc(card.due_display) + '</span>');
-        }
         meta.innerHTML = parts.join('');
     }
 
     // --- Detail rendering ---
 
     function renderDetail(detail) {
-        renderDescription(detail.card);
+        renderDescription(detail.card, detail.description_html);
         renderComments(detail.comments || []);
         renderChecklists(detail.checklists || []);
         renderAttachments(detail.attachments || []);
+        syncTitleInput();
         syncAssigneeSelect();
+        syncDueInput();
+    }
+
+    function syncTitleInput() {
+        var input = modal.querySelector('[data-project-card-title-input]');
+        if (!input) return;
+        var title = currentCard && currentCard.title ? currentCard.title : '';
+        if (input.value !== title) input.value = title;
     }
 
     function syncAssigneeSelect() {
@@ -132,12 +197,36 @@
         if (sel.value !== assigneeId) sel.value = assigneeId;
     }
 
-    function renderDescription(card) {
+    function toDatetimeLocal(value) {
+        if (!value) return '';
+        var match = String(value).match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2})(?::\d{2})?)?/);
+        if (!match) return '';
+        return match[1] + 'T' + (match[2] || '00:00');
+    }
+
+    function syncDueInput() {
+        var input = modal.querySelector('[data-project-card-due-input]');
+        if (!input) return;
+        var due = toDatetimeLocal(currentCard && currentCard.due_date);
+        if (input.value !== due) input.value = due;
+    }
+
+    function sanitizeDescriptionHtml(html) {
+        html = String(html == null ? '' : html);
+        if (html.indexOf('<') === -1) return nl2br(html);
+        return html
+            .replace(/<\s*(script|style|iframe|object|embed|form|input|button|video|audio|link|meta)[^>]*>[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+            .replace(/<\s*(script|style|iframe|object|embed|form|input|button|video|audio|link|meta)[^>]*\/?>/gi, '')
+            .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+            .replace(/\s(href|src|style)\s*=\s*(['"])\s*javascript:[^'"]*\2/gi, '')
+            .replace(/\sstyle\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    }
+
+    function renderDescription(card, descriptionHtml) {
         var preview = modal.querySelector('[data-project-card-detail-description]');
         if (!preview) return;
-        preview.innerHTML = card && card.description
-            ? nl2br(card.description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' '))
-            : '';
+        var html = (card && card.description) ? (descriptionHtml != null ? descriptionHtml : card.description) : '';
+        preview.innerHTML = sanitizeDescriptionHtml(html);
         resetDescriptionEditor(card || {});
     }
 
@@ -385,10 +474,14 @@
         ensureQuill();
         if (!commentEditor) return;
         var description = commentEditor.root.innerHTML;
+        if (currentCardId <= 0) {
+            createCard(description);
+            return;
+        }
         var card = currentCard || {};
         api('project-card-save', {
             id: currentCardId,
-            title: card.title || '',
+            title: titleValue() || card.title || '',
             description: description,
             assignee_id: card.assignee_id || 0,
             due_date: card.due_date || '',
@@ -404,18 +497,98 @@
                 cardEl.setAttribute('data-project-card-json', JSON.stringify(currentCard));
                 var preview = cardEl.querySelector('.project-card-description');
                 if (preview) {
-                    preview.textContent = description.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+                    preview.innerHTML = sanitizeDescriptionHtml(description);
                 }
             }
             refreshDetail();
         });
     }
 
+    function createCard(description) {
+        var title = titleValue();
+        if (!title) {
+            toast(cfg.titleRequiredLabel || 'Title is required.', 'error');
+            return;
+        }
+        if (!createListId) {
+            toast(cfg.listRequiredLabel || 'List is required.', 'error');
+            return;
+        }
+        api('project-card-save', {
+            board_id: currentBoardId(),
+            list_id: createListId,
+            title: title,
+            description: description,
+            assignee_id: assigneeValue() ? (parseInt(assigneeValue(), 10) || 0) : 0,
+            due_date: dueValueDb(),
+            priority: 'medium'
+        }).then(function (data) {
+            if (data && data.error) {
+                toast(data.error, 'error');
+                return;
+            }
+            toast(cfg.cardCreatedLabel || 'Card created.');
+            location.reload();
+        });
+    }
+
+    function saveTitle() {
+        var card = currentCard || {};
+        var title = titleValue();
+        if (!title) {
+            toast(cfg.titleRequiredLabel || 'Title is required.', 'error');
+            return;
+        }
+        api('project-card-save', {
+            id: currentCardId,
+            title: title,
+            description: card.description || '',
+            assignee_id: card.assignee_id || 0,
+            due_date: card.due_date || '',
+            priority: card.priority || 'medium'
+        }).then(function (data) {
+            if (data && data.error) {
+                toast(data.error, 'error');
+                return;
+            }
+            currentCard.title = title;
+            toast(cfg.titleSavedLabel || 'Title updated.');
+            closeCardDetail();
+            updateBoardCardJson();
+            var cardEl = document.querySelector('.project-card[data-project-card-id="' + currentCardId + '"]');
+            var nameEl = cardEl ? cardEl.querySelector('.project-card-title') : null;
+            if (nameEl) nameEl.textContent = title;
+        });
+    }
+
+    function deleteCard() {
+        if (currentCardId <= 0) return;
+        if (!confirmAction(cfg.deleteCardConfirm || 'Delete this card?')) return;
+        api('project-card-delete', { id: currentCardId }).then(function (data) {
+            if (data && data.error) {
+                toast(data.error, 'error');
+                return;
+            }
+            closeCardDetail();
+            location.reload();
+        });
+    }
+
+    function handleDetailSave() {
+        if (currentCardId <= 0) {
+            ensureQuill();
+            createCard(commentEditor ? commentEditor.root.innerHTML : '');
+            return;
+        }
+        saveTitle();
+    }
+
     function saveAssignee(assigneeId) {
+        if (currentCardId <= 0) return;
         var card = currentCard || {};
         api('project-card-save', {
             id: currentCardId,
-            title: card.title || '',
+            title: titleValue() || card.title || '',
             description: card.description || '',
             assignee_id: assigneeId ? parseInt(assigneeId, 10) || 0 : 0,
             due_date: card.due_date || '',
@@ -457,6 +630,61 @@
         } else if (chip) {
             chip.remove();
         }
+
+        var due = currentCard.due_date || '';
+        var dueChip = cardEl.querySelector('.project-card-due');
+        var cardTop = cardEl.querySelector('.project-card-top');
+        if (due) {
+            var label = formatDueDateLabel(due);
+            var overdue = new Date(String(due).replace(' ', 'T')).getTime() < Date.now();
+            if (dueChip) {
+                dueChip.textContent = label;
+                dueChip.classList.toggle('overdue', overdue);
+            } else if (cardTop) {
+                var dueSpan = document.createElement('span');
+                dueSpan.className = 'project-card-due' + (overdue ? ' overdue' : '');
+                dueSpan.textContent = label;
+                cardTop.appendChild(dueSpan);
+            }
+        } else if (dueChip) {
+            dueChip.remove();
+        }
+    }
+
+    function formatDueDateLabel(value) {
+        var date = new Date(String(value).replace(' ', 'T'));
+        if (isNaN(date.getTime())) return esc(value);
+        function pad(n) { return n < 10 ? '0' + n : '' + n; }
+        return pad(date.getDate()) + '/' + pad(date.getMonth() + 1) + '/' + date.getFullYear() +
+            ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+    }
+
+    function saveDue(dueValue) {
+        if (currentCardId <= 0) return;
+        var card = currentCard || {};
+        var due = dueValue || '';
+        if (due) {
+            due = due.replace('T', ' ');
+            if (due.length === 16) due += ':00';
+        }
+        api('project-card-save', {
+            id: currentCardId,
+            title: titleValue() || card.title || '',
+            description: card.description || '',
+            assignee_id: card.assignee_id || 0,
+            due_date: due,
+            priority: card.priority || 'medium'
+        }).then(function (data) {
+            if (data && data.error) {
+                toast(data.error, 'error');
+                syncDueInput();
+                return;
+            }
+            toast(cfg.dueSavedLabel || 'Due date updated.');
+            currentCard.due_date = due;
+            updateBoardCardJson();
+            refreshDetail();
+        });
     }
 
     function refreshDetail() {
@@ -523,10 +751,6 @@
         return '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
     }
 
-    function clockIcon() {
-        return '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>';
-    }
-
     // --- Event wiring (delegated) ---
 
     modal.addEventListener('click', function (event) {
@@ -541,7 +765,14 @@
 
         switch (action) {
             case 'card-detail-close':
+            case 'card-detail-cancel':
                 closeCardDetail();
+                break;
+            case 'card-detail-save':
+                handleDetailSave();
+                break;
+            case 'card-detail-delete':
+                deleteCard();
                 break;
             case 'card-description-edit':
                 setDescriptionEditor(true);
@@ -590,6 +821,11 @@
         var assigneeSel = event.target.closest('[data-project-card-assignee-select]');
         if (assigneeSel) {
             saveAssignee(assigneeSel.value || '');
+            return;
+        }
+        var dueInput = event.target.closest('[data-project-card-due-input]');
+        if (dueInput) {
+            saveDue(dueInput.value || '');
         }
     });
 
@@ -609,4 +845,9 @@
             closeCardDetail();
         }
     });
+
+    // "Add card" uses this modal as the full create surface.
+    window.openProjectCardCreate = function (listId) {
+        openCardDetail(0, { listId: listId });
+    };
 })();

@@ -29,6 +29,20 @@ function project_render_card_detail_modal(array $agents = []): void
                     </button>
                 </div>
 
+                <!-- Title (inline editable; also the create surface) -->
+                <div class="project-card-detail-title-row">
+                    <label class="project-card-detail-assignee-label" for="project-card-detail-title-input">
+                        <?php echo get_icon('edit', 'w-3.5 h-3.5'); ?>
+                        <?php echo e(t('Title')); ?>
+                    </label>
+                    <input type="text" id="project-card-detail-title-input"
+                           class="form-input w-full project-card-detail-title-input"
+                           data-project-card-title-input
+                           placeholder="<?php echo e(t('Card title')); ?>"
+                           maxlength="255"
+                           aria-label="<?php echo e(t('Title')); ?>">
+                </div>
+
                 <div class="project-card-detail-meta" data-project-card-detail-meta></div>
 
                 <!-- Assignee (inline editable) -->
@@ -46,6 +60,18 @@ function project_render_card_detail_modal(array $agents = []): void
                             <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"><?php echo e($agent['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <!-- Due date (inline editable) -->
+                <div class="project-card-detail-assignee project-card-detail-due">
+                    <label class="project-card-detail-assignee-label" for="project-card-detail-due-input">
+                        <?php echo get_icon('clock', 'w-3.5 h-3.5'); ?>
+                        <?php echo e(t('Due date')); ?>
+                    </label>
+                    <input type="datetime-local" id="project-card-detail-due-input"
+                           class="form-input w-full project-card-detail-due-input"
+                           data-project-card-due-input
+                           aria-label="<?php echo e(t('Due date')); ?>">
                 </div>
 
                 <!-- Description (rich text via Quill) -->
@@ -129,9 +155,24 @@ function project_render_card_detail_modal(array $agents = []): void
                     </div>
                 </section>
             </div>
-            <div class="modal-panel-footer flex justify-end gap-2">
-                <button type="button" class="fd-button fd-button--secondary" data-project-action="card-detail-close">
-                    <?php echo e(t('Close')); ?>
+            <div class="modal-panel-footer flex justify-between items-center gap-2">
+                <span class="flex items-center gap-2">
+                    <button type="button" class="fd-button fd-button--secondary project-card-detail-archive hidden"
+                            data-project-action="card-archive" data-project-card-id=""
+                            data-project-archived="0">
+                        <?php echo get_icon('archive', 'w-4 h-4 mr-1'); ?><?php echo e(t('Archive card')); ?>
+                    </button>
+                    <button type="button" class="fd-button fd-button--secondary project-danger-button project-card-detail-delete hidden"
+                            data-project-action="card-detail-delete">
+                        <?php echo get_icon('trash', 'w-4 h-4 mr-1'); ?><?php echo e(t('Delete')); ?>
+                    </button>
+                </span>
+                <span class="flex-1"></span>
+                <button type="button" class="fd-button fd-button--secondary" data-project-action="card-detail-cancel">
+                    <?php echo e(t('Cancel')); ?>
+                </button>
+                <button type="button" class="fd-button fd-button--primary" data-project-action="card-detail-save">
+                    <?php echo e(t('Save')); ?>
                 </button>
             </div>
         </div>

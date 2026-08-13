@@ -1415,6 +1415,48 @@ if (!$check) {
     }
 }
 
+// Create project_board_members table (Projects module — per-board permission model)
+$check = db_fetch_one("SHOW TABLES LIKE 'project_board_members'");
+if (!$check) {
+    try {
+        db_query("
+            CREATE TABLE project_board_members (
+                board_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (board_id, user_id),
+                FOREIGN KEY (board_id) REFERENCES project_boards(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_project_board_members_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        // Boards created before per-board membership existed have no members.
+        // Their creators become members so agents never silently lose boards.
+        db_query(
+            "INSERT IGNORE INTO project_board_members (board_id, user_id)
+             SELECT id, created_by FROM project_boards"
+        );
+        $messages[] = "OK: Created table `project_board_members`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to create table `project_board_members`: " . $e->getMessage();
+    }
+}
+
+// Add project_cards archiving columns (Projects module — archived cards in their own column)
+$check = db_fetch_one("SHOW COLUMNS FROM project_cards LIKE 'is_archived'");
+if (!$check) {
+    try {
+        db_query(
+            "ALTER TABLE project_cards
+             ADD COLUMN is_archived TINYINT(1) NOT NULL DEFAULT 0 AFTER priority,
+             ADD COLUMN archived_at DATETIME NULL AFTER is_archived"
+        );
+        $messages[] = "OK: Added `is_archived`/`archived_at` columns to table `project_cards`";
+    } catch (Exception $e) {
+        $messages[] = "ERROR: Failed to add archiving columns to table `project_cards`: " . $e->getMessage();
+    }
+}
+
 // Create project_lists table (Projects module)
 $check = db_fetch_one("SHOW TABLES LIKE 'project_lists'");
 if (!$check) {

@@ -13,6 +13,7 @@ $user = current_user();
 project_requires_staff_redirect();
 ensure_project_tables();
 ensure_project_detail_tables();
+ensure_project_governance_tables();
 
 $project_board_id = project_board_normalize_id($_GET['board_id'] ?? 0);
 $project_board = project_board_get_visible($project_board_id);
@@ -21,12 +22,24 @@ if (!$project_board) {
     header('Location: index.php?page=projects');
     exit;
 }
+if (!project_can_view_board($project_board, $user)) {
+    flash(t('Project not found.'), 'warning');
+    header('Location: index.php?page=projects');
+    exit;
+}
 
 $page_title = project_board_label($project_board);
+$project_card_filters = project_board_filter_state_from_request($_GET);
 $project_lists = project_lists_for_board($project_board_id);
-$project_cards = project_cards_for_board($project_board_id);
+$project_cards = project_cards_for_board($project_board_id, $project_card_filters);
 $project_cards_by_list = project_board_cards_model($project_lists, $project_cards);
-$project_agents = function_exists('project_assignee_options') ? project_assignee_options() : [];
+$project_agents = function_exists('project_assignee_options_for_board')
+    ? project_assignee_options_for_board($project_board_id)
+    : [];
+$project_members = project_board_members_for_board($project_board_id);
+$project_member_candidates = project_board_member_candidates($project_board_id);
+$project_admin_can_manage_members = project_board_admin_can_manage_members($user);
+$project_archived_cards = project_archived_cards_for_board($project_board_id);
 
 require_once BASE_PATH . '/includes/header.php';
 ?>
@@ -35,6 +48,10 @@ require_once BASE_PATH . '/includes/header.php';
          data-app-contract-surface="project"
          data-app-contract-action="app-project-board">
     <?php project_render_board_header($project_board); ?>
+
+    <?php project_render_board_members($project_board_id, $project_members, $project_member_candidates, $project_admin_can_manage_members); ?>
+
+    <?php project_render_board_filters($project_card_filters, $project_board_id, $project_agents); ?>
 
     <?php if (empty($project_lists)): ?>
         <div class="projects-empty">
@@ -54,6 +71,8 @@ require_once BASE_PATH . '/includes/header.php';
     <?php else: ?>
         <?php project_render_board($project_lists, $project_cards_by_list); ?>
     <?php endif; ?>
+
+    <?php project_render_archived_column($project_archived_cards); ?>
 </section>
 
 <?php project_render_modal_templates($project_lists, $project_agents); ?>

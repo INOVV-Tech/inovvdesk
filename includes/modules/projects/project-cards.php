@@ -24,17 +24,126 @@ function project_priority_label(string $priority): string
     return function_exists('t') ? t($label) : $label;
 }
 
-function project_cards_for_board($board_id): array
+function project_cards_for_board($board_id, array $filters = []): array
 {
     $board_id = project_board_normalize_id($board_id);
     if ($board_id <= 0 || !project_cards_table_exists()) {
         return [];
     }
 
+    $where = ['board_id = ?', 'is_archived = 0'];
+    $params = [$board_id];
+
+    $filter_assignee = $filters['assignee'] ?? 'all';
+    if ($filter_assignee === 'unassigned') {
+        $where[] = 'assignee_id IS NULL';
+    } elseif ((int) $filter_assignee > 0) {
+        $where[] = 'assignee_id = ?';
+        $params[] = (int) $filter_assignee;
+    }
+
+    $filter_priority = $filters['priority'] ?? 'all';
+    if (in_array($filter_priority, project_priority_keys(), true)) {
+        $where[] = 'priority = ?';
+        $params[] = $filter_priority;
+    }
+
+    $filter_due = $filters['due'] ?? 'all';
+    switch ($filter_due) {
+        case 'overdue':
+            $where[] = 'due_date IS NOT NULL AND due_date < NOW()';
+            break;
+        case 'today':
+            $where[] = 'due_date >= CURDATE() AND due_date < CURDATE() + INTERVAL 1 DAY';
+            break;
+        case 'upcoming':
+            $where[] = 'due_date IS NOT NULL AND due_date >= NOW()';
+            break;
+        case 'none':
+            $where[] = 'due_date IS NULL';
+            break;
+    }
+
+    $filter_search = trim((string) ($filters['search'] ?? ''));
+    if ($filter_search !== '') {
+        $like = '%' . project_board_filter_escape_like($filter_search) . '%';
+        $where[] = '(title LIKE ? OR description LIKE ?)';
+        $params[] = $like;
+        $params[] = $like;
+    }
+
     return db_fetch_all(
-        "SELECT * FROM project_cards WHERE board_id = ? ORDER BY sort_order ASC, created_at DESC, id DESC",
-        [$board_id]
+        'SELECT * FROM project_cards WHERE ' . implode(' AND ', $where)
+            . ' ORDER BY sort_order ASC, created_at DESC, id DESC',
+        $params
     );
+}
+
+/**
+ * Due date filter options for the board filter bar
+ * (overdue | today | upcoming | none; documented in docs/PROJECTS_MODULE.md).
+ */
+function project_board_filter_due_options(): array
+{
+    return ['all', 'overdue', 'today', 'upcoming', 'none'];
+}
+
+function project_board_filter_due_label(string $due_key): string
+{
+    $labels = [
+        'all' => 'Any due date',
+        'overdue' => 'Overdue',
+        'today' => 'Due today',
+        'upcoming' => 'Upcoming',
+        'none' => 'No due date',
+    ];
+    return $labels[$due_key] ?? 'Any due date';
+}
+
+/**
+ * Normalize board filter state from a request (GET). Only known keys are
+ * honored; anything else resets to the neutral value.
+ */
+function project_board_filter_state_from_request(array $request): array
+{
+    $assignee = trim((string) ($request['assignee'] ?? ''));
+    if ((string) (int) $assignee === $assignee && (int) $assignee > 0) {
+        $normalized_assignee = (int) $assignee;
+    } elseif ($assignee === 'unassigned') {
+        $normalized_assignee = 'unassigned';
+    } else {
+        $normalized_assignee = 'all';
+    }
+
+    $priority = trim((string) ($request['priority'] ?? ''));
+    $normalized_priority = in_array($priority, project_priority_keys(), true) ? $priority : 'all';
+
+    $due = trim((string) ($request['due'] ?? ''));
+    $normalized_due = in_array($due, project_board_filter_due_options(), true) ? $due : 'all';
+
+    return [
+        'assignee' => $normalized_assignee,
+        'priority' => $normalized_priority,
+        'due' => $normalized_due,
+        'search' => trim((string) ($request['search'] ?? '')),
+    ];
+}
+
+function project_board_filter_has(array $state): bool
+{
+    return ($state['assignee'] ?? 'all') !== 'all'
+        || ($state['priority'] ?? 'all') !== 'all'
+        || ($state['due'] ?? 'all') !== 'all'
+        || trim((string) ($state['search'] ?? '')) !== '';
+}
+
+/**
+ * Escape LIKE wildcards (and the backslash escape itself) for safe
+ * parametrized searches; the default MySQL escape character applies.
+ */
+function project_board_filter_escape_like(string $term): string
+{
+    return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term);
 }
 
 function project_cards_for_list($list_id): array
@@ -45,9 +154,53 @@ function project_cards_for_list($list_id): array
     }
 
     return db_fetch_all(
-        "SELECT * FROM project_cards WHERE list_id = ? ORDER BY sort_order ASC, created_at DESC, id DESC",
+        "SELECT * FROM project_cards WHERE list_id = ? AND is_archived = 0 ORDER BY sort_order ASC, created_at DESC, id DESC",
         [$list_id]
     );
+}
+
+/**
+ * Archived cards of a board (Phase 2 item 4): the module's own archived
+ * model — cards leave their column surfaces and live in their own column
+ * on the board page, newest archived first.
+ */
+function project_archived_cards_for_board($board_id): array
+{
+    $board_id = project_board_normalize_id($board_id);
+    if ($board_id <= 0 || !project_cards_table_exists()) {
+        return [];
+    }
+
+    return db_fetch_all(
+        "SELECT * FROM project_cards WHERE board_id = ? AND is_archived = 1
+         ORDER BY archived_at DESC, id DESC",
+        [$board_id]
+    );
+}
+
+/**
+ * Archive or restore a card. Restoring clears the archive timestamp.
+ */
+function project_card_set_archived(int $card_id, bool $archived): bool
+{
+    $card_id = project_board_normalize_id($card_id);
+    if ($card_id <= 0 || !project_card_get($card_id)) {
+        return false;
+    }
+    if (!project_card_archived_column_exists()) {
+        return false;
+    }
+
+    db_update(
+        'project_cards',
+        [
+            'is_archived' => $archived ? 1 : 0,
+            'archived_at' => $archived ? date('Y-m-d H:i:s') : null,
+        ],
+        'id = ?',
+        [$card_id]
+    );
+    return true;
 }
 
 function project_card_get($card_id): ?array
@@ -174,6 +327,58 @@ function project_assignee_options(): array
     return $options;
 }
 
+/**
+ * Board-scoped assignee options (Phase 2 item 4): only board members may be
+ * assigned to a card. Falls back to all staff while membership is absent.
+ */
+function project_assignee_options_for_board(int $board_id): array
+{
+    $board_id = project_board_normalize_id($board_id);
+    if ($board_id <= 0 || !project_board_members_table_exists()) {
+        return project_assignee_options();
+    }
+
+    $options = [];
+    foreach (project_board_members_for_board($board_id) as $member) {
+        if (!in_array((string) ($member['role'] ?? ''), ['admin', 'agent'], true)) {
+            continue;
+        }
+        $options[] = [
+            'id' => (int) ($member['id'] ?? 0),
+            'name' => trim((string) (($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''))) ?: (string) ($member['email'] ?? ''),
+        ];
+    }
+    if (!$options) {
+        return project_assignee_options();
+    }
+    return $options;
+}
+
+/**
+ * API-level assignee rule: the assignee must be a member of the card's
+ * board (admins stay valid without membership). Unassigned is always valid.
+ */
+function project_assignee_valid_for_board(?int $assignee_id, int $board_id): bool
+{
+    $assignee_id = project_board_normalize_id($assignee_id);
+    $board_id = project_board_normalize_id($board_id);
+    if ($assignee_id <= 0 || $board_id <= 0) {
+        return true;
+    }
+    if (!project_board_members_table_exists()) {
+        return true;
+    }
+
+    $assignee = function_exists('get_user') ? get_user($assignee_id) : null;
+    if (!$assignee) {
+        return false;
+    }
+    if (in_array((string) ($assignee['role'] ?? ''), ['admin'], true)) {
+        return true;
+    }
+    return project_board_is_member($board_id, $assignee_id);
+}
+
 function project_card_create(int $board_id, int $list_id, string $title, ?string $description, ?int $assignee_id, $due_date, $priority, int $created_by, ?int $sort_order = null): int
 {
     $board_id = project_board_normalize_id($board_id);
@@ -186,6 +391,9 @@ function project_card_create(int $board_id, int $list_id, string $title, ?string
 
     $title = project_card_validate_title($title);
     $assignee_id = project_card_validate_assignee($assignee_id);
+    if (!project_assignee_valid_for_board($assignee_id, $board_id)) {
+        throw new InvalidArgumentException(project_validation_message('Invalid assignee.'));
+    }
     $due_date = project_card_normalize_due_date($due_date);
     $priority = project_priority_normalize($priority);
     $created_by = project_board_normalize_id($created_by);
@@ -221,14 +429,20 @@ function project_card_next_sort_order(int $list_id): int
 function project_card_update(int $card_id, string $title, ?string $description, ?int $assignee_id, $due_date, $priority): bool
 {
     $card_id = project_board_normalize_id($card_id);
-    if ($card_id <= 0 || !project_card_get($card_id)) {
+    $card = $card_id > 0 ? project_card_get($card_id) : null;
+    if (!$card) {
         return false;
+    }
+
+    $assignee_id = project_card_validate_assignee($assignee_id);
+    if (!project_assignee_valid_for_board($assignee_id, (int) ($card['board_id'] ?? 0))) {
+        throw new InvalidArgumentException(project_validation_message('Invalid assignee.'));
     }
 
     db_update('project_cards', [
         'title' => project_card_validate_title($title),
         'description' => trim((string) $description) !== '' ? trim((string) $description) : null,
-        'assignee_id' => project_card_validate_assignee($assignee_id),
+        'assignee_id' => $assignee_id,
         'due_date' => project_card_normalize_due_date($due_date),
         'priority' => project_priority_normalize($priority),
     ], 'id = ?', [$card_id]);
@@ -311,6 +525,98 @@ function project_card_preview_description(?string $description): string
     ) ?? $description;
     $plain = trim(strip_tags($flattened));
     return preg_replace('/\s+/u', ' ', $plain) ?: '';
+}
+
+/**
+ * Render a card description as safe HTML for previews and the detail modal.
+ *
+ * Rich text (Quill) is stored as HTML; only a strict element/attribute
+ * allowlist survives (formatting, links and structure — no scripts, no
+ * event handlers). Plain text descriptions get newlines converted to
+ * <br> so both composer styles render the same way.
+ */
+function project_card_description_html(?string $description): string
+{
+    $description = trim((string) $description);
+    if ($description === '') {
+        return '';
+    }
+
+    if (!str_contains($description, '<')) {
+        return nl2br(e($description));
+    }
+
+    $allowed_elements = [
+        'p' => true, 'br' => true, 'strong' => true, 'b' => true, 'em' => true, 'i' => true,
+        'u' => true, 's' => true, 'strike' => true, 'ul' => true, 'ol' => true, 'li' => true,
+        'blockquote' => true, 'pre' => true, 'h1' => true, 'h2' => true, 'h3' => true,
+        'h4' => true, 'h5' => true, 'h6' => true, 'span' => true, 'a' => true,
+    ];
+    $allowed_attributes = [
+        'a' => ['href' => true],
+    ];
+
+    $dom = new DOMDocument();
+    libxml_use_internal_errors(true);
+    // Wrap in a root div; ignore the doctype/html scaffolding libxml adds.
+    $dom->loadHTML(
+        '<?xml encoding="UTF-8"><div id="project-desc-root">' . $description . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+
+    $xpath = new DOMXPath($dom);
+    $root = $xpath->query('//*[@id="project-desc-root"]')->item(0);
+    if (!$root) {
+        return '';
+    }
+
+    $remove_queue = [];
+
+    foreach ($xpath->query('descendant::*', $root) as $node) {
+        $tag = strtolower($node->nodeName);
+
+        if ($tag === 'script' || $tag === 'style' || $tag === 'iframe' || $tag === 'object' || $tag === 'embed' || $tag === 'form' || $tag === 'input' || $tag === 'button' || $tag === 'video' || $tag === 'audio' || $tag === 'link' || $tag === 'meta') {
+            $remove_queue[] = $node;
+            continue;
+        }
+
+        if (!isset($allowed_elements[$tag])) {
+            // Unwrap disallowed elements, keeping their text content.
+            $fragment = $dom->createDocumentFragment();
+            while ($node->firstChild) {
+                $fragment->appendChild($node->firstChild);
+            }
+            $node->parentNode->replaceChild($fragment, $node);
+            continue;
+        }
+
+        $allowed = $allowed_attributes[$tag] ?? [];
+        foreach (iterator_to_array($node->attributes) as $attribute) {
+            $attr_name = strtolower($attribute->nodeName);
+            if ($attr_name === 'style' || str_starts_with($attr_name, 'on') || !isset($allowed[$attr_name])) {
+                $node->removeAttribute($attribute->nodeName);
+                continue;
+            }
+            if ($attr_name === 'href') {
+                $href = strtolower(trim((string) $attribute->nodeValue));
+                if (str_starts_with($href, 'javascript:') || str_starts_with($href, 'data:')) {
+                    $node->removeAttribute($attribute->nodeName);
+                }
+            }
+        }
+    }
+
+    foreach ($remove_queue as $node) {
+        $node->parentNode->removeChild($node);
+    }
+
+    $html = '';
+    foreach ($root->childNodes as $child) {
+        $html .= $dom->saveHTML($child);
+    }
+
+    return $html;
 }
 
 function project_comment_validate_body($body): string
@@ -662,8 +968,91 @@ function project_card_detail_model(int $card_id): ?array
 
     return [
         'card' => $card,
+        'description_html' => project_card_description_html((string) ($card['description'] ?? '')),
         'comments' => project_card_comments_for_card($card_id),
         'checklists' => project_card_checklists_for_card($card_id),
         'attachments' => $attachments,
     ];
+}
+/**
+ * "My cards" summary for the Work page and the app feed (Fase 2 item 3).
+ *
+ * Staff-only by construction: open cards assigned to the user in boards that
+ * are not archived. Clients never reach this model.
+ */
+function project_card_work_summary(array $user, int $limit = 5): array
+{
+    if (in_array((string) ($user['role'] ?? ''), ['admin', 'agent'], true) === false) {
+        return ['count' => 0, 'overdue_count' => 0, 'items' => []];
+    }
+
+    $user_id = (int) ($user['id'] ?? 0);
+    if ($user_id <= 0 || !project_cards_table_exists()) {
+        return ['count' => 0, 'overdue_count' => 0, 'items' => []];
+    }
+
+    $archived_guard = project_card_archived_column_exists() ? ' AND pc.is_archived = 0' : '';
+    $scoped = "FROM project_cards pc
+               JOIN project_boards pb ON pb.id = pc.board_id
+               WHERE pc.assignee_id = ? AND pb.is_archived = 0" . $archived_guard;
+
+    $count_row = db_fetch_one('SELECT COUNT(*) AS total ' . $scoped, [$user_id]);
+    $overdue_row = db_fetch_one('SELECT COUNT(*) AS total ' . $scoped . ' AND pc.due_date IS NOT NULL AND pc.due_date < NOW()', [$user_id]);
+
+    $limit = max(1, min(20, $limit));
+    $items = db_fetch_all(
+        'SELECT pc.id, pc.title, pc.board_id, pb.name AS board_name, pc.due_date '
+            . $scoped
+            . ' ORDER BY (pc.due_date IS NULL) ASC, pc.due_date ASC, pc.id DESC LIMIT ' . $limit,
+        [$user_id]
+    );
+
+    foreach ($items as $key => $item) {
+        $due = (string) ($item['due_date'] ?? '');
+        $items[$key]['is_overdue'] = $due !== '' && strtotime($due) < time();
+    }
+
+    return [
+        'count' => (int) ($count_row['total'] ?? 0),
+        'overdue_count' => (int) ($overdue_row['total'] ?? 0),
+        'items' => $items,
+    ];
+}
+
+/**
+ * Due alert candidates for the notification sweep (Fase 2 item 3).
+ *
+ * Only cards with an assignee in non-archived boards: due_soon within the
+ * next window, overdue already past. Consumers pair these candidates with
+ * should_send_project_card_email() before sending anything.
+ */
+function project_card_due_alert_candidates(int $soon_minutes = 30): array
+{
+    if (!project_cards_table_exists()) {
+        return ['due_soon' => [], 'overdue' => []];
+    }
+
+    $soon_minutes = max(1, min(1440, $soon_minutes));
+
+    $archived_guard = project_card_archived_column_exists() ? ' AND pc.is_archived = 0' : '';
+    $scoped = "FROM project_cards pc
+               JOIN project_boards pb ON pb.id = pc.board_id
+               WHERE pb.is_archived = 0 AND pc.assignee_id IS NOT NULL AND pc.assignee_id > 0"
+        . $archived_guard;
+
+    $due_soon = db_fetch_all(
+        'SELECT pc.*, pb.name AS board_name '
+            . $scoped
+            . ' AND pc.due_date IS NOT NULL AND pc.due_date >= NOW()
+               AND pc.due_date <= NOW() + INTERVAL ' . (int) $soon_minutes . ' MINUTE
+               ORDER BY pc.due_date ASC, pc.id DESC'
+    );
+    $overdue = db_fetch_all(
+        'SELECT pc.*, pb.name AS board_name '
+            . $scoped
+            . ' AND pc.due_date IS NOT NULL AND pc.due_date < NOW()
+               ORDER BY pc.due_date ASC, pc.id DESC'
+    );
+
+    return ['due_soon' => $due_soon, 'overdue' => $overdue];
 }

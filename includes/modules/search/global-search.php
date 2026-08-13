@@ -16,6 +16,8 @@ function global_search_sections(): array
         'clients' => ['label' => 'Clients', 'type' => 'client'],
         'contacts' => ['label' => 'Contacts', 'type' => 'contact'],
         'reports' => ['label' => 'Reports', 'type' => 'report'],
+        'projects' => ['label' => 'Projects', 'type' => 'project'],
+        'cards' => ['label' => 'Cards', 'type' => 'project'],
     ];
 }
 
@@ -190,6 +192,77 @@ function global_search_reports(string $query, array $user, int $limit): array
     return $items;
 }
 
+/**
+ * Project boards search (staff-only; cards are not tickets).
+ */
+function global_search_projects(string $query, array $user, int $limit): array
+{
+    if (in_array((string) ($user['role'] ?? ''), ['admin', 'agent'], true) === false || !function_exists('db_fetch_all')) {
+        return [];
+    }
+
+    $term = '%' . $query . '%';
+    $params = [$term, $term];
+    $sql = "SELECT id, name, description, color
+            FROM project_boards
+            WHERE is_archived = 0 AND (name LIKE ? OR description LIKE ?)";
+    $sql .= " ORDER BY name ASC LIMIT " . max(1, min(20, $limit));
+
+    $items = [];
+    foreach (db_fetch_all($sql, $params) as $project) {
+        $items[] = [
+            'type' => 'project',
+            'id' => (int) ($project['id'] ?? 0),
+            'title' => (string) ($project['name'] ?? ''),
+            'subtitle' => (string) ($project['description'] ?? ''),
+            'url' => function_exists('url')
+                ? url('project', ['board_id' => (int) ($project['id'] ?? 0)])
+                : 'index.php?page=project&board_id=' . (int) ($project['id'] ?? 0),
+        ];
+    }
+
+    return $items;
+}
+
+/**
+ * Project cards search (staff-only; cards are not tickets).
+ */
+function global_search_cards(string $query, array $user, int $limit): array
+{
+    if (in_array((string) ($user['role'] ?? ''), ['admin', 'agent'], true) === false || !function_exists('db_fetch_all')) {
+        return [];
+    }
+
+    $term = '%' . $query . '%';
+    $params = [$term, $term];
+    $archived_guard = function_exists('project_card_archived_column_exists') && project_card_archived_column_exists()
+        ? ' AND pc.is_archived = 0'
+        : '';
+    $sql = "SELECT pc.id, pc.title, pc.board_id, pc.priority, pb.name AS board_name
+            FROM project_cards pc
+            JOIN project_boards pb ON pb.id = pc.board_id
+            WHERE pb.is_archived = 0 AND (pc.title LIKE ? OR pc.description LIKE ?)" . $archived_guard;
+    $sql .= " ORDER BY pc.updated_at DESC, pc.created_at DESC LIMIT " . max(1, min(20, $limit));
+
+    $items = [];
+    foreach (db_fetch_all($sql, $params) as $card) {
+        $items[] = [
+            'type' => 'card',
+            'id' => (int) ($card['id'] ?? 0),
+            'title' => (string) ($card['title'] ?? ''),
+            'subtitle' => (string) ($card['board_name'] ?? ''),
+            'status' => function_exists('project_priority_label')
+                ? project_priority_label((string) ($card['priority'] ?? 'medium'))
+                : '',
+            'url' => function_exists('url')
+                ? url('project', ['board_id' => (int) ($card['board_id'] ?? 0)])
+                : 'index.php?page=project&board_id=' . (int) ($card['board_id'] ?? 0),
+        ];
+    }
+
+    return $items;
+}
+
 function global_search(string $query, array $user, int $limit_per_section = 6): array
 {
     $query = global_search_normalize_query($query);
@@ -228,6 +301,14 @@ function global_search(string $query, array $user, int $limit_per_section = 6): 
     $result['sections']['reports'] = [
         'definition' => $sections['reports'],
         'items' => global_search_reports($query, $user, $limit_per_section),
+    ];
+    $result['sections']['projects'] = [
+        'definition' => $sections['projects'],
+        'items' => global_search_projects($query, $user, $limit_per_section),
+    ];
+    $result['sections']['cards'] = [
+        'definition' => $sections['cards'],
+        'items' => global_search_cards($query, $user, $limit_per_section),
     ];
 
     foreach ($result['sections'] as $section) {

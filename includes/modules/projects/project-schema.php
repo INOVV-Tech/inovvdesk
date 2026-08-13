@@ -29,6 +29,7 @@ function project_table_exists(string $table, bool $refresh = false): bool
         'project_boards',
         'project_lists',
         'project_cards',
+        'project_board_members',
         'project_card_comments',
         'project_card_checklists',
         'project_card_checklist_items',
@@ -61,6 +62,11 @@ function project_lists_table_exists(bool $refresh = false): bool
 function project_cards_table_exists(bool $refresh = false): bool
 {
     return project_table_exists('project_cards', $refresh);
+}
+
+function project_board_members_table_exists(bool $refresh = false): bool
+{
+    return project_table_exists('project_board_members', $refresh);
 }
 
 function project_card_comments_table_exists(bool $refresh = false): bool
@@ -183,6 +189,84 @@ function ensure_project_cards_table(): bool
     }
 
     return project_cards_table_exists(true);
+}
+
+/**
+ * Archiving of cards (Phase 2 item 4): the module's own model — a card
+ * leaves its column surface via is_archived/archived_at; archived cards
+ * live in their own column on the board page. Migration follows the
+ * ticket_status_group_column_exists pattern (idempotent ALTER).
+ */
+function project_card_archived_column_exists(bool $refresh = false): bool
+{
+    static $available = null;
+    if (!$refresh && $available !== null) {
+        return $available;
+    }
+
+    try {
+        $available = (bool) db_fetch_one("SHOW COLUMNS FROM project_cards LIKE 'is_archived'");
+    } catch (Throwable $e) {
+        $available = false;
+    }
+
+    return $available;
+}
+
+function ensure_project_cards_archived_column(): bool
+{
+    if (project_card_archived_column_exists()) {
+        return true;
+    }
+
+    try {
+        db_query(
+            "ALTER TABLE project_cards
+             ADD COLUMN is_archived TINYINT(1) NOT NULL DEFAULT 0 AFTER priority,
+             ADD COLUMN archived_at DATETIME NULL AFTER is_archived"
+        );
+    } catch (Throwable $e) {
+        // Another request may have added the column, or this database user
+        // may not be allowed to change the schema.
+    }
+
+    return project_card_archived_column_exists(true);
+}
+
+function ensure_project_board_members_table(): bool
+{
+    if (project_board_members_table_exists()) {
+        return true;
+    }
+
+    try {
+        db_query("
+            CREATE TABLE IF NOT EXISTS project_board_members (
+                board_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (board_id, user_id),
+                FOREIGN KEY (board_id) REFERENCES project_boards(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_project_board_members_user (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        // Boards created before per-board membership existed have no members.
+        // Their creators become members so agents never silently lose boards.
+        db_query(
+            "INSERT IGNORE INTO project_board_members (board_id, user_id)
+             SELECT id, created_by FROM project_boards"
+        );
+    } catch (Throwable $e) {
+        // See project_boards ensure_* note.
+    }
+
+    return project_board_members_table_exists(true);
+}
+
+function ensure_project_governance_tables(): bool
+{
+    return ensure_project_cards_archived_column() && ensure_project_board_members_table();
 }
 
 function ensure_project_tables(): bool
