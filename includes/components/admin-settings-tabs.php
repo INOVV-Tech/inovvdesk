@@ -54,6 +54,18 @@ function admin_settings_management_links(): array
             'url' => url('admin', ['section' => 'statuses']),
         ],
         [
+            'label' => t('Initiative governance'),
+            'description' => t('Types, structure, workflow, financial rules, committees, and permissions.'),
+            'icon' => 'lightbulb',
+            'url' => url('admin', ['section' => 'initiatives']),
+        ],
+        [
+            'label' => t('Initiative approvals'),
+            'description' => t('Approval rules by type, area, investment, and approver.'),
+            'icon' => 'check-square',
+            'url' => url('admin', ['section' => 'initiative-approvals']),
+        ],
+        [
             'label' => t('Recurring tasks'),
             'description' => t('Scheduled tickets and maintenance work.'),
             'icon' => 'clock',

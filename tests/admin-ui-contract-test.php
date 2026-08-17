@@ -116,6 +116,8 @@ foreach ([
     "url('admin', ['section' => 'clients'])",
     "url('admin', ['section' => 'organizations'])",
     "url('admin', ['section' => 'statuses'])",
+    "url('admin', ['section' => 'initiatives'])",
+    "url('admin', ['section' => 'initiative-approvals'])",
     "url('admin', ['section' => 'recurring-tasks'])",
     "url('admin', ['section' => 'reports'])",
     "url('admin', ['section' => 'reports-list'])",
