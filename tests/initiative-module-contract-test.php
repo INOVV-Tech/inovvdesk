@@ -25,4 +25,13 @@ foreach (['initiatives','initiative_status_transitions','initiative_financial_sn
 $detail = file_get_contents($root . '/pages/initiative.php');
 foreach (['fd-card','fd-button','fd-input','fd-select','fd-table','fd-badge'] as $primitive) if (!str_contains($detail,$primitive)) throw new RuntimeException("Missing UI primitive {$primitive}");
 
+$admin = file_get_contents($root . '/pages/admin/initiatives.php');
+$approvals = file_get_contents($root . '/pages/admin/initiative-approvals.php');
+if (str_contains($admin, "includes/components/admin-nav.php") || str_contains($approvals, "includes/components/admin-nav.php")) {
+    throw new RuntimeException('Initiative settings must not render the legacy admin navigation panel.');
+}
+foreach (['name="icon"', 'type="radio"', 'Optional identifier used internally.', 'Optional. Enter field keys separated by commas'] as $needle) {
+    if (!str_contains($admin, $needle)) throw new RuntimeException("Initiative settings helper missing: {$needle}");
+}
+
 echo "initiative-module-contract-test: ok\n";
