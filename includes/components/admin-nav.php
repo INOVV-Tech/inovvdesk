@@ -26,6 +26,8 @@ $admin_nav_groups = [
         'label' => t('Operations'),
         'items' => [
             'settings' => ['label' => t('Settings'), 'icon' => 'cog'],
+            'initiatives' => ['label' => t('Initiatives'), 'icon' => 'lightbulb'],
+            'initiative-approvals' => ['label' => t('Initiative approvals'), 'icon' => 'check'],
             'recurring-tasks' => ['label' => t('Recurring tasks'), 'icon' => 'tasks'],
             'activity' => ['label' => t('Activity'), 'icon' => 'clock'],
             'feedback' => ['label' => t('Feedback'), 'icon' => 'comment'],

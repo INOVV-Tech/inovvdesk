@@ -1646,6 +1646,23 @@ if (!$check) {
     }
 }
 
+// Initiative management domain (idempotent and shared with runtime bootstrap).
+try {
+    require_once BASE_PATH . '/includes/modules/initiatives/initiative-schema.php';
+    $before_initiative_tables = [];
+    foreach (initiative_table_names() as $initiative_table) {
+        $before_initiative_tables[$initiative_table] = table_exists($initiative_table);
+    }
+    ensure_initiative_tables();
+    foreach ($before_initiative_tables as $initiative_table => $already_existed) {
+        if (!$already_existed && table_exists($initiative_table)) {
+            $messages[] = "OK: Created table `{$initiative_table}`";
+        }
+    }
+} catch (Throwable $e) {
+    $messages[] = 'ERROR: Failed to initialize initiative domain: ' . $e->getMessage();
+}
+
 if (empty($messages)) {
     $messages[] = "Database is up to date; no changes were required.";
 }

@@ -375,6 +375,26 @@ require_once BASE_PATH . '/includes/header.php';
 </section>
 <?php endif; ?>
 
+<?php if (function_exists('initiative_can') && initiative_can('initiatives.view')): ?>
+<?php $initiative_work_items = initiative_pending_work(current_user()); ?>
+<?php if (!empty($initiative_work_items)): ?>
+<section class="fd-card fd-page-section" data-work-initiative-actions>
+    <div class="work-team-head">
+        <div><p class="work-overview-kicker"><?php echo e(t('Initiatives')); ?></p><h2 class="work-team-title"><?php echo e(t('Strategic actions requiring attention')); ?></h2></div>
+        <a href="<?php echo e(url('initiatives')); ?>" class="fd-button fd-button--secondary fd-button--sm"><?php echo e(t('Open portfolio')); ?></a>
+    </div>
+    <div class="divide-y">
+        <?php foreach ($initiative_work_items as $work_item): ?>
+        <a class="flex items-center justify-between gap-3 py-3 text-sm" href="<?php echo e(url('initiative', ['id' => (int) $work_item['id']])); ?>">
+            <span><strong class="text-theme-primary"><?php echo e($work_item['name']); ?></strong><span class="text-theme-muted ml-2"><?php echo e($work_item['code']); ?></span></span>
+            <span class="fd-badge"><?php echo e(t(ucfirst($work_item['action_type']))); ?></span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</section>
+<?php endif; ?>
+<?php endif; ?>
+
 <?php
 workspace_render_queue_page([
     'title' => 'Tickets',

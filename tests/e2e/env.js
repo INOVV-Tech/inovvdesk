@@ -1,10 +1,13 @@
 const path = require('path');
+const os = require('os');
 
 const repoRoot = path.resolve(__dirname, '../..');
 const runId = process.env.E2E_RUN_ID || 'foxdesk-e2e';
 const port = Number(process.env.E2E_PORT || 8090);
 const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${port}`;
-const tmpDir = process.env.E2E_TMP_DIR || `/tmp/${runId}`;
+const tmpDir = process.env.E2E_TMP_DIR || (process.platform === 'win32'
+  ? path.join(os.tmpdir(), runId)
+  : `/tmp/${runId}`);
 const network = `${runId}-net`;
 const dbContainer = `${runId}-db`;
 const webContainer = `${runId}-web`;

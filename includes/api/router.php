@@ -21,6 +21,7 @@ require_once __DIR__ . '/allowed-senders-handler.php';
 require_once __DIR__ . '/push-handler.php';
 require_once __DIR__ . '/app-handler.php';
 require_once __DIR__ . '/project-handler.php';
+require_once __DIR__ . '/initiative-handler.php';
 
 /**
  * Route API requests to appropriate handlers
@@ -200,6 +201,22 @@ function route_api_request($action) {
         'project-card-checklist-item-toggle' => 'api_project_card_checklist_item_toggle',
         'project-card-checklist-item-delete' => 'api_project_card_checklist_item_delete',
         'project-card-attachment-delete' => 'api_project_card_attachment_delete',
+
+        // Initiative strategy and governance endpoints
+        'initiatives' => 'api_initiatives_list',
+        'initiative-get' => 'api_initiative_get',
+        'initiative-create' => 'api_initiative_create',
+        'initiative-update' => 'api_initiative_update',
+        'initiative-submit' => 'api_initiative_transition',
+        'initiative-transition' => 'api_initiative_transition',
+        'initiative-approve' => 'api_initiative_approve',
+        'initiative-evaluate' => 'api_initiative_evaluate',
+        'initiative-measure' => 'api_initiative_measure',
+        'initiative-triage' => 'api_initiative_triage',
+        'initiative-homologate' => 'api_initiative_homologate',
+        'initiative-rollout' => 'api_initiative_rollout',
+        'initiative-portfolio' => 'api_initiative_portfolio',
+        'initiative-export' => 'api_initiative_export',
     ];
 
     if (isset($routes[$action])) {

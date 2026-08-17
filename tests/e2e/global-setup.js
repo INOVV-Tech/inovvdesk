@@ -35,6 +35,37 @@ function cleanupExisting() {
   } catch (_) {}
 }
 
+function stageWorkspace() {
+  const excluded = new Set([
+    '.git', 'config.php', 'uploads', 'storage', 'backups', 'node_modules',
+    'test-results', 'playwright-report', path.join('tests', 'e2e', '.auth')
+  ]);
+  try {
+    run('rsync', [
+      '-a',
+      ...Array.from(excluded).flatMap(item => ['--exclude', item]),
+      `${repoRoot}/`,
+      `${tmpDir}/`
+    ]);
+    return;
+  } catch (error) {
+    if (error && error.code !== 'ENOENT') throw error;
+  }
+
+  // Windows development environments commonly do not ship rsync. Node's
+  // native recursive copy keeps the E2E setup portable without weakening the
+  // same exclusions used by the container staging step.
+  fs.mkdirSync(tmpDir, { recursive: true });
+  fs.cpSync(repoRoot, tmpDir, {
+    recursive: true,
+    filter(source) {
+      const relative = path.relative(repoRoot, source);
+      if (relative === '') return true;
+      return !Array.from(excluded).some(item => relative === item || relative.startsWith(`${item}${path.sep}`));
+    }
+  });
+}
+
 function buildPhpImageIfMissing() {
   try {
     docker(['image', 'inspect', phpImage], { stdio: 'ignore' });
@@ -190,20 +221,7 @@ async function saveAdminStorageState() {
 module.exports = async function globalSetup() {
   cleanupExisting();
   fs.rmSync(tmpDir, { recursive: true, force: true });
-  run('rsync', [
-    '-a',
-    '--exclude', '.git',
-    '--exclude', 'config.php',
-    '--exclude', 'uploads',
-    '--exclude', 'storage',
-    '--exclude', 'backups',
-    '--exclude', 'node_modules',
-    '--exclude', 'test-results',
-    '--exclude', 'playwright-report',
-    '--exclude', 'tests/e2e/.auth',
-    `${repoRoot}/`,
-    `${tmpDir}/`
-  ]);
+  stageWorkspace();
 
   buildPhpImageIfMissing();
   docker(['network', 'create', network], { stdio: 'ignore' });

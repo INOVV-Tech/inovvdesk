@@ -805,3 +805,11 @@ CREATE TABLE IF NOT EXISTS project_card_attachments (
     INDEX idx_project_card_attachments_card (card_id),
     INDEX idx_project_card_attachments_uploaded_by (uploaded_by)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Initiative strategy/governance tables are defined centrally by
+-- includes/modules/initiatives/initiative-schema.php and are applied by both
+-- install.php (fresh installs) and upgrade.php (existing installs). The domain
+-- includes initiatives, configurable types/categories/org units/statuses and
+-- transitions, approvals, forecast/validated/actual costs and benefits,
+-- financial snapshots, checkpoints, ticket links, committees, criteria,
+-- evaluations, rollouts and an immutable initiative event timeline.

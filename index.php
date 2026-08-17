@@ -334,6 +334,18 @@ switch ($page) {
         require_once BASE_PATH . '/pages/project.php';
         break;
 
+    case 'initiatives':
+        require_once BASE_PATH . '/pages/initiatives.php';
+        break;
+
+    case 'initiative':
+        require_once BASE_PATH . '/pages/initiative.php';
+        break;
+
+    case 'initiative-form':
+        require_once BASE_PATH . '/pages/initiative-form.php';
+        break;
+
     case 'client':
         require_once BASE_PATH . '/pages/client.php';
         break;
@@ -408,6 +420,12 @@ switch ($page) {
                 break;
             case 'agent-connect':
                 require_once BASE_PATH . '/pages/admin/agent-connect.php';
+                break;
+            case 'initiatives':
+                require_once BASE_PATH . '/pages/admin/initiatives.php';
+                break;
+            case 'initiative-approvals':
+                require_once BASE_PATH . '/pages/admin/initiative-approvals.php';
                 break;
             case 'activity':
                 require_once BASE_PATH . '/pages/admin/activity.php';

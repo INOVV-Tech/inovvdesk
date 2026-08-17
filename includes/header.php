@@ -293,6 +293,17 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     </a>
                 <?php endif; ?>
 
+                <?php if (function_exists('initiative_can') && initiative_can('initiatives.view')): ?>
+                    <?php $is_initiatives = in_array(($page ?? ''), ['initiatives', 'initiative', 'initiative-form'], true); ?>
+                    <a href="<?php echo url('initiatives'); ?>"
+                        class="nav-item <?php echo $is_initiatives ? 'active' : ''; ?>"
+                        title="<?php echo e(t('Initiatives')); ?>"
+                        <?php echo $is_initiatives ? 'aria-current="page"' : ''; ?>>
+                        <?php echo get_icon('lightbulb', 'nav-item__icon'); ?>
+                        <span><?php echo e(t('Initiatives')); ?></span>
+                    </a>
+                <?php endif; ?>
+
                 <?php if (is_admin()): ?>
                     <?php $is_clients = ($page ?? '') === 'admin' && ($_GET['section'] ?? '') === 'clients'; ?>
                     <a href="<?php echo url('admin', ['section' => 'clients']); ?>"

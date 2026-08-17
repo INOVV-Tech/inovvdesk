@@ -18,6 +18,7 @@ function global_search_sections(): array
         'reports' => ['label' => 'Reports', 'type' => 'report'],
         'projects' => ['label' => 'Projects', 'type' => 'project'],
         'cards' => ['label' => 'Cards', 'type' => 'project'],
+        'initiatives' => ['label' => 'Initiatives', 'type' => 'initiative'],
     ];
 }
 
@@ -310,6 +311,19 @@ function global_search(string $query, array $user, int $limit_per_section = 6): 
         'definition' => $sections['cards'],
         'items' => global_search_cards($query, $user, $limit_per_section),
     ];
+    $initiative_items = [];
+    if (function_exists('initiative_global_search')) {
+        foreach (initiative_global_search($query, $limit_per_section, $user) as $initiative) {
+            $initiative_items[] = [
+                'type' => 'initiative', 'id' => (int) $initiative['id'],
+                'title' => (string) $initiative['name'], 'code' => (string) $initiative['code'],
+                'status' => (string) $initiative['status_name'],
+                'subtitle' => trim((string) (($initiative['type_name'] ?? '') . (!empty($initiative['area_name']) ? ' · ' . $initiative['area_name'] : ''))),
+                'url' => function_exists('url') ? url('initiative', ['id' => (int) $initiative['id']]) : 'index.php?page=initiative&id=' . (int) $initiative['id'],
+            ];
+        }
+    }
+    $result['sections']['initiatives'] = ['definition' => $sections['initiatives'], 'items' => $initiative_items];
 
     foreach ($result['sections'] as $section) {
         $result['total'] += count($section['items'] ?? []);

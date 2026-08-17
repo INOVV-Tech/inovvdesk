@@ -520,6 +520,18 @@ function api_token_scope_catalog(array $user = null): array
     if (($user['role'] ?? '') === 'admin') {
         $catalog['reports:write'] = 'Prepare and publish reports';
     }
+    if (function_exists('initiative_can') && initiative_can('initiatives.view', null, $user)) {
+        $catalog['initiatives:read'] = 'Read initiatives and portfolio metrics';
+    }
+    if (function_exists('initiative_can') && initiative_can('initiatives.create', null, $user)) {
+        $catalog['initiatives:write'] = 'Create and update initiatives';
+    }
+    if (function_exists('initiative_can') && initiative_can('initiatives.approve', null, $user)) {
+        $catalog['initiatives:approve'] = 'Triage, approve and homologate initiatives';
+    }
+    if (function_exists('initiative_can') && initiative_can('initiatives.committee_evaluate', null, $user)) {
+        $catalog['initiatives:evaluate'] = 'Submit committee evaluations';
+    }
 
     return $catalog;
 }
@@ -622,6 +634,20 @@ function api_token_required_scope_for_action(string $action): ?string
         'app-notifications' => 'notifications:read',
         'app-notifications-summary' => 'notifications:read',
         'app-notification-read-state' => 'notifications:write',
+        'initiatives' => 'initiatives:read',
+        'initiative-get' => 'initiatives:read',
+        'initiative-portfolio' => 'initiatives:read',
+        'initiative-export' => 'initiatives:read',
+        'initiative-create' => 'initiatives:write',
+        'initiative-update' => 'initiatives:write',
+        'initiative-submit' => 'initiatives:write',
+        'initiative-transition' => 'initiatives:write',
+        'initiative-measure' => 'initiatives:write',
+        'initiative-rollout' => 'initiatives:write',
+        'initiative-triage' => 'initiatives:approve',
+        'initiative-approve' => 'initiatives:approve',
+        'initiative-homologate' => 'initiatives:approve',
+        'initiative-evaluate' => 'initiatives:evaluate',
     ];
     return $map[$action] ?? null;
 }

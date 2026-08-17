@@ -65,6 +65,16 @@ function app_shell_navigation(array $user): array
         ];
     }
 
+    if (function_exists('initiative_can') && initiative_can('initiatives.view', null, $user)) {
+        $items[] = [
+            'key' => 'initiatives',
+            'label' => 'Initiatives',
+            'url' => url('initiatives'),
+            'icon' => 'lightbulb',
+            'primary' => true,
+        ];
+    }
+
     if (app_shell_can_view_reports($user)) {
         $items[] = [
             'key' => 'reports',
@@ -145,6 +155,9 @@ function app_shell_search_sections(array $user): array
     if (($user['role'] ?? '') === 'user') {
         unset($sections['clients'], $sections['contacts'], $sections['reports'], $sections['projects'], $sections['cards']);
     }
+    if (!function_exists('initiative_can') || !initiative_can('initiatives.view', null, $user)) {
+        unset($sections['initiatives']);
+    }
 
     return $sections;
 }
@@ -173,6 +186,8 @@ function app_shell_capabilities(array $user): array
         'view_clients' => !$is_client_user,
         'view_projects' => !$is_client_user,
         'manage_projects' => !$is_client_user,
+        'view_initiatives' => function_exists('initiative_can') && initiative_can('initiatives.view', null, $user),
+        'create_initiatives' => function_exists('initiative_can') && initiative_can('initiatives.create', null, $user),
         'view_reports' => app_shell_can_view_reports($user),
         'manage_settings' => is_admin(),
         'use_timers' => !$is_client_user,

@@ -136,6 +136,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new Exception('Não foi possível ler includes/schema.sql — o arquivo está ausente ou ilegível.');
                 }
                 $pdo->exec($sql);
+
+                // Initiative strategy/governance domain. Its normalized DDL is
+                // centralized in one module and executed after the base schema
+                // so all user/ticket foreign keys already exist.
+                require_once __DIR__ . '/includes/modules/initiatives/initiative-schema.php';
+                foreach (initiative_schema_statements() as $initiative_statement) {
+                    $pdo->exec($initiative_statement);
+                }
                 
                 // Store in session for next step
                 $_SESSION['install'] = [
