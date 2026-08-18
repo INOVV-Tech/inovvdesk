@@ -67,6 +67,15 @@ function initiative_update(int $id, array $data, ?array $user = null): void
     initiative_record_event($id, 'updated', ['fields' => array_keys($payload)], (int) $user['id']);
 }
 
+function initiative_delete(int $id, ?array $user = null): void
+{
+    $user = $user ?? current_user();
+    $initiative = initiative_get($id);
+    if (!$initiative || !initiative_can('initiatives.delete', $initiative, $user)) throw new RuntimeException('Forbidden');
+    initiative_record_event($id, 'archived', ['reason' => 'removed_from_portfolio'], (int) $user['id']);
+    db_update('initiatives', ['archived_at' => date('Y-m-d H:i:s')], 'id = ?', [$id]);
+}
+
 function initiative_get(int $id): ?array
 {
     ensure_initiative_tables();

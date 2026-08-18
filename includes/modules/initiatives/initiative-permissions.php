@@ -89,9 +89,10 @@ function initiative_user_has_action(int $initiative_id, int $user_id): bool
 
 function initiative_save_user_capabilities(int $user_id, array $selected): void
 {
-    if (!initiative_can('initiatives.manage_settings')) throw new RuntimeException('Forbidden');
-    $row = db_fetch_one('SELECT permissions FROM users WHERE id = ?', [$user_id]);
+    if (!function_exists('is_admin') || !is_admin()) throw new RuntimeException('Only administrators can manage initiative permissions.');
+    $row = db_fetch_one("SELECT role, permissions FROM users WHERE id = ?", [$user_id]);
     if (!$row) throw new InvalidArgumentException('User not found.');
+    if (($row['role'] ?? '') !== 'agent') throw new InvalidArgumentException('Granular permissions can only be assigned to agents. Administrators already have full access.');
     $permissions = json_decode((string) ($row['permissions'] ?? ''), true);
     if (!is_array($permissions)) $permissions = [];
     $permissions['initiatives'] = [];

@@ -86,6 +86,7 @@ function initiative_create_checkpoints(int $initiativeId, string $implementedAt)
 function initiative_workflow_save_transition(array $data): int
 {
     if (!initiative_can('initiatives.manage_workflow')) throw new RuntimeException('Forbidden');
+    $id = (int) ($data['id'] ?? 0);
     $payload = [
         'from_status_id' => (int) ($data['from_status_id'] ?? 0), 'to_status_id' => (int) ($data['to_status_id'] ?? 0),
         'capability' => (string) ($data['capability'] ?? 'initiatives.manage_execution'),
@@ -94,7 +95,18 @@ function initiative_workflow_save_transition(array $data): int
         'initiative_type_id' => !empty($data['initiative_type_id']) ? (int) $data['initiative_type_id'] : null,
     ];
     if ($payload['from_status_id'] <= 0 || $payload['to_status_id'] <= 0 || $payload['from_status_id'] === $payload['to_status_id']) throw new InvalidArgumentException('Invalid transition.');
+    if ($id > 0) {
+        db_update('initiative_status_transitions', $payload + ['is_active' => 1], 'id = ?', [$id]);
+        return $id;
+    }
     db_query('INSERT INTO initiative_status_transitions (from_status_id,to_status_id,capability,requires_justification,required_fields_json,initiative_type_id,is_active)
         VALUES (?,?,?,?,?,?,1) ON DUPLICATE KEY UPDATE capability=VALUES(capability), requires_justification=VALUES(requires_justification), required_fields_json=VALUES(required_fields_json), is_active=1', array_values($payload));
     return (int) get_db()->lastInsertId();
+}
+
+function initiative_workflow_delete_transition(int $id): void
+{
+    if (!initiative_can('initiatives.manage_workflow')) throw new RuntimeException('Forbidden');
+    if ($id <= 0) throw new InvalidArgumentException('Invalid transition.');
+    db_query('DELETE FROM initiative_status_transitions WHERE id = ?', [$id]);
 }
