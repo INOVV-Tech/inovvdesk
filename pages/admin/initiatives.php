@@ -219,9 +219,9 @@ $baseTabUrl = static fn (string $targetTab, array $extra = []) => url('admin', a
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       var modal = document.createElement('div');
-      modal.className = 'fd-card w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl';
+      modal.className = 'fd-card w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl';
       var header = document.createElement('div');
-      header.className = 'sticky top-0 z-10 flex items-center justify-between gap-3 p-5 border-b border-theme-light bg-theme-primary';
+      header.className = 'flex flex-none items-center justify-between gap-3 p-5 border-b border-theme-light bg-theme-primary';
       var title = document.createElement('h2');
       title.className = 'text-lg font-semibold text-theme-primary';
       title.textContent = editModal.title;
@@ -230,14 +230,14 @@ $baseTabUrl = static fn (string $targetTab, array $extra = []) => url('admin', a
       close.href = editModal.cancel;
       close.textContent = <?php echo json_encode(t('Cancel'), JSON_UNESCAPED_UNICODE); ?>;
       var body = document.createElement('div');
-      body.className = 'p-5';
+      body.className = 'p-5 overflow-y-auto';
       header.appendChild(title); header.appendChild(close); body.appendChild(editForm); modal.appendChild(header); modal.appendChild(body); overlay.appendChild(modal);
       overlay.addEventListener('click', function (event) { if (event.target === overlay) window.location.href = editModal.cancel; });
       document.addEventListener('keydown', function (event) { if (event.key === 'Escape') window.location.href = editModal.cancel; });
       document.body.appendChild(overlay);
       document.body.style.overflow = 'hidden';
       var focusable = editForm.querySelector('input:not([type="hidden"]), select, textarea, button');
-      if (focusable) focusable.focus();
+      if (focusable) focusable.focus({preventScroll: true});
     }
   }
 

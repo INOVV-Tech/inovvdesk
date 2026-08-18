@@ -39,6 +39,9 @@ foreach (['data-icon-picker', 'required_fields[]', 'edit_type', 'delete_category
 foreach (['accent-indigo-600', 'editModal', "t((string) \$status['name'])"] as $needle) {
     if (!str_contains($admin, $needle)) throw new RuntimeException("Initiative settings selection/modal/translation contract missing: {$needle}");
 }
+foreach (['flex flex-col overflow-hidden shadow-2xl', "body.className = 'p-5 overflow-y-auto'", 'focus({preventScroll: true})'] as $needle) {
+    if (!str_contains($admin, $needle)) throw new RuntimeException("Initiative settings modal layout contract missing: {$needle}");
+}
 foreach (['edit_rule', 'initiative_approval_action', 'value="delete"', 'data-server-edit-modal', 'Edit approval rule'] as $needle) {
     if (!str_contains($approvals, $needle)) throw new RuntimeException("Initiative approval rule CRUD/modal contract missing: {$needle}");
 }
