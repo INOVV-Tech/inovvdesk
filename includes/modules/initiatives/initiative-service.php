@@ -194,7 +194,7 @@ function initiative_detail_model(int $id): array
         'measurements'=>db_fetch_all('SELECT m.*, CONCAT(u.first_name," ",u.last_name) measured_by_name FROM initiative_measurements m LEFT JOIN users u ON u.id=m.measured_by WHERE m.initiative_id=? ORDER BY checkpoint_days',[$id]),
         'approvals'=>db_fetch_all('SELECT a.*, CONCAT(u.first_name," ",u.last_name) approver_name FROM initiative_approvals a LEFT JOIN users u ON u.id=a.approver_id WHERE a.initiative_id=? ORDER BY step_order,id',[$id]),
         'rollouts'=>db_fetch_all('SELECT r.*,o.name org_unit_name,CONCAT(u.first_name," ",u.last_name) responsible_name FROM initiative_rollouts r LEFT JOIN initiative_org_units o ON o.id=r.org_unit_id LEFT JOIN users u ON u.id=r.responsible_user_id WHERE r.initiative_id=? ORDER BY r.target_date,r.id',[$id]),
-        'tickets'=>db_fetch_all('SELECT t.id,t.hash,t.title,s.name status_name, CONCAT(u.first_name," ",u.last_name) assignee_name FROM initiative_ticket_links l JOIN tickets t ON t.id=l.ticket_id LEFT JOIN statuses s ON s.id=t.status_id LEFT JOIN users u ON u.id=t.assigned_to WHERE l.initiative_id=?',[$id]),
+        'tickets'=>db_fetch_all('SELECT t.id,t.hash,t.title,s.name status_name, CONCAT(u.first_name," ",u.last_name) assignee_name FROM initiative_ticket_links l JOIN tickets t ON t.id=l.ticket_id LEFT JOIN statuses s ON s.id=t.status_id LEFT JOIN users u ON u.id=t.assignee_id WHERE l.initiative_id=?',[$id]),
         'events'=>db_fetch_all('SELECT e.*, CONCAT(u.first_name," ",u.last_name) actor_name FROM initiative_events e LEFT JOIN users u ON u.id=e.actor_id WHERE e.initiative_id=? ORDER BY e.created_at DESC,e.id DESC LIMIT 200',[$id]),
         'committees'=>$committees,'ticket_actuals'=>initiative_ticket_actuals($id)];
 }
