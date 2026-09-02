@@ -38,7 +38,8 @@ function get_user_permissions($user_id = null)
         'can_view_edit_history' => false,
         'can_import_md' => false,
         'can_view_time' => ($user['role'] === 'agent'),
-        'can_view_timeline' => ($user['role'] === 'agent')
+        'can_view_timeline' => ($user['role'] === 'agent'),
+        'can_view_all_company_projects' => false
     ];
 
     if (empty($user['permissions'])) {
@@ -123,6 +124,33 @@ function can_view_time($user = null)
     }
 
     return !empty($permissions['can_view_time']);
+}
+
+/**
+ * Check whether an agent can view every project of their companies.
+ * Admin → always true (admins already bypass board membership). Agent → opt-in
+ * via permissions (default false). Other roles → false.
+ */
+function can_view_all_company_projects($user = null)
+{
+    if ($user === null) {
+        $user = current_user();
+    }
+
+    if (!$user) {
+        return false;
+    }
+
+    if (($user['role'] ?? '') === 'admin') {
+        return true;
+    }
+
+    if (($user['role'] ?? '') !== 'agent') {
+        return false;
+    }
+
+    $permissions = get_user_permissions($user['id']);
+    return !empty($permissions['can_view_all_company_projects']);
 }
 
 /**

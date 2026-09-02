@@ -23,6 +23,9 @@ require_once BASE_PATH . '/includes/components/ticket-registry-surface.php';
 require_once BASE_PATH . '/includes/components/ticket-detail-surface.php';
 require_once BASE_PATH . '/includes/components/admin-settings-tabs.php';
 require_once BASE_PATH . '/includes/components/admin-workflow-card.php';
+require_once BASE_PATH . '/includes/components/project-board-surface.php';
+require_once BASE_PATH . '/includes/components/project-card-composer.php';
+require_once BASE_PATH . '/includes/components/project-card-detail.php';
 
 /**
  * Escape HTML output

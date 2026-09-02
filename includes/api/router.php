@@ -20,6 +20,7 @@ require_once __DIR__ . '/notification-handler.php';
 require_once __DIR__ . '/allowed-senders-handler.php';
 require_once __DIR__ . '/push-handler.php';
 require_once __DIR__ . '/app-handler.php';
+require_once __DIR__ . '/project-handler.php';
 
 /**
  * Route API requests to appropriate handlers
@@ -176,6 +177,29 @@ function route_api_request($action) {
         'push-unsubscribe' => 'api_push_unsubscribe',
         'push-vapid-key' => 'api_push_vapid_key',
         'push-notifications' => 'api_push_notifications',
+
+        // --- Project board endpoints (staff only) ---
+        'project-board-save' => 'api_project_board_save',
+        'project-board-archive' => 'api_project_board_archive',
+        'project-board-delete' => 'api_project_board_delete',
+        'project-board-member-add' => 'api_project_board_member_add',
+        'project-board-member-remove' => 'api_project_board_member_remove',
+        'project-list-save' => 'api_project_list_save',
+        'project-list-delete' => 'api_project_list_delete',
+        'project-list-reorder' => 'api_project_list_reorder',
+        'project-card-save' => 'api_project_card_save',
+        'project-card-move' => 'api_project_card_move',
+        'project-card-delete' => 'api_project_card_delete',
+        'project-card-archive' => 'api_project_card_archive',
+        'project-card-detail' => 'api_project_card_detail',
+        'project-card-comment-save' => 'api_project_card_comment_save',
+        'project-card-comment-delete' => 'api_project_card_comment_delete',
+        'project-card-checklist-save' => 'api_project_card_checklist_save',
+        'project-card-checklist-delete' => 'api_project_card_checklist_delete',
+        'project-card-checklist-item-save' => 'api_project_card_checklist_item_save',
+        'project-card-checklist-item-toggle' => 'api_project_card_checklist_item_toggle',
+        'project-card-checklist-item-delete' => 'api_project_card_checklist_item_delete',
+        'project-card-attachment-delete' => 'api_project_card_attachment_delete',
     ];
 
     if (isset($routes[$action])) {

@@ -118,6 +118,40 @@ function app_feed_notifications(array $user): array
     ];
 }
 
+/**
+ * "My cards" summary for native clients (Fase 2 item 3).
+ *
+ * Reuses the Work summary read model from the Projects module; cards keep
+ * their own domain shape and never reference tickets.
+ */
+function app_feed_project_cards(array $user, int $limit = 5): array
+{
+    if (!function_exists('project_card_work_summary')) {
+        return ['count' => 0, 'overdue_count' => 0, 'items' => []];
+    }
+
+    $summary = project_card_work_summary($user, max(1, min(20, $limit)));
+    $items = [];
+    foreach (($summary['items'] ?? []) as $card) {
+        $board_id = (int) ($card['board_id'] ?? 0);
+        $items[] = [
+            'id' => (int) ($card['id'] ?? 0),
+            'title' => (string) ($card['title'] ?? ''),
+            'board_id' => $board_id > 0 ? $board_id : null,
+            'board_name' => (string) ($card['board_name'] ?? ''),
+            'due_date' => $card['due_date'] ?? null,
+            'is_overdue' => !empty($card['is_overdue']),
+            'url' => $board_id > 0 ? url('project', ['board_id' => $board_id]) : null,
+        ];
+    }
+
+    return [
+        'count' => (int) ($summary['count'] ?? 0),
+        'overdue_count' => (int) ($summary['overdue_count'] ?? 0),
+        'items' => $items,
+    ];
+}
+
 function app_feed_payload(array $user, int $limit = 5): array
 {
     $limit = max(1, min(20, $limit));
@@ -132,6 +166,7 @@ function app_feed_payload(array $user, int $limit = 5): array
         'inbox' => function_exists('inbox_summary')
             ? app_feed_queue_sections(inbox_summary($user, $limit))
             : [],
+        'projects' => app_feed_project_cards($user, $limit),
         'timers' => app_feed_active_timers($user),
         'notifications' => app_feed_notifications($user),
     ];

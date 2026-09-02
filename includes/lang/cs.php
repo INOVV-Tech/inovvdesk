@@ -1187,6 +1187,9 @@ return [
     'Optional' => 'Volitelné',
     'Can view time entries' => 'Může zobrazit časové záznamy',
 
+    'Can view all company projects' => 'Může zobrazit všechny projekty firmy',
+    'Links the project to a company so agents with company-wide project access can see it.' => 'Propojí projekt s firmou, aby agenti s přístupem ke všem firemním projektům jej mohli vidět.',
+
     // v0.3.11 — Dashboard redesign
     'New today' => 'Nové dnes',
     'New tickets' => 'Nové tikety',

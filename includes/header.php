@@ -282,6 +282,17 @@ if (file_exists(__DIR__ . '/pseudo-cron.php')) {
                     <span><?php echo e(t('Tickets')); ?></span>
                 </a>
 
+                <?php if (is_admin() || is_agent()): ?>
+                    <?php $is_projects = ($page ?? '') === 'projects' || ($page ?? '') === 'project'; ?>
+                    <a href="<?php echo url('projects'); ?>"
+                        class="nav-item <?php echo $is_projects ? 'active' : ''; ?>"
+                        title="<?php echo e(t('Projects')); ?>"
+                        <?php echo $is_projects ? 'aria-current="page"' : ''; ?>>
+                        <?php echo get_icon('trello', 'nav-item__icon'); ?>
+                        <span><?php echo e(t('Projects')); ?></span>
+                    </a>
+                <?php endif; ?>
+
                 <?php if (is_admin()): ?>
                     <?php $is_clients = ($page ?? '') === 'admin' && ($_GET['section'] ?? '') === 'clients'; ?>
                     <a href="<?php echo url('admin', ['section' => 'clients']); ?>"

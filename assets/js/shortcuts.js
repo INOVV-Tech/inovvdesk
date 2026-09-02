@@ -203,7 +203,9 @@
             archived_tickets: 'Archived tickets',
             clients: 'Clients',
             contacts: 'Contacts',
-            reports: 'Reports'
+            reports: 'Reports',
+            projects: 'Projects',
+            cards: 'Cards'
         };
     }
 
@@ -216,7 +218,7 @@
             label: title,
             desc: subtitle || badge,
             section: sectionLabel,
-            icon: result.type === 'client' ? 'C' : (result.type === 'contact' ? '@' : (result.type === 'report' ? 'R' : '#')),
+            icon: result.type === 'client' ? 'C' : (result.type === 'contact' ? '@' : (result.type === 'report' ? 'R' : (result.type === 'project' ? 'P' : (result.type === 'card' ? '\u2611' : '#')))),
             action: function() {
                 if (result.url) {
                     window.location.href = result.url;
@@ -230,7 +232,7 @@
         var labels = getGlobalSearchSectionLabels();
         var sections = data && data.sections ? data.sections : {};
 
-        ['open_tickets', 'done_tickets', 'archived_tickets', 'clients', 'contacts', 'reports'].forEach(function(key) {
+        ['open_tickets', 'done_tickets', 'archived_tickets', 'clients', 'contacts', 'reports', 'projects', 'cards'].forEach(function(key) {
             var section = sections[key];
             if (!section || !Array.isArray(section.items)) return;
             var label = ((section.definition && section.definition.label) || section.label || labels[key] || key);

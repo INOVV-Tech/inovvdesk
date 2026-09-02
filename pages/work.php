@@ -47,6 +47,9 @@ if ($is_staff
 ) {
     $current_work_timers = get_user_all_active_timers((int) ($user['id'] ?? 0));
 }
+$project_card_summary = function_exists('project_card_work_summary')
+    ? project_card_work_summary($user, 5)
+    : ['count' => 0, 'overdue_count' => 0, 'items' => []];
 $selected_period_key = (string) ($time_period['period'] ?? 'this_month');
 $show_selected_period_metric = !in_array($selected_period_key, ['today', 'this_week', 'this_month'], true);
 
@@ -234,6 +237,56 @@ require_once BASE_PATH . '/includes/header.php';
         </div>
     </div>
     <?php $render_current_work_timers($current_work_timers); ?>
+</section>
+<?php endif; ?>
+
+<?php if ($is_staff): ?>
+<section class="fd-card fd-page-section work-my-cards-card" data-work-my-cards>
+    <div class="work-team-head">
+        <div>
+            <p class="work-overview-kicker"><?php echo e(t('Projects')); ?></p>
+            <h2 class="work-team-title"><?php echo e(t('My cards')); ?></h2>
+            <?php if ((int) ($project_card_summary['count'] ?? 0) > 0): ?>
+                <p class="work-my-cards-meta">
+                    <?php if ((int) ($project_card_summary['overdue_count'] ?? 0) > 0): ?>
+                        <span class="work-my-cards-overdue">
+                            <?php echo (int) $project_card_summary['overdue_count']; ?>
+                            <?php echo e(t('overdue')); ?>
+                        </span>
+                        <span aria-hidden="true">·</span>
+                    <?php endif; ?>
+                    <?php echo (int) ($project_card_summary['count'] ?? 0); ?>
+                    <?php echo e(t('open')); ?>
+                </p>
+            <?php endif; ?>
+        </div>
+        <a href="<?php echo e(url('projects')); ?>" class="fd-button fd-button--secondary fd-button--sm">
+            <?php echo get_icon('trello', 'w-4 h-4 mr-1'); ?><?php echo e(t('Projects')); ?>
+        </a>
+    </div>
+    <?php if (empty($project_card_summary['items'])): ?>
+        <div class="work-activity-empty"><?php echo e(t('No cards assigned to you.')); ?></div>
+    <?php else: ?>
+        <div class="work-my-cards-list">
+            <?php foreach ($project_card_summary['items'] as $work_card): ?>
+                <?php
+                $work_card_due = (string) ($work_card['due_date'] ?? '');
+                ?>
+                <a href="<?php echo e(url('project', ['board_id' => (int) ($work_card['board_id'] ?? 0)])); ?>"
+                   class="work-my-cards-item">
+                    <span class="work-my-cards-main">
+                        <strong><?php echo e($work_card['title']); ?></strong>
+                        <span><?php echo e($work_card['board_name']); ?></span>
+                    </span>
+                    <?php if ($work_card_due !== ''): ?>
+                        <span class="work-my-cards-due<?php echo !empty($work_card['is_overdue']) ? ' is-overdue' : ''; ?>">
+                            <?php echo function_exists('format_date') ? e(format_date($work_card_due, 'd/m/Y')) : e($work_card_due); ?>
+                        </span>
+                    <?php endif; ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </section>
 <?php endif; ?>
 

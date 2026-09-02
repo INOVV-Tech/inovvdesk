@@ -1066,6 +1066,9 @@ return [
     'Rate' => 'Satz',
     'Can view time entries' => 'Kann Zeiteinträge anzeigen',
 
+    'Can view all company projects' => 'Kann alle Firmenprojekte anzeigen',
+    'Links the project to a company so agents with company-wide project access can see it.' => 'Verknüpft das Projekt mit einem Unternehmen, sodass Agenten mit firmenweitem Projektzugriff es sehen können.',
+
     // v0.3.11 — Dashboard redesign
     'New today' => 'Neu heute',
     'New tickets' => 'Neue Tickets',

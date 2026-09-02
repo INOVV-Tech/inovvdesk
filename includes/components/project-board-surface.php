@@ -1,0 +1,432 @@
+<?php
+/**
+ * Project board surfaces: grid, board header and board rendering.
+ *
+ * Layout-only markup on top of fd-* primitives and module-owned project-*
+ * classes (no ticket board vocabulary is shared). All interactivity is
+ * delegated to assets/js/project-board.js through data-project-* hooks.
+ * Included from pages/projects.php and pages/project.php with prepared data.
+ */
+
+function project_render_board_grid(array $boards): void
+{
+    $active_boards = [];
+    $archived_boards = [];
+    foreach ($boards as $board) {
+        if (!empty($board['is_archived'])) {
+            $archived_boards[] = $board;
+        } else {
+            $active_boards[] = $board;
+        }
+    }
+    ?>
+    <div class="projects-grid" data-project-grid>
+        <?php foreach ($active_boards as $board): ?>
+            <?php project_render_board_grid_card($board); ?>
+        <?php endforeach; ?>
+
+        <button type="button" class="fd-card projects-grid-card project-board-new"
+                data-project-action="board-open-create"
+                aria-label="<?php echo e(t('New project')); ?>">
+            <?php echo get_icon('plus', 'w-5 h-5'); ?>
+            <span><?php echo e(t('New project')); ?></span>
+        </button>
+    </div>
+
+    <?php if (!empty($archived_boards)): ?>
+        <div class="projects-archived">
+            <p class="projects-archived-heading">
+                <?php echo get_icon('archive', 'w-4 h-4'); ?>
+                <?php echo e(t('Archived projects')); ?>
+            </p>
+            <div class="projects-grid">
+                <?php foreach ($archived_boards as $board): ?>
+                    <?php project_render_board_grid_card($board, true); ?>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif;
+}
+
+function project_render_board_grid_card(array $board, bool $is_archived = false): void
+{
+    $board_name = project_board_label($board);
+    $board_url = project_board_url($board);
+    $board_color = (string) ($board['color'] ?? '#0a84ff');
+    $board_id = (int) ($board['id'] ?? 0);
+    ?>
+    <article class="fd-card projects-grid-card project-board-card<?php echo $is_archived ? ' is-archived' : ''; ?>"
+             data-project-board-id="<?php echo $board_id; ?>"
+             data-project-board-name="<?php echo e($board_name); ?>"
+             data-project-board-description="<?php echo e((string) ($board['description'] ?? '')); ?>"
+             data-project-board-color="<?php echo e($board_color); ?>">
+        <span class="project-board-swatch" style="background: <?php echo e($board_color); ?>;"></span>
+        <a href="<?php echo e($board_url); ?>" class="project-board-card-body" title="<?php echo e($board_name); ?>">
+            <strong class="project-board-card-name"><?php echo e($board_name); ?></strong>
+            <?php if (trim((string) ($board['description'] ?? '')) !== ''): ?>
+                <span class="project-board-card-description"><?php echo e($board['description']); ?></span>
+            <?php endif; ?>
+        </a>
+        <div class="project-board-card-actions">
+            <button type="button" class="project-icon-action" title="<?php echo e(t('Rename')); ?>"
+                    data-project-action="board-open-edit" data-project-board-id="<?php echo $board_id; ?>">
+                <?php echo get_icon('edit', 'w-4 h-4'); ?>
+            </button>
+            <button type="button" class="project-icon-action" title="<?php echo $is_archived ? e(t('Restore project')) : e(t('Archive project')); ?>"
+                    data-project-action="board-archive" data-project-board-id="<?php echo $board_id; ?>"
+                    data-project-archived="<?php echo $is_archived ? '1' : '0'; ?>">
+                <?php echo $is_archived ? get_icon('undo', 'w-4 h-4') : get_icon('archive', 'w-4 h-4'); ?>
+            </button>
+            <button type="button" class="project-icon-action project-icon-action--danger" title="<?php echo e(t('Delete project')); ?>"
+                    data-project-action="board-delete" data-project-board-id="<?php echo $board_id; ?>">
+                <?php echo get_icon('trash', 'w-4 h-4'); ?>
+            </button>
+        </div>
+    </article>
+    <?php
+}
+
+function project_render_board_header(array $board): void
+{
+    $board_id = (int) ($board['id'] ?? 0);
+    ?>
+    <div class="project-board-head" data-project-board-id="<?php echo $board_id; ?>"
+         data-project-board-name="<?php echo e((string) ($board['name'] ?? '')); ?>"
+         data-project-board-description="<?php echo e((string) ($board['description'] ?? '')); ?>"
+         data-project-board-color="<?php echo e((string) ($board['color'] ?? '#0a84ff')); ?>">
+        <div>
+            <p class="project-board-kicker">
+                <a href="<?php echo url('projects'); ?>" class="project-board-back">
+                    <?php echo get_icon('chevron-left', 'w-4 h-4'); ?><?php echo e(t('Projects')); ?>
+                </a>
+            </p>
+            <h1 class="project-board-title"><?php echo e($board['name']); ?></h1>
+            <?php if (trim((string) ($board['description'] ?? '')) !== ''): ?>
+                <p class="project-board-description"><?php echo e($board['description']); ?></p>
+            <?php endif; ?>
+        </div>
+        <div class="project-board-head-actions">
+            <button type="button" class="fd-button fd-button--secondary fd-button--sm"
+                    data-project-action="board-open-edit" data-project-board-id="<?php echo $board_id; ?>">
+                <?php echo get_icon('edit', 'w-4 h-4 mr-1'); ?><?php echo e(t('Edit')); ?>
+            </button>
+            <button type="button" class="fd-button fd-button--secondary fd-button--sm"
+                    data-project-action="board-archive" data-project-board-id="<?php echo $board_id; ?>"
+                    data-project-archived="0">
+                <?php echo get_icon('archive', 'w-4 h-4 mr-1'); ?><?php echo e(t('Archive')); ?>
+            </button>
+            <button type="button" class="fd-button fd-button--secondary fd-button--sm project-danger-button"
+                    data-project-action="board-delete" data-project-board-id="<?php echo $board_id; ?>">
+                <?php echo get_icon('trash', 'w-4 h-4 mr-1'); ?><?php echo e(t('Delete')); ?>
+            </button>
+        </div>
+    </div>
+    <?php
+}
+
+/**
+ * Board member strip (Phase 2 item 4). Admins manage membership: an add
+ * picker (staff users not yet members) and per-member remove buttons.
+ */
+function project_render_board_members(int $board_id, array $members, array $candidates = [], bool $can_manage = false): void
+{
+    ?>
+    <div class="project-board-members" data-project-board-members>
+        <div class="project-board-members-head">
+            <span class="project-board-members-title">
+                <?php echo get_icon('users', 'w-4 h-4'); ?>
+                <?php echo e(t('Board members')); ?>
+            </span>
+            <?php if ($can_manage): ?>
+                <div class="project-board-member-add">
+                    <select class="form-select project-member-candidates-select"
+                            aria-label="<?php echo e(t('Add member')); ?>">
+                        <option value=""><?php echo e(t('Add member')); ?>...</option>
+                        <?php foreach ($candidates as $candidate): ?>
+                            <option value="<?php echo (int) ($candidate['id'] ?? 0); ?>">
+                                <?php echo e($candidate['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="button" class="fd-button fd-button--primary fd-button--sm"
+                            data-project-action="member-add" data-project-board-id="<?php echo $board_id; ?>">
+                        <?php echo e(t('Add')); ?>
+                    </button>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="project-board-member-list">
+            <?php if (empty($members)): ?>
+                <span class="project-board-members-empty"><?php echo e(t('No members yet')); ?></span>
+            <?php else: ?>
+                <?php foreach ($members as $member): ?>
+                    <?php
+                    $member_name = trim((string) ($member['first_name'] ?? '') . ' ' . (string) ($member['last_name'] ?? ''));
+                    if ($member_name === '') {
+                        $member_name = trim((string) ($member['email'] ?? ''));
+                    }
+                    ?>
+                    <span class="project-member-chip" data-project-user-id="<?php echo (int) ($member['id'] ?? 0); ?>">
+                        <?php echo get_icon('user', 'w-3.5 h-3.5'); ?>
+                        <span class="project-member-name"><?php echo e($member_name); ?></span>
+                        <?php if ($can_manage): ?>
+                            <button type="button" class="project-icon-action project-icon-action--danger"
+                                    title="<?php echo e(t('Remove member')); ?>"
+                                    data-project-action="member-remove"
+                                    data-project-board-id="<?php echo $board_id; ?>"
+                                    data-project-user-id="<?php echo (int) ($member['id'] ?? 0); ?>">
+                                <?php echo get_icon('x', 'w-3 h-3'); ?>
+                            </button>
+                        <?php endif; ?>
+                    </span>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+
+/**
+ * Archived cards in their own column (Phase 2 item 4): the module's own
+ * archiving model — archived cards leave their list columns and are
+ * restored from here.
+ */
+function project_render_archived_column(array $archived_cards): void
+{
+    ?>
+    <div class="project-column project-column--archived" data-project-archived-column>
+        <button type="button" class="project-column-header" data-project-action="archived-toggle"
+             aria-expanded="false">
+            <span class="project-drag-handle" aria-hidden="true"><?php echo get_icon('archive', 'w-4 h-4'); ?></span>
+            <span class="project-status-name"><?php echo e(t('Archived')); ?></span>
+            <span class="project-list-count"><?php echo count($archived_cards); ?></span>
+        </button>
+        <div class="project-cards project-archived-cards hidden" data-project-archived-cards>
+            <?php foreach ($archived_cards as $card): ?>
+                <?php project_render_project_card($card, true); ?>
+            <?php endforeach; ?>
+            <?php if (empty($archived_cards) === false): ?>
+                <button type="button" class="fd-button fd-button--secondary fd-button--sm w-full project-archived-collapse"
+                        data-project-action="archived-toggle">
+                    <?php echo e(t('Hide archived')); ?>
+                </button>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php
+}
+
+function project_render_board(array $lists, array $cards_by_list): void
+{
+    ?>
+    <div class="project-board-wrapper" data-project-board-scope>
+        <div class="project-board">
+            <?php foreach ($lists as $list): ?>
+                <?php project_render_project_column($list, $cards_by_list[(int) ($list['id'] ?? 0)] ?? []); ?>
+            <?php endforeach; ?>
+
+            <div class="project-column project-column--composer">
+                <div class="project-column-header">
+                    <span class="project-status-name"><?php echo e(t('Add list')); ?></span>
+                </div>
+                <div class="project-cards project-list-composer" data-project-list-composer>
+                    <input type="text" class="form-input w-full project-list-composer-input"
+                           placeholder="<?php echo e(t('List name...')); ?>"
+                           aria-label="<?php echo e(t('List name')); ?>">
+                    <button type="button" class="fd-button fd-button--primary fd-button--sm w-full project-list-composer-add"
+                            data-project-action="list-create">
+                        <?php echo e(t('Add list')); ?>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php
+}
+
+function project_render_project_column(array $list, array $cards): void
+{
+    $list_id = (int) ($list['id'] ?? 0);
+    ?>
+    <div class="project-column" data-project-list-id="<?php echo $list_id; ?>"
+         data-project-list-name="<?php echo e((string) ($list['name'] ?? '')); ?>"
+         draggable="true" data-project-list-drag>
+        <div class="project-column-header">
+            <span class="project-drag-handle" aria-hidden="true"><?php echo get_icon('bars', 'w-4 h-4'); ?></span>
+            <span class="project-status-name project-list-name"><?php echo e(project_list_label($list)); ?></span>
+            <span class="project-list-count"><?php echo count($cards); ?></span>
+            <span class="project-column-actions">
+                <button type="button" class="project-icon-action" title="<?php echo e(t('Rename')); ?>"
+                        data-project-action="list-edit" data-project-list-id="<?php echo $list_id; ?>">
+                    <?php echo get_icon('edit', 'w-3.5 h-3.5'); ?>
+                </button>
+                <button type="button" class="project-icon-action project-icon-action--danger" title="<?php echo e(t('Delete list')); ?>"
+                        data-project-action="list-delete" data-project-list-id="<?php echo $list_id; ?>">
+                    <?php echo get_icon('trash', 'w-3.5 h-3.5'); ?>
+                </button>
+            </span>
+        </div>
+        <div class="project-cards" data-project-list="<?php echo $list_id; ?>">
+            <?php foreach ($cards as $card): ?>
+                <?php project_render_project_card($card); ?>
+            <?php endforeach; ?>
+        </div>
+        <div class="project-card-composer">
+            <button type="button" class="project-card-composer-open fd-button fd-button--secondary fd-button--sm w-full"
+                    data-project-action="card-open-create" data-project-list-id="<?php echo $list_id; ?>">
+                <?php echo get_icon('plus', 'w-4 h-4 mr-1'); ?><?php echo e(t('Add card')); ?>
+            </button>
+        </div>
+    </div>
+    <?php
+}
+
+function project_render_project_card(array $card, bool $is_archived = false): void
+{
+    $card_priority = project_priority_normalize((string) ($card['priority'] ?? ''));
+    $card_due = (string) ($card['due_date'] ?? '');
+    $card_is_overdue = $card_due !== '' && strtotime($card_due) < time();
+    $card_id = (int) ($card['id'] ?? 0);
+    $assignee_id = (int) ($card['assignee_id'] ?? 0);
+    $assignee_name = '';
+    if ($assignee_id > 0 && function_exists('get_user')) {
+        $assignee_user = get_user($assignee_id);
+        if ($assignee_user) {
+            $assignee_name = function_exists('user_avatar_display_name')
+                ? user_avatar_display_name($assignee_user)
+                : trim((string) (($assignee_user['first_name'] ?? '') . ' ' . ($assignee_user['last_name'] ?? '')));
+            if ($assignee_name === '') {
+                $assignee_name = trim((string) ($assignee_user['email'] ?? ''));
+            }
+        }
+    }
+    $card_json = [
+        'id' => $card_id,
+        'title' => (string) ($card['title'] ?? ''),
+        'description' => (string) ($card['description'] ?? ''),
+        'assignee_id' => $assignee_id,
+        'due_date' => $card_due,
+        'priority' => $card_priority,
+    ];
+    ?>
+    <article class="project-card<?php echo $is_archived ? ' is-archived' : ''; ?>"
+             data-project-card-id="<?php echo $card_id; ?>"
+             data-project-card-json="<?php echo e(json_encode($card_json)); ?>"
+             data-project-card-priority="<?php echo e($card_priority); ?>"
+             <?php echo $is_archived ? '' : 'draggable="true"'; ?>>
+        <div class="project-card-top">
+            <?php if ($card_due !== ''): ?>
+                <span class="project-card-due<?php echo $card_is_overdue ? ' overdue' : ''; ?>">
+                    <?php echo e(format_date($card_due, 'd/m/Y H:i')); ?>
+                </span>
+            <?php endif; ?>
+        </div>
+        <div class="project-card-title"><?php echo e($card['title']); ?></div>
+        <?php if (trim((string) ($card['description'] ?? '')) !== ''): ?>
+            <div class="project-card-description"><?php echo project_card_description_html((string) ($card['description'] ?? '')); ?></div>
+        <?php endif; ?>
+        <div class="project-card-meta">
+            <span class="<?php echo e(project_card_priority_badge_class($card)); ?>">
+                <?php echo e(project_priority_label($card_priority)); ?>
+            </span>
+            <?php if ($assignee_name !== ''): ?>
+                <span class="project-card-assignee">
+                    <?php echo get_icon('user', 'w-3.5 h-3.5'); ?>
+                    <?php echo e($assignee_name); ?>
+                </span>
+            <?php endif; ?>
+        </div>
+        <?php if ($is_archived): ?>
+            <button type="button" class="fd-button fd-button--secondary fd-button--sm w-full project-card-restore"
+                    data-project-action="card-archive" data-project-card-id="<?php echo $card_id; ?>"
+                    data-project-archived="1">
+                <?php echo get_icon('undo', 'w-3.5 h-3.5 mr-1'); ?><?php echo e(t('Restore card')); ?>
+            </button>
+        <?php else: ?>
+            <select class="project-mobile-move" data-project-card-id="<?php echo $card_id; ?>"
+                    aria-label="<?php echo e(t('Move to')); ?>"></select>
+        <?php endif; ?>
+    </article>
+    <?php
+}
+
+function project_render_board_filters(array $state, int $board_id, array $agents = []): void
+{
+    $state_assignee = (string) ($state['assignee'] ?? 'all');
+    $state_priority = (string) ($state['priority'] ?? 'all');
+    $state_due = (string) ($state['due'] ?? 'all');
+    $state_search = (string) ($state['search'] ?? '');
+    $clear_url = url('project', ['board_id' => $board_id]);
+    ?>
+    <form class="project-board-filters" method="get" action="index.php"
+          aria-label="<?php echo e(t('Board filters')); ?>">
+        <input type="hidden" name="page" value="project">
+        <input type="hidden" name="board_id" value="<?php echo $board_id; ?>">
+
+        <div class="project-filter-group project-filter-search">
+            <label class="project-filter-label" for="project-filter-search">
+                <?php echo get_icon('search', 'w-3.5 h-3.5'); ?>
+                <span class="sr-only"><?php echo e(t('Search')); ?></span>
+            </label>
+            <input type="search" id="project-filter-search" name="search"
+                   class="form-input project-filter-input"
+                   value="<?php echo e($state_search); ?>"
+                   placeholder="<?php echo e(t('Search cards...')); ?>"
+                   aria-label="<?php echo e(t('Search cards...')); ?>">
+        </div>
+
+        <div class="project-filter-group">
+            <label class="project-filter-label" for="project-filter-assignee"><?php echo e(t('Assignee')); ?></label>
+            <select id="project-filter-assignee" name="assignee"
+                    class="form-select project-filter-select">
+                <option value="all" <?php echo $state_assignee === 'all' ? 'selected' : ''; ?>><?php echo e(t('Any assignee')); ?></option>
+                <option value="unassigned" <?php echo $state_assignee === 'unassigned' ? 'selected' : ''; ?>><?php echo e(t('Unassigned')); ?></option>
+                <?php foreach ($agents as $agent): ?>
+                    <option value="<?php echo (int) ($agent['id'] ?? 0); ?>"
+                        <?php echo (string) $state_assignee === (string) ($agent['id'] ?? '') ? 'selected' : ''; ?>>
+                        <?php echo e($agent['name']); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="project-filter-group">
+            <label class="project-filter-label" for="project-filter-priority"><?php echo e(t('Priority')); ?></label>
+            <select id="project-filter-priority" name="priority"
+                    class="form-select project-filter-select">
+                <option value="all" <?php echo $state_priority === 'all' ? 'selected' : ''; ?>><?php echo e(t('Any priority')); ?></option>
+                <?php foreach (project_priority_keys() as $priority_key): ?>
+                    <option value="<?php echo e($priority_key); ?>"
+                        <?php echo $state_priority === $priority_key ? 'selected' : ''; ?>>
+                        <?php echo e(project_priority_label($priority_key)); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="project-filter-group">
+            <label class="project-filter-label" for="project-filter-due"><?php echo e(t('Due date')); ?></label>
+            <select id="project-filter-due" name="due"
+                    class="form-select project-filter-select">
+                <?php foreach (project_board_filter_due_options() as $due_key): ?>
+                    <option value="<?php echo e($due_key); ?>"
+                        <?php echo $state_due === $due_key ? 'selected' : ''; ?>>
+                        <?php echo e(t(project_board_filter_due_label($due_key))); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+        <div class="project-filter-actions">
+            <button type="submit" class="fd-button fd-button--primary fd-button--sm">
+                <?php echo e(t('Apply')); ?>
+            </button>
+            <?php if (project_board_filter_has($state)): ?>
+                <a href="<?php echo e($clear_url); ?>" class="project-filter-clear">
+                    <?php echo e(t('Clear')); ?>
+                </a>
+            <?php endif; ?>
+        </div>
+    </form>
+    <?php
+}
