@@ -325,6 +325,7 @@ function get_report_time_entries($template) {
             t.organization_id,
             t.hash as ticket_number,
             t.title as ticket_title,
+            t.created_at as ticket_created_at,
             t.custom_billable_rate as ticket_custom_billable_rate,
             {$ticket_tags_select}
             tt.name as ticket_type,
@@ -333,15 +334,15 @@ function get_report_time_entries($template) {
             u.last_name,
             {$user_billable_rate_select}
             u.cost_rate as user_cost_rate,
-            DATE(te.started_at) as entry_date
+            DATE(t.created_at) as entry_date
         FROM ticket_time_entries te
         INNER JOIN tickets t ON te.ticket_id = t.id
         LEFT JOIN ticket_types tt ON t.type = tt.id
         LEFT JOIN organizations o ON t.organization_id = o.id
         LEFT JOIN users u ON te.user_id = u.id
         WHERE t.organization_id = ?
-          AND DATE(te.started_at) >= ?
-          AND DATE(te.started_at) <= ?
+          AND DATE(t.created_at) >= ?
+          AND DATE(t.created_at) <= ?
     ";
     $params = [
         $template['organization_id'],
@@ -378,7 +379,7 @@ function get_report_time_entries($template) {
         }
     }
 
-    $sql .= ' ORDER BY te.started_at ASC';
+    $sql .= ' ORDER BY t.created_at ASC, te.started_at ASC';
 
     return db_fetch_all($sql, $params);
 }
