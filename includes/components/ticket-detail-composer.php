@@ -126,8 +126,8 @@
                 <?php endif; ?>
 
                 <!-- Submit row: notification on LEFT, CC + send on RIGHT -->
-                <div class="mt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-                    <div class="flex items-center gap-2 flex-wrap min-w-0">
+                <div class="mt-3 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 min-w-0">
+                    <div class="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0 flex-1">
                         <?php if (is_agent() && $time_tracking_available): ?>
                                 <?php
                                 $manual_time_credit_users = [];
@@ -354,7 +354,7 @@
                             <span><?php echo e(t('Do not send email notification')); ?></span>
                         </label>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
+                    <div class="flex items-center gap-2 flex-shrink-0 self-end md:self-auto">
                         <?php if (is_agent()): ?>
                                 <!-- CC compact -->
                                 <div class="relative" id="agent-cc-dropdown-container">

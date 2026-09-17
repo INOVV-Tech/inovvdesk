@@ -1,4 +1,4 @@
-﻿@font-face {
+@font-face {
   font-family: 'Inter';
   font-style: normal;
   font-weight: 100 900;
@@ -8413,11 +8413,12 @@ body.ticket-timeline-open {
   }
 }
 .work-time-inline {
-  display: grid;
-  grid-template-columns: max-content minmax(18rem, 24rem) 11.25rem;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.625rem;
-  flex: 0 0 100%;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: 100%;
 }
 
@@ -8441,43 +8442,57 @@ body.ticket-timeline-open {
   font-weight: 700;
   white-space: nowrap;
   color: var(--text-primary);
+  flex: 0 0 auto;
 }
 
 .work-time-inline__manual {
-  display: grid;
-  grid-template-columns: minmax(6.5rem, 8.5rem) minmax(10rem, 1fr);
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .work-time-inline__manual input {
-  width: 100%;
+  width: 5.5rem;
+  min-width: 4.25rem;
+  flex: 0 0 auto;
+}
+
+.work-time-inline__manual select {
   min-width: 0;
+  flex: 1 1 auto;
+  max-width: 14rem;
+  text-overflow: ellipsis;
 }
 
 .work-time-inline__mode {
-  width: 100%;
+  width: auto;
   min-width: 0;
+  max-width: 10.5rem;
   height: 2.25rem;
+  flex: 0 1 auto;
+  text-overflow: ellipsis;
 }
 
 .work-time-inline[data-mode='timer'] .work-time-inline__mode {
-  width: 11.25rem;
+  width: auto;
+  max-width: 10.5rem;
 }
 
 @media (max-width: 767px) {
   .work-time-inline {
-    grid-template-columns: 1fr;
-    width: 100%;
-  }
-
-  .work-time-inline__manual,
-  .work-time-inline__mode {
     width: 100%;
   }
 
   .work-time-inline__manual {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .work-time-inline__manual select,
+  .work-time-inline__mode {
+    max-width: 100%;
   }
 }
 
